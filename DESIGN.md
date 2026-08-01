@@ -6,8 +6,8 @@ Visual identity and UI system. Companion to `CONCEPT.md`, which owns *what* the 
 exclude analytics. This document owns how that flow looks. Cross-reference rather than restate, so
 the two don't drift apart.
 
-Status: first draft. Logo exists (`tickd.png`), fonts chosen, everything else open.
-Last updated: 2026-07-31
+Status: first draft. Logo exists (`tickd.png`), fonts and UI stack chosen, visual details open.
+Last updated: 2026-08-01
 
 ---
 
@@ -123,6 +123,47 @@ Modest scale, since the app has few text levels. Base 16 px, 1.25 ratio:
 
 ## 3. Colour
 
+### Themes: daisyUI `dim` (dark) and `winter` (light)
+
+**Adopt daisyUI's built-in themes rather than building a palette from scratch.** A palette needs
+light/dark × base-100/200/300 × `-content` pairs × five semantic colours — roughly 30 values with
+contrast relationships between them. daisyUI's are already contrast-checked.
+
+**Dark: `dim`.** The lowest-chroma theme in daisyUI's dark set. Three reasons specific to this app:
+
+- **Grade cells read as neutral text**, which is the one thing that must not be compromised. A
+  low-chroma background delivers that.
+- **Not pure black** — avoids OLED smearing while scrolling, and the base-100/200/300 steps give
+  elevation for free.
+- **Its muted primary leaves the semantic colour space free** for send / attempt / flash /
+  sync-pending (below). A loud theme primary would compete with those.
+
+**Light: `winter`.** Cool and low-chroma, same family as `dim`. (`night` is the fallback dark if
+`dim` feels too flat; daisyUI's own examples pair `winter` with `night`.)
+
+**Rejected: `synthwave` + `garden`.** Recorded because it was the initial instinct:
+
+- They're two unrelated palettes. Light and dark should be one brand in two lighting conditions, not
+  two brands — the primary hue would jump on toggle.
+- High saturation in dim gym lighting causes halation, worst on a deep purple base at low
+  brightness on OLED.
+- Neon pink and cyan around the grade grid is chromatic noise exactly where precision matters.
+- Colour must not compete with circuit semantics (below), and synthwave is maximally colourful.
+- Pink on deep purple likely fails WCAG AA for body text.
+
+**If more personality than `dim` is wanted, `dracula` is the compromise** — synthwave's purple/pink
+family at a fraction of the saturation. Keeps the feel without the legibility cost.
+
+**Tuning later, not now.** Once the logo hexes are sampled, override two or three values and let the
+rest inherit:
+
+```css
+@plugin "daisyui/theme" { name: "dim"; --color-primary: <slate>; }
+```
+
+Extra themes can also simply be enabled — the token-based approach supports many, so `synthwave`
+could ship as an opt-in without affecting the default experience.
+
 ### Brand palette, sampled from the logo
 
 **Estimated by eye — verify with a colour picker against `tickd.png` before committing.**
@@ -209,8 +250,18 @@ less surprising. Worth trying both.
 
 ### After the grade
 
-`protection` and `send_style` (`CONCEPT.md` §7.4). Defaults do the work: `lead` and the last-used
-`send_style`, so the steady-state path really is grade → confirm.
+`protection`, `send_style` and `prior_experience` (`CONCEPT.md` §7.4). Defaults do the work — `lead`,
+plus a fixed `flash` and `prior_experience = none` — so the steady-state path really is grade →
+confirm.
+
+**The `send_style` default is fixed, not last-used.** Sticky defaults are fine for `protection`, where
+a wrong value is visible on screen, but a sticky `redpoint` silently relabels every subsequent tick,
+and that corrupts flash rate rather than merely being untidy (`CONCEPT.md` §4.2, D14).
+
+**`prior_experience` needs permanent screen space, changeable in one tap** — never behind progressive
+disclosure. A repeat mislabelled as a first encounter adds a phantom flash at an easy grade, so this
+field earns room in a way `notes` and `rating` do not. Its three values are effectively the second tap
+whenever the climb wasn't a flash.
 
 No onsight option indoors (§6 of the concept). Boulder switches `protection` to `none` and hides
 the control entirely.
@@ -224,6 +275,10 @@ notice the mistake after your next climb. Suggestion: the last few ticks stay vi
 the logging screen, each swipeable to delete. That serves as undo, confirmation, and session review
 at once, with no extra screen.
 
+Each row must show what was actually recorded — grade, `protection`, `send_style` and
+`prior_experience` — not just the grade. Defaults do most of the logging, so the list is the only
+place a wrong default becomes visible while you are still standing in front of the wall.
+
 ### Empty states
 
 Day one has no data at all, and the flash-rate view needs weeks of ticks before it says anything.
@@ -232,25 +287,168 @@ nothing on it.
 
 ---
 
-## 6. Tokens
+## 6. Component library: Tailwind + daisyUI + Base UI
 
-Design values live as CSS custom properties on `:root`, overridden in a `[data-theme="dark"]` block.
-Single source of truth, consumable by any component, and trivially themeable.
+**Decision: Tailwind CSS + daisyUI for appearance, Base UI for behaviour. From Phase 0. No MUI.**
 
-Naming: `--{category}-{role}`, e.g. `--color-bg-primary`, `--space-3`, `--text-h2`,
-`--radius-card`.
+Package name is **`@base-ui/react`**. The old `@base-ui-components/react` is deprecated, but nearly
+every 2025 blog post and LLM-generated snippet still uses it — expect to correct that constantly.
+
+MUI was the initial plan, alongside borrowing daisyUI's themes. Those two don't compose: MUI themes
+are a **JS object** (`createTheme`, Emotion CSS-in-JS), daisyUI themes are **CSS custom properties**
+(OKLCH in v5). Using MUI would mean hand-porting OKLCH values into a JS palette and re-deriving every
+`-content` pairing — real work to produce a worse version of what daisyUI gives natively.
+
+Reasons beyond the theming:
+
+- **Phase 0 is almost entirely custom.** Logging screen, session list, venue picker, one chart,
+  settings. MUI's value density is in complex forms and data tables, of which there are none here.
+- **Bundle size is install size.** The service worker precaches everything before first use, so
+  weight is paid up front. MUI + Emotion is substantially heavier than purged Tailwind.
+- **Material's visual language fights the brand.** Poppins/Lato and a muted slate identity aren't
+  Material; effort would go into suppressing ripples, elevation and MUI's type scale. Its default
+  touch targets are also smaller than the 48–56 px specified in §4.
+
+### Why a headless library at all
+
+daisyUI is **CSS only**. Its `modal`, `dropdown` and `select` make things *look* right, but there's no
+JavaScript — interactivity relies on the checkbox hack and `:focus-within`. What's missing is
+behaviour: the laborious, invisible, accessibility-critical part.
+
+- **Collision-aware positioning.** The strongest reason, ahead of accessibility. daisyUI's dropdown is
+  CSS-positioned and will happily render off-screen — a real problem on a phone, near the bottom edge,
+  in a thumb-reachable layout. Base UI bundles `@floating-ui/react-dom`.
+- **Focus management.** On open, focus must move inside, stay trapped, and return to the trigger on
+  close. CSS cannot do this; without it you tab straight into the page behind.
+- **Dynamic ARIA** — `aria-expanded`, `aria-activedescendant`, `role="dialog"`. Static classes don't
+  update with state.
+- **Keyboard patterns** — arrows, Home/End, typeahead, Escape. Each specified in the ARIA Authoring
+  Practices Guide, each fiddly.
+- **Scroll locking** that doesn't make iOS Safari jump, and portals to escape `overflow: hidden`.
+
+**From Phase 0 rather than later**, because retrofitting costs more than adopting. Building dialogs on
+native `<dialog>` and swapping later means rewriting them; one pattern throughout is worth real money
+on a solo project.
+
+### Why Base UI specifically
+
+**It's the same people.** The repo describes itself as "from the creators of Radix, Floating UI and
+Material UI" — the original Radix engineers now build this at MUI. 1.0 shipped December 2025, current
+is 1.6.0 (June 2026) with roughly monthly releases, and **shadcn/ui switched its default to Base UI in
+July 2026**.
+
+Three reasons that matter for this project:
+
+- **Identical Tailwind ergonomics to Headless UI.** State is exposed as boolean data attributes, so
+  you write bare variants (`data-open:`, `data-closed:`) rather than the verbose
+  `data-[state=open]:` that Radix and Ark UI require. Enter/leave transitions use
+  `data-starting-style` / `data-ending-style`, which means **no `<Transition>` wrapper component** —
+  it's plain CSS, which suits Tailwind better.
+- **Drawer is built in.** §4 requires thumb-reachable one-handed use and §5 specifies a bottom sheet
+  for tick detail. Headless UI has no Drawer; you'd build it from `Dialog` yourself.
+- **Per-component subpath exports** (`@base-ui/react/dialog`) give real tree-shaking, which matters
+  when a service worker precaches the whole bundle before first use.
+
+### The division of labour — one rule
+
+**Base UI owns behaviour and structure. daisyUI owns appearance.**
+
+This matters because the two overlap: daisyUI's `dropdown`, `modal`, `select` and `tabs` are CSS
+implementations of the same components. Mixing them means fighting two state and positioning systems.
+
+- Use daisyUI's **skin** classes: `btn`, `modal-box`, `menu`, `tabs`, `tab`, `toggle`, `select`,
+  `card`, `input`.
+- Avoid daisyUI's **behavioural** classes: `.dropdown`, `.modal`'s open-state classes, `.collapse`.
+  Base UI owns that state.
+
+### Two gotchas specific to this pairing
+
+**Put `data-theme` on `<html>`, never on a subtree.** Dialogs, drawers and popovers render through a
+portal, outside the React root — so a theme scoped to an inner element silently doesn't apply to them.
+This is the trap in this exact stack.
+
+**Package name is `@base-ui/react`**, not the deprecated `@base-ui-components/react`. See §6 opening.
+
+### Expected usage
+
+| Surface | Component |
+|---|---|
+| **Grade grid** | **Plain `<button>`s.** The one place a library is actively wrong — 27 buttons need no managed state, and there's no grid primitive anyway. |
+| Tick-detail bottom sheet | `Drawer` |
+| Confirm / delete | `Dialog` |
+| Venue picker | `Combobox` (a filtered list in Phase 0 with two venues; grows into a real combobox) |
+| Settings — theme, default `protection` | `Select`, `Switch` |
+| `protection` / `send_style` | `RadioGroup`, or native radios in a `<fieldset>` — native is genuinely fine here and lighter |
+| Boulder / rope toggle, analytics views | `Tabs` |
+| Undo / sync feedback | `Toast` |
+
+Enter/leave animation is CSS via `data-starting-style` / `data-ending-style` — no wrapper component.
+
+**The one thing that would reverse the daisyUI decision:** if utility-class authoring is unpleasant to
+work in. This project's largest risk is not finishing it, so day-to-day enjoyment is a legitimate
+criterion, and MUI is a nicer daily experience for some people.
+
+### Tokens
+
+daisyUI already exposes theme values as CSS custom properties, so there's no separate token layer to
+invent for colour. Add project-specific tokens (type scale, spacing, touch-target sizes) as custom
+properties on `:root` alongside them.
+
+Naming: `--{category}-{role}`, e.g. `--text-h2`, `--space-3`, `--tap-primary`.
 
 If this grows, promote it to `packages/tokens/` in the monorepo alongside `grade-spec`
-(`CONCEPT.md` §8.7) and generate the CSS from a spec file. Not worth it yet.
+(`CONCEPT.md` §8.7). Not worth it yet.
 
 ---
 
 ## 7. Open questions
 
-1. **Exact hex values** — sample `tickd.png` with a picker; §3 is estimated by eye.
+1. **Exact hex values** — sample `tickd.png` with a picker, then override two or three daisyUI theme
+   values (§3). The brand-palette table is estimated by eye.
 2. **Dark-mode logo treatment** — invert the climber, or lighten the `k`?
 3. **Grade grid direction** — easiest at the bottom or the top?
 4. **`protection` iconography** — lead / toprope / auto-belay need three glyphs that read at 24 px.
    Rope-and-quickdraw versus rope-over-anchor versus a coiled auto-belay? Needs sketching.
 5. **Does the logo need an SVG redraw?** If `tickd.png` is raster-only with no vector source, the
    icon set will need redrawing regardless — which is also the moment to fix the small-size contrast.
+
+---
+
+## Reference: headless library comparison
+
+Verified July 2026. Kept because the maintenance findings are the kind of thing that goes stale and is
+worth re-checking rather than re-researching from scratch.
+
+| Library | Version / health | Coverage for this project | Tailwind ergonomics |
+|---|---|---|---|
+| **Base UI** — chosen | 1.6.0 (Jun 2026), 1.0 Dec 2025, ~monthly releases, ~6M weekly downloads | Complete, plus **Drawer**, Autocomplete, Toast | `data-open` as a bare variant; `data-starting-style` for transitions |
+| **Ark UI** | 5.37.2, frequent releases, only ~13 open issues — best maintenance signal | Complete, plus Drawer, ~55 components | Verbose `data-[state=open]:` |
+| **Headless UI** | 2.2.10, but **patch-only for 21 months** | Complete for this list exactly, no Drawer | `data-open` — best, tied with Base UI |
+| **Radix Primitives** | Stewardship moved to WorkOS; meta package stuck since Aug 2025 | **No Combobox** (open since 2022) | Verbose `data-[state=open]:` |
+| **React Aria Components** | 1.19.0, active | Complete | Official plugin; render-prop style |
+
+### Why Headless UI was dropped after initially being chosen
+
+It was the first choice, on the reasonable grounds that daisyUI officially documents the pairing and
+it has the best Tailwind ergonomics. The comparison then surfaced the problem: **the last feature
+release was 2.2.0 in October 2024**, followed by 21 months of patch-only releases. The gap from 2.2.9
+(September 2025) to 2.2.10 (April 2026) contained the *only* release in about ten months, and it was
+two bugfixes. Maintainers state there is no roadmap — components ship when Tailwind Plus needs them —
+and the Vue package is effectively abandoned.
+
+Not broken, and arguably still fine given that its component set covers this project exactly. But Base
+UI offers the same Tailwind ergonomics, a Drawer, better tree-shaking and active development, so
+there's nothing to trade away.
+
+### Also considered
+
+- **React Aria Components** has the best touch, screen-reader and internationalisation story of the
+  group — worth revisiting if accessibility becomes a priority. It's a single flat package pulling
+  `react-aria`, `react-stately` and `@internationalized/date`, so it's unambiguously the heaviest,
+  which is the wrong trade for a precached PWA.
+- **Ariakit** is a mature React-only option with a strong Combobox, but the smallest ecosystem.
+- **shadcn/ui** is not a headless library — it's styled components built on Base UI (as of July 2026;
+  previously Radix). It would compete with daisyUI rather than complement it.
+
+Bundle-size figures for these libraries are mostly undocumented; treat any number found in listicles
+as directional only.

@@ -4,7 +4,7 @@
 secondary.
 
 Status: shaping. Nothing built yet.
-Last updated: 2026-07-31
+Last updated: 2026-08-01
 
 The main body describes the current design only. Reasoning that was argued through and changed
 along the way is in the **[Decision log](#decision-log)** at the end, so the design reads cleanly
@@ -27,6 +27,7 @@ without losing the history.
 | **Hosting** | Cloud Run `europe-north1` (Hamina, FI), scale-to-zero, + Neon. ~€0, fully managed. |
 | **Auth** | OAuth2 only, Google first. No password storage. Backend-for-frontend pattern. |
 | **Repo** | Monorepo. pnpm workspaces + Gradle. |
+| **Distribution** | Web first. A Play Store listing via TWA stays possible but uncommitted (§10). |
 | **Goal** | Build it well and use it. Not a job-hunting artifact — so no infrastructure for show. |
 | **Priorities** | Fast logging → progression analytics → projecting → social. In that order. |
 
@@ -109,15 +110,19 @@ than the exception. Undo must be instant and always visible.
 ## 4. Feature pillars
 
 ### 4.1 Fast logging
-Sessions, ticks, offline queue, optional detail, instant undo. Style is recorded as two orthogonal
-fields, `protection` and `send_style` (§7.4). Values follow community convention so the data stays
-portable. Repeats are flagged and excluded from pyramids.
+Sessions, ticks, offline queue, optional detail, instant undo. Style is recorded as three orthogonal
+fields — `protection`, `send_style` and `prior_experience` (§7.4). Values follow community convention
+so the data stays portable. Repeats are derived from `prior_experience = sent` and excluded from
+pyramids.
 
 ### 4.2 Progression analytics
 
 - **Flash rate by grade** — the flagship metric, and the honest version of "what grade do you
   climb": the grade where your flash rate crosses ~50% is your real level. No existing app
-  surfaces it well.
+  surfaces it well. Defined as **flashes ÷ first encounters** (`prior_experience = none`),
+  *including* the first encounters you never sent — dividing by sends instead is biased upward at
+  exactly the limit grade the metric exists to locate (D14). Shown with its raw counts
+  (`7a — 1/10`); you read the crossing yourself rather than being handed a headline grade.
 - **Segment, never exclude.** Every metric breaks down by `protection` (lead / toprope /
   auto-belay) *and* `send_style`, with lead as the default view. Auto-belay laps get their own
   numbers rather than being hidden or discounted — aggregating across categories is what misleads,
@@ -201,6 +206,9 @@ Gym partnerships, on the TopLogger model where gyms pay and climbers don't. This
 *additive*: tickd already works without gym cooperation, so a partnership adds route lists and
 leaderboards rather than being a precondition for anything.
 
+A Google Play listing (§10) sits here at the earliest. It carries an annual maintenance tax rather
+than a one-off cost, and it is the *public product* half of §1's never-both-at-once.
+
 **Explicitly not planned:** outdoor guidebook data, in any form, from any source.
 
 ---
@@ -247,7 +255,7 @@ So `route` and `ascent` collapse into a single `tick` table:
 ```
 tick { venue_id: <gym>, sector: '4',
        discipline: 'sport', grade_raw: '6c+', grade_scale: 'french',
-       protection: 'lead', send_style: 'flash', is_repeat: false,
+       protection: 'lead', prior_experience: 'none', send_style: 'flash',
        is_send: true, date_local: today }
 ```
 
@@ -258,7 +266,7 @@ Two taps. Nothing created, nothing matched, nothing to get wrong.
 - **You already know whether you've climbed it before.** You're standing in front of the wall.
   Flash-versus-redpoint was always a self-report — the app never verified it and never could.
 - **None of the analytics need route identity.** Pyramid, flash rate, volume and style breakdown
-  all compute from `(grade, protection, send_style, date)` on the tick.
+  all compute from `(grade, protection, send_style, prior_experience, date)` on the tick.
 - **Identity only matters for projects, and that's exactly where you'll happily name things.** The
   overwhelming majority of indoor ticks are one-offs you'll never revisit.
 - **Your history survives routes being stripped**, trivially. Almost every route you've climbed
@@ -311,20 +319,35 @@ data-model one.
 Deferred: Finnish sport/trad, Scandinavian and UIAA matter only for outdoor. V-scale and YDS stay
 display-only conversions. The model supports them all; the UI ships French and Font.
 
-### 7.4 Style needs two fields, not one
+### 7.4 Style needs three fields, not one
 
-A flat 8a.nu-style enum (`onsight | flash | redpoint | second_go | toprope | repeat`) conflates two
-independent questions, and forces `toprope` into the same slot as `flash` — so you cannot
-distinguish a toprope flash from a toprope redpoint. Indoors, lead-versus-toprope is the *primary*
-quality axis, so that throws away the most interesting signal in the data.
+A flat 8a.nu-style enum (`onsight | flash | redpoint | second_go | toprope | repeat`) conflates three
+independent questions — how you were protected, how the send went, and what you had climbed before —
+and forces `toprope` into the same slot as `flash`, so you cannot distinguish a toprope flash from a
+toprope redpoint. Indoors, lead-versus-toprope is the *primary* quality axis, so that throws away the
+most interesting signal in the data.
 
 ```
-protection   lead | toprope | autobelay | none      -- none = boulder
-send_style   onsight | flash | redpoint | second_go
-is_repeat    boolean
+protection        lead | toprope | autobelay | none       -- none = boulder
+send_style        onsight | flash | redpoint | second_go  -- null when is_send = false
+prior_experience  none | attempted | sent                 -- history before this tick's first go
 ```
 
 `protection = none` cleanly separates bouldering from rope without a second discipline check.
+
+**`prior_experience` replaces an `is_repeat` boolean, and the third value is the point of it.** A
+boolean can say "I had sent this before" but not "I had tried this before and never sent it" — which
+is simultaneously the project case (§4.3) and the denominator of flash rate (§4.2). The three-value
+field also makes the contradictory state unrepresentable rather than merely discouraged: a repeat you
+have never touched cannot be expressed. `is_repeat` is derived as `prior_experience = sent`.
+
+It is read relative to **the first go this tick records**. A route you had never touched, that took
+four goes this afternoon and that you logged as one redpoint row, is `prior_experience = none`.
+
+Two combinations are invalid and the UI must make them unreachable: `send_style` of `flash` or
+`onsight` requires `prior_experience = none` — you cannot flash something you have already touched —
+and `send_style` is null exactly when `is_send = false`. The first is what stops flash rate's
+numerator exceeding its denominator.
 
 ### 7.5 Venues: curated list plus user submissions
 
@@ -388,8 +411,8 @@ tick         id, session_id, venue_id,
              discipline(boulder|sport|trad),
              grade_raw, grade_scale,
              protection(lead|toprope|autobelay|none),
-             send_style(onsight|flash|redpoint|second_go),
-             is_repeat,
+             send_style(onsight|flash|redpoint|second_go)?,  -- null when is_send = false
+             prior_experience(none|attempted|sent),
              is_send,                                   -- false = attempt only
              attempts?, high_point?, grade_opinion?, rating?, notes?,
              length_m?,                                 -- else venue default
@@ -421,8 +444,12 @@ tick         ... project_id?
   climbed it — but without an instant you cannot order ticks within a session or compute session
   duration. Store all three.
 - **`is_send` replaces a separate `attempt` table.** An attempt is a tick you didn't send: same
-  shape, one boolean. Pyramids and flash rate filter `is_send = true`; projecting reads the rest.
-  Phase 0 therefore captures attempts for free, even though the projecting *views* are Phase 2.
+  shape, one boolean. Pyramids filter `is_send = true`; projecting reads the rest. Phase 0 therefore
+  captures attempts for free, even though the projecting *views* are Phase 2.
+- **Flash rate deliberately does *not* filter `is_send = true`.** Its denominator is every first
+  encounter (`prior_experience = none`), and the ones you walked away from are precisely what make
+  the number honest (§4.2, D14). This is the one metric where attempt rows carry weight — which is
+  the real reason attempt capture belongs in Phase 0 rather than waiting for the Phase 2 views.
 - **`venue.default_route_length_m` makes vertical metres free.** Set it once per gym and every
   tick contributes to the volume metric with no extra input. Per-tick `length_m` overrides it.
 - **`device_id`, `schema_version` and `visibility` arrive in Phase 1.** They exist for sync and
@@ -438,6 +465,7 @@ tick         ... project_id?
 | Layer | Choice | Why |
 |---|---|---|
 | Frontend | React + Vite + TypeScript | Best PWA tooling. SvelteKit is a fine alternative. |
+| UI | Tailwind + daisyUI + Base UI | daisyUI for appearance, Base UI for behaviour. Themes come free. See `DESIGN.md` §6. |
 | Local store | **Dexie (IndexedDB)** | Client source of truth. Reads never touch the network. |
 | PWA | Vite PWA plugin / Workbox | App shell precached, offline by default. |
 | Charts | uPlot or Recharts | Pyramids and trends. |
@@ -652,6 +680,11 @@ Preview, serves TLS 1.0/1.1) and the ~€17/month global load balancer that is t
 would cost more than the rest of the stack combined. Add a custom domain only when there are real
 users, and price the load balancer in then.
 
+**One thing would force that decision earlier and permanently: a Play Store listing.** The origin is
+baked into every published APK, so it must be settled before the first one ships rather than when
+users appear — see §10.2, which also concludes that the answer is Cloudflare rather than the load
+balancer priced above.
+
 ### 9.4 Backups
 
 Neon handles base backups and restore, but **the free plan's restore history is only 6 hours**,
@@ -712,7 +745,114 @@ count grows past what you can hold in your head.
 
 ---
 
-## 10. Risks
+## 10. Distribution
+
+**The PWA is the product. A Play Store listing is a channel for the same artifact, not a second
+app.** That framing is what keeps the option cheap: a Trusted Web Activity adds no codebase, so
+"maybe later" costs nothing today provided three things stay true (§10.5).
+
+Nothing here is committed. The section exists so the option isn't foreclosed by accident — and
+because one of its preconditions contradicts a decision already taken in §9.3.
+
+### 10.1 The path: TWA via Bubblewrap
+
+A **Trusted Web Activity** is an Android shell that renders your PWA in the user's installed Chrome
+with no browser UI. The APK is roughly 800 kB, because it ships no rendering engine of its own — it
+is a pointer at an origin. `bubblewrap` (Google Chrome Labs) generates and signs the project.
+
+Its requirements are things the app needs regardless: an HTTPS origin, a web manifest, and a
+registered service worker passing Chrome's minimum installability criteria.
+
+**No second codebase, and no second release process for the product.** A web deploy updates the
+Play build too, since the APK only points at the origin. The Android artifact needs rebuilding for
+platform reasons (§10.3), never for feature work.
+
+### 10.2 The custom domain is the real precondition
+
+TWA proves you own the site it renders by fetching `/.well-known/assetlinks.json` from **the origin
+baked into the APK**. That single fact collides with §9.3.
+
+§9.3 chose the free `*.run.app` URL and deferred a custom domain until there are real users. **TWA
+inverts that ordering.** Once an APK is published the origin is permanent: every install points at
+it, and moving hosts means the asset-links file moves with them and every installed app breaks. You
+cannot publish on a throwaway origin and tidy it up afterwards — and
+`tickd-123456789.europe-north1.run.app` is not a URL to be married to.
+
+**The answer is Cloudflare in front of Cloud Run**, which §9.5 already identified as the escape
+hatch if egress ever grew:
+
+- Free plan, managed TLS, a custom domain, and zero egress to users.
+- **It preserves a single origin**, so §8.6's cookie session keeps working unchanged — the
+  constraint that rules out most alternatives.
+- Cost is domain registration, roughly €10–15/year. Nothing else in §9 changes.
+
+Both GCP-native options are worse. **Cloud Run domain mapping is still Preview in 2026** — not
+supported at GA, documented as not production-ready on latency grounds, and limited to a subset of
+regions. The **global external Application Load Balancer** is the recommended production route at
+~€17/month, more than the rest of the stack combined.
+
+Serve `assetlinks.json` from the exact origin in the manifest, as `application/json`, with no
+redirect. An apex-to-`www` redirect, or the reverse, is enough to fail verification.
+
+### 10.3 The Play Console friction is not technical
+
+This is what actually decides whether a listing happens, and none of it is code.
+
+- **$25, one-time**, for the developer account.
+- **Twelve testers, fourteen consecutive days.** Personal accounts created after 13 November 2023
+  must run a closed test with at least 12 opted-in testers for 14 continuous days before applying
+  for production access — reduced from 20 testers on 11 December 2024; organisation accounts and
+  older personal accounts are exempt. Testers have to genuinely opt in and stay opted in, and
+  dropping below 12 resets the window. A gym friend group is about the right size, which is
+  convenient, but this is why publishing is not a quiet solo afternoon.
+- **Your name and country become public.** The widely-circulated warnings about home addresses on
+  Play apply to developers offering in-app purchases. tickd doesn't and won't, so this stays at
+  name and country.
+- **A privacy policy URL and a Data safety declaration are required.** With OAuth identities,
+  emails and venue geolocation in the data these have to be real rather than boilerplate — but it
+  is the same work as the GDPR obligations already owned in §8.2, not additional work.
+- **The target-API treadmill is the recurring cost.** Play requires new apps and updates to target
+  Android 16 (API 36) from **31 August 2026**, with extensions available to 1 November 2026, and
+  the bar rises annually. A published TWA therefore needs rebuilding and resubmitting roughly once
+  a year even when the web app hasn't changed; miss it and the listing stops being offered to new
+  users. **That annual tax, not the $25, is the real price of a listing** — and it is a poor trade
+  for an app nobody has asked for yet.
+
+  Note that Bubblewrap's template was still on `targetSdkVersion 35` in mid-2026 with the deadline
+  approaching, so "just regenerate" may not be sufficient. Check the template's target level rather
+  than assuming it.
+
+### 10.4 Two traps specific to this stack
+
+**Play App Signing re-signs your APK, and the fingerprint in `assetlinks.json` must match the
+re-signed key** — the SHA-256 from Play Console → Setup → App integrity, not the one from your local
+keystore. Getting this wrong **fails silently**: the app launches with a browser address bar instead
+of full-screen, which reads as a styling bug rather than a verification failure. It is the single
+most common TWA defect. List both fingerprints while testing.
+
+**First launch requires network, and offline-first does not save you.** The service worker can only
+precache after one successful fetch, so §3's "offline is a requirement" protects every launch except
+the first. Someone who installs from Play in a gym basement gets nothing. Not worth an architecture
+change — worth knowing before blaming the service worker.
+
+### 10.5 What changes now: nothing
+
+No work in Phase 0–2, and a listing belongs with Phase 3 or 4 at the earliest, being the *public
+product* half of §1's never-both-at-once.
+
+Three things keep the option open, and all three are already required for other reasons:
+
+1. **Keep passing installability criteria** — manifest, service worker, and the icon set in
+   `DESIGN.md` §1, whose maskable and `apple-touch-icon` assets are the ones a TWA needs anyway.
+2. **Stay single-origin** — §8.6 already requires it for cookie auth.
+3. **Buy the domain before publishing, not after** (§10.2).
+
+Explicitly not planned: Play Billing and the Digital Goods API (nothing is sold), Play-delivered
+push notifications, and any native plugin bridge.
+
+---
+
+## 11. Risks
 
 | Risk | Mitigation |
 |---|---|
@@ -730,19 +870,24 @@ count grows past what you can hold in your head.
 | Route data legality (the Kaya trap) | Structurally impossible — tickd holds no route data (§7.2), and outdoor guidebook data is never planned (§5). |
 | Social cold start | Phase 3, friend-group seeded (§4.4). |
 | Photo/video storage cost | Local-first, aggressive compression, stays optional. |
+| Play listing published on a throwaway origin | The origin is baked into every install. Decide the domain before the first APK, never after (§10.2). |
+| Play listing goes stale and is delisted | An annual target-API rebuild is the standing cost of a listing. Accept it deliberately or don't publish (§10.3). |
 
 ---
 
-## 11. Open questions
+## 12. Open questions
 
 1. **Which Kiipeilyareena site**, and wall heights at both gyms? Needed for the seed rows and the
    vertical-metres metric.
 2. **Does Tampereen Kiipeilykeskus also grade boulders in Font?** Kiipeilyareena does. If Tampere
    differs, `default_grade_scale` must be per-discipline per-venue rather than a single field.
+3. **iOS and the App Store?** TWA is Android-only by construction, so §10 says nothing about iOS.
+   Reaching it would mean Capacitor or similar — a second build target with a plugin bridge, which
+   would also close the iOS haptics gap in `DESIGN.md` §4. Not planned, and not answered (D15).
 
 ---
 
-## 12. Next step
+## 13. Next step
 
 Write the Phase 0 spec: screen-by-screen, the logging flow for rope *and* boulder, the Dexie schema
 for `venue` / `session` / `tick`, the French and Font grade specs, and seed rows for both gyms. Then
@@ -789,7 +934,7 @@ and the gyms in question don't use colours as identifiers.
 The resolution was to stop inferring. You already know whether you've climbed something — you're
 standing in front of it — and flash-versus-redpoint was always a self-report the app could never
 verify. None of the analytics ever needed route identity; they compute from
-`(grade, protection, send_style, date)`.
+`(grade, protection, send_style, prior_experience, date)`.
 
 **An earlier claim in this document was wrong:** that route identity had to exist from day one or
 retrofitting would be painful. For indoor that was simply incorrect, since indoor routes should
@@ -860,7 +1005,8 @@ outdoors.
 `onsight | flash | redpoint | second_go | toprope | repeat`.
 
 **Decided:** split into `protection` (lead / toprope / autobelay / none) and `send_style` (onsight /
-flash / redpoint / second_go), plus an `is_repeat` flag.
+flash / redpoint / second_go), plus a repeat flag — later widened to the three-value
+`prior_experience` (D14).
 
 The flat enum forces `toprope` into the same slot as `flash`, so a toprope flash and a toprope
 redpoint are indistinguishable. Indoors, lead-versus-toprope is the *primary* quality axis, so that
@@ -996,6 +1142,61 @@ logs and a documented cost model — all of which are demonstrable on a €6 VPS
 |---|---|---|---|
 | Phase 0 | "a few weeks" | ~4–6 weeks | Grew with durability work and five grade scales, then shrank further as D2/D3/D5/D7 removed the route entity, dedup, migrations, backups and three scales. |
 | Phase 1 | ~4–6 weeks | ~6–8 weeks | Owning auth and hosting (D9) added more than managed hosting (D8) removed. Sync is 2–3 weeks of it. |
+
+### D14 — Flash rate divides by first encounters, not by sends
+
+**Considered:** the denominator this document originally specified in §7.7 — "pyramids and flash rate
+filter `is_send = true`" — making flash rate *flashes ÷ sends at that grade*.
+
+**Decided:** *flashes ÷ first encounters*, where a first encounter is any tick with
+`prior_experience = none`, sent or not.
+
+**The sends-only filter is biased upward exactly where the metric is read.** Ten different 7a's — one
+flashed, one redpointed after three goes, eight abandoned without ever sending — gives 1 ÷ 2 =
+**50%**, reading as "7a is your level", against a true 1 ÷ 10 = **10%**. Easy grades are barely
+affected, since nearly everything you get on there is a send, so the curve flattens at the top and
+pushes the 50% crossing upward. That crossing is the one number the metric exists to locate, so the
+flagship analytic was measuring itself wrong.
+
+Counting attempt *rows* instead fails in the other direction — those eight routes might be twenty
+attempt rows, giving 4.5% — and grouping rows by `(date, venue, sector, grade)` to approximate
+"routes" miscounts both ways: one route worked over three sessions becomes three failures, while
+three different 7a's failed in one session in one sector collapse to one. It would also quietly
+reintroduce, in the analytics layer, the identity inference D2 removed from the data model.
+
+**The fix is D2's own argument applied to analytics: stop inferring and ask.** You know whether you
+have touched a route before, because you are standing in front of it. Recording that as
+`prior_experience` gives an exact denominator with no route entity, no grouping heuristic and no
+dedup — and it subsumes the repeat flag from D6 rather than adding a field alongside it.
+
+**What this changed:** the repeat boolean became `prior_experience`; `send_style` became nullable,
+since it is meaningless on an attempt; the §7.7 note about filtering `is_send = true` was corrected;
+and `DESIGN.md` §5 lost its last-used `send_style` default, because a sticky `redpoint` would
+silently relabel every subsequent tick and corrupt the flagship metric rather than merely being
+untidy.
+
+### D15 — Play Store is a channel, not a rewrite
+
+**Considered:** a native Android app; Capacitor wrapping both stores; a TWA; no store presence at
+all.
+
+**Decided:** a TWA if and when a listing happens, and no commitment now (§10).
+
+A native app contradicts the whole local-first PWA architecture and would mean maintaining the
+logbook twice. **Capacitor is the serious alternative:** it wraps any HTTPS URL in its own bundled
+WebView — ~4 MB against a TWA's ~800 kB — and adds a plugin bridge, which buys the App Store and
+native APIs, including the iOS haptics that `DESIGN.md` §4 currently records as unavailable. That
+is a real advantage, but it costs a second build target and a second store relationship for a
+product with no users, so it is the right thing to revisit if iOS distribution ever becomes a goal
+rather than the right thing to choose now.
+
+**The finding that matters is that the wrapper is not the binding constraint.** The two things that
+decide whether a listing is worth having — a permanent custom domain fixed *before* publication
+(§10.2), and an annual target-API rebuild for as long as the listing exists (§10.3) — apply
+identically to every option on the list. Choosing TWA is the easy part; the cost is elsewhere.
+
+**What this changed:** §9.3's "add a custom domain only when there are real users" gained an
+exception, since a Play listing forces the decision earlier and makes it irreversible.
 
 ### A note on cost estimates in this document
 
