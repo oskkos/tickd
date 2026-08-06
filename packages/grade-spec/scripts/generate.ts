@@ -22,8 +22,15 @@ const PACKAGE_ROOT = join(HERE, '..');
 const SPEC_PATH = join(PACKAGE_ROOT, 'scales.yaml');
 const OUTPUT_PATH = join(PACKAGE_ROOT, 'src', 'generated', 'scales.ts');
 
-type ScaleDefinition = { count: number; labels: string[] };
-type Spec = { version: number; scales: Record<string, ScaleDefinition> };
+interface ScaleDefinition {
+  count: number;
+  labels: string[];
+}
+
+interface Spec {
+  version: number;
+  scales: Record<string, ScaleDefinition>;
+}
 
 class SpecError extends Error {}
 
@@ -31,57 +38,74 @@ function fail(message: string): never {
   throw new SpecError(message);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isArray(value: unknown): value is readonly unknown[] {
+  return Array.isArray(value);
+}
+
 /**
- * Every check here exists because the failure it catches is otherwise silent in the generated
- * output.
+ * Narrows the parsed YAML from `unknown` rather than asserting a shape and checking it afterwards —
+ * an assertion would make every guard below look redundant to the type checker while leaving the
+ * runtime just as exposed.
+ *
+ * Every check exists because the failure it catches is otherwise silent in the generated output.
  */
 function validate(raw: unknown): Spec {
-  if (typeof raw !== 'object' || raw === null) {
-    fail('scales.yaml did not parse to an object');
+  if (!isRecord(raw)) {
+    fail('scales.yaml did not parse to a mapping');
   }
-  const spec = raw as Partial<Spec>;
 
-  if (typeof spec.version !== 'number' || !Number.isInteger(spec.version)) {
+  const version = raw.version;
+  if (typeof version !== 'number' || !Number.isInteger(version)) {
     fail('`version` must be an integer');
   }
-  if (typeof spec.scales !== 'object' || spec.scales === null) {
+
+  const rawScales = raw.scales;
+  if (!isRecord(rawScales)) {
     fail('`scales` must be a mapping of scale id to definition');
   }
 
-  const ids = Object.keys(spec.scales);
+  const ids = Object.keys(rawScales);
   if (ids.length === 0) {
     fail('`scales` is empty');
   }
+
+  const scales: Record<string, ScaleDefinition> = {};
 
   for (const id of ids) {
     if (!/^[a-z][a-z0-9_]*$/.test(id)) {
       fail(`scale id "${id}" must be lower snake case — it becomes a TypeScript literal type`);
     }
-    const definition = spec.scales[id];
-    if (typeof definition !== 'object' || definition === null) {
-      fail(`scale "${id}" must be an object with \`count\` and \`labels\``);
-    }
-    const { count, labels } = definition as Partial<ScaleDefinition>;
 
-    if (!Array.isArray(labels)) {
+    const definition = rawScales[id];
+    if (!isRecord(definition)) {
+      fail(`scale "${id}" must be a mapping with \`count\` and \`labels\``);
+    }
+
+    const rawLabels = definition.labels;
+    if (!isArray(rawLabels)) {
       fail(`scale "${id}" has no \`labels\` list`);
     }
-    if (labels.length === 0) {
+    if (rawLabels.length === 0) {
       fail(`scale "${id}" has an empty \`labels\` list`);
     }
 
     // The reason every label is quoted in the YAML: `4` and `5` parse as integers otherwise, and a
     // coerced label is indistinguishable from a correct one downstream.
-    labels.forEach((label, index) => {
+    const labels = rawLabels.map((label, index) => {
       if (typeof label !== 'string') {
         fail(
           `scale "${id}" label at index ${String(index)} is ${typeof label}, not a string — ` +
             `quote it in scales.yaml (got ${JSON.stringify(label)})`,
         );
       }
-      if (label !== label.trim() || label.length === 0) {
-        fail(`scale "${id}" label ${JSON.stringify(label)} has surrounding whitespace or is empty`);
+      if (label.length === 0 || label !== label.trim()) {
+        fail(`scale "${id}" label ${JSON.stringify(label)} is empty or has surrounding whitespace`);
       }
+      return label;
     });
 
     const duplicates = labels.filter((label, index) => labels.indexOf(label) !== index);
@@ -91,6 +115,7 @@ function validate(raw: unknown): Spec {
 
     // A declared count is what makes a dropped line a build failure rather than a quietly shorter
     // scale.
+    const count = definition.count;
     if (typeof count !== 'number' || !Number.isInteger(count)) {
       fail(`scale "${id}" must declare an integer \`count\``);
     }
@@ -99,9 +124,11 @@ function validate(raw: unknown): Spec {
         `scale "${id}" declares count ${String(count)} but lists ${String(labels.length)} labels`,
       );
     }
+
+    scales[id] = { count, labels };
   }
 
-  return spec as Spec;
+  return { version, scales };
 }
 
 function emit(spec: Spec): string {

@@ -23,6 +23,16 @@ dev-lan:
     # Use a tunnel when any of those matter (CONCEPT.md §9.0).
     pnpm --filter @tickd/web dev --host
 
+# Regenerate code from versioned specs.
+codegen:
+    pnpm --filter @tickd/grade-spec codegen
+
+# Fail if committed generated code disagrees with its spec.
+codegen-check:
+    # Compares in memory and never writes, so this is safe on a dirty tree and cannot be confused
+    # with uncommitted work.
+    pnpm --filter @tickd/grade-spec codegen:check
+
 # Production build.
 build:
     pnpm --filter @tickd/web build
@@ -45,7 +55,7 @@ test:
     pnpm -r test
 
 # Everything CI would run.
-check: typecheck lint test build
+check: codegen-check typecheck lint test build
 
 # Rewrite sources with Prettier.
 fmt:
