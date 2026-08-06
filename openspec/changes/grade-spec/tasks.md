@@ -8,15 +8,15 @@
 
 ## 2. The generator
 
-- [ ] 2.1 Add `yaml` as a devDependency of `packages/grade-spec` only, so nothing reaches the web bundle
-- [ ] 2.2 Write the generator as a `.ts` file run directly by Node 24's type stripping — no `tsx`, no
+- [x] 2.1 Add `yaml` as a devDependency of `packages/grade-spec` only, so nothing reaches the web bundle
+- [x] 2.2 Write the generator as a `.ts` file run directly by Node 24's type stripping — no `tsx`, no
       build step
-- [ ] 2.3 Reject a spec containing any non-string label, rather than coercing it
-- [ ] 2.4 Reject a spec whose label count disagrees with a declared count, so a dropped line cannot pass
+- [x] 2.3 Reject a spec containing any non-string label, rather than coercing it
+- [x] 2.4 Reject a spec whose label count disagrees with a declared count, so a dropped line cannot pass
       silently
-- [ ] 2.5 Emit data only — label tuples `as const`, the derived literal label types, and the spec
+- [x] 2.5 Emit data only — label tuples `as const`, the derived literal label types, and the spec
       version. No functions
-- [ ] 2.6 Make output deterministic and stable in formatting, so the drift check cannot fail spuriously
+- [x] 2.6 Make output deterministic and stable in formatting, so the drift check cannot fail spuriously
 
 ## 3. The hand-written API
 
