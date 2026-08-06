@@ -20,16 +20,6 @@ export default tseslint.config(
   },
 
   {
-    // Deliberate mis-calls guarded by @ts-expect-error. The lint rules that object to unused values
-    // and unsafe types are the whole point of the file.
-    files: ['src/types.assert.ts'],
-    rules: {
-      '@typescript-eslint/no-unused-vars': 'off',
-      '@typescript-eslint/no-unnecessary-condition': 'off',
-    },
-  },
-
-  {
     // `noUncheckedIndexedAccess` makes every index access optional, and a test that has just asserted
     // a list's length knows better. Non-null assertions are appropriate here and nowhere else.
     files: ['**/*.test.ts'],

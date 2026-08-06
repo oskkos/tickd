@@ -11,6 +11,8 @@
     "dev": "pnpm --filter @tickd/web dev",
     "build": "pnpm --filter @tickd/web build",
     "preview": "pnpm --filter @tickd/web preview",
+    "codegen": "pnpm -r codegen",
+    "codegen:check": "pnpm -r codegen:check",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",
     "test": "pnpm -r test"

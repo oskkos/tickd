@@ -22,14 +22,10 @@ const PACKAGE_ROOT = join(HERE, '..');
 const SPEC_PATH = join(PACKAGE_ROOT, 'scales.yaml');
 const OUTPUT_PATH = join(PACKAGE_ROOT, 'src', 'generated', 'scales.ts');
 
-interface ScaleDefinition {
-  count: number;
-  labels: string[];
-}
-
 interface Spec {
   version: number;
-  scales: Record<string, ScaleDefinition>;
+  /** Scale id to its labels, easiest first. `count` is a validation tripwire, not carried data. */
+  scales: Record<string, readonly string[]>;
 }
 
 class SpecError extends Error {}
@@ -42,6 +38,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Not a gratuitous wrapper: `Array.isArray` narrows `unknown` to `any[]`, and an `any` here trips
+ * `no-unsafe-*` under `strictTypeChecked` at every subsequent element access.
+ */
 function isArray(value: unknown): value is readonly unknown[] {
   return Array.isArray(value);
 }
@@ -73,7 +73,7 @@ function validate(raw: unknown): Spec {
     fail('`scales` is empty');
   }
 
-  const scales: Record<string, ScaleDefinition> = {};
+  const scales: Record<string, readonly string[]> = {};
 
   for (const id of ids) {
     if (!/^[a-z][a-z0-9_]*$/.test(id)) {
@@ -125,14 +125,17 @@ function validate(raw: unknown): Spec {
       );
     }
 
-    scales[id] = { count, labels };
+    scales[id] = labels;
   }
 
   return { version, scales };
 }
 
 function emit(spec: Spec): string {
-  const ids = Object.keys(spec.scales).sort();
+  // Iterating entries rather than keys keeps each definition non-optional under
+  // `noUncheckedIndexedAccess`, so there is no impossible-state branch to write.
+  const entries = Object.entries(spec.scales).sort(([a], [b]) => a.localeCompare(b));
+  const ids = entries.map(([id]) => id);
   const lines: string[] = [
     '// GENERATED FILE — do not edit.',
     '//',
@@ -146,16 +149,12 @@ function emit(spec: Spec): string {
     '',
   ];
 
-  for (const id of ids) {
-    const definition = spec.scales[id];
-    if (definition === undefined) {
-      fail(`scale "${id}" vanished between validation and emit`);
-    }
+  for (const [id, labels] of entries) {
     const constName = `${id.toUpperCase()}_LABELS`;
     const typeName = `${id.charAt(0).toUpperCase()}${id.slice(1)}Label`;
     lines.push(
       `export const ${constName} = [`,
-      ...definition.labels.map((label) => `  '${label}',`),
+      ...labels.map((label) => `  '${label}',`),
       '] as const;',
       '',
       `export type ${typeName} = (typeof ${constName})[number];`,
