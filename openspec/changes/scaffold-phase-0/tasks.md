@@ -37,7 +37,7 @@
 - [x] 4.3 Configure precaching of the app shell, including the committed fonts
 - [x] 4.4 Configure service-worker registration to prompt on update rather than auto-reloading
 - [x] 4.5 Verify the emitted manifest matches the icon geometry `DESIGN.md` §2 specifies
-- [ ] 4.6 Confirm a production build passes Chrome's installability criteria locally
+- [x] 4.6 Confirm a production build passes Chrome's installability criteria locally
 
 ## 5. Build orchestration
 
@@ -61,13 +61,13 @@
 
 ## 7. Verify on the trial device
 
-- [ ] 7.1 Open the production origin on the Galaxy S26 Ultra and install to the home screen
-- [ ] 7.2 Launch from the home-screen icon and confirm it opens standalone with no browser UI
-- [ ] 7.3 Confirm the launcher's icon mask does not crop the logo artwork
-- [ ] 7.4 Enable airplane mode, launch, and confirm the shell and both fonts render offline
-- [ ] 7.5 Deploy a visible change and confirm the installed app picks up the new build on next launch
-- [ ] 7.6 Confirm primary actions fall in the lower thumb-reachable third on a 6.9" screen, one-handed
-- [ ] 7.7 Note which browser the install came from, since Samsung Internet and Chrome keep separate
+- [x] 7.1 Open the production origin on the Galaxy S26 Ultra and install to the home screen
+- [x] 7.2 Launch from the home-screen icon and confirm it opens standalone with no browser UI
+- [x] 7.3 Confirm the launcher's icon mask does not crop the logo artwork
+- [x] 7.4 Enable airplane mode, launch, and confirm the shell and both fonts render offline
+- [x] 7.5 Deploy a visible change and confirm the installed app picks up the new build on next launch
+- [x] 7.6 Confirm primary actions fall in the lower thumb-reachable third on a 6.9" screen, one-handed
+- [x] 7.7 Note which browser the install came from, since Samsung Internet and Chrome keep separate
       storage and later data will live in whichever was used
 
 ## 8. Close out
