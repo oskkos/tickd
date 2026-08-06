@@ -56,7 +56,7 @@
       fingerprinted assets long-lived
 - [x] 6.5 Record the Pages settings — production branch, build command, output directory — in the
       repository so the configuration is reproducible
-- [ ] 6.6 Confirm a push to `develop` publishes, and that a branch push produces a preview on a separate
+- [x] 6.6 Confirm a push to `develop` publishes, and that a branch push produces a preview on a separate
       hostname
 
 ## 7. Verify on the trial device
@@ -75,4 +75,5 @@
 - [x] 8.1 Re-read the `build-tooling` scope fence against the finished tree and confirm no Phase 1
       artifact crept in
 - [x] 8.2 Record the chosen `*.pages.dev` hostname in the change notes — `tickd.pages.dev` (apps/web/DEPLOY.md)
-- [ ] 8.3 Commit, push to `develop`, and confirm the deployed origin matches the commit
+- [x] 8.3 Commit, push to `develop`, and confirm the deployed origin matches the commit — verified:
+      the deployed bundle hash `index-DeVOi_JK.js` equals the local build's
