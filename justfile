@@ -3,6 +3,9 @@
 # Phase 0 only. Gradle, Flyway, jOOQ, Docker and OpenAPI generation arrive in Phase 1 and must not
 # appear here before then: a target that cannot run is worse than a missing one.
 # See openspec/specs/build-tooling.
+#
+# Only the comment line directly above a recipe becomes its description in `just --list`, so keep
+# those to one line and put longer notes inside the recipe body.
 
 default: dev
 
@@ -14,9 +17,10 @@ install:
 dev:
     pnpm --filter @tickd/web dev
 
-# Serve on the LAN — layout checks on a phone only. Not a secure context, so no service worker,
-# no persist(), no install. Use a tunnel for anything that needs those (CONCEPT.md §9.0).
+# Serve on the LAN for layout checks on a phone — not a secure context.
 dev-lan:
+    # http:// on a LAN address is not a secure context: no service worker, no persist(), no install.
+    # Use a tunnel when any of those matter (CONCEPT.md §9.0).
     pnpm --filter @tickd/web dev --host
 
 # Production build.
@@ -27,13 +31,16 @@ build:
 preview: build
     pnpm --filter @tickd/web preview
 
-# Typecheck every workspace package. Requires no backend, database or generated code.
+# Typecheck every workspace package.
 typecheck:
+    # Deliberately requires no backend, database or generated code.
     pnpm -r typecheck
 
+# Lint every workspace package.
 lint:
     pnpm -r lint
 
+# Run tests in every workspace package.
 test:
     pnpm -r test
 
@@ -44,5 +51,6 @@ check: typecheck lint test build
 fmt:
     pnpm exec prettier --write .
 
+# Fail if anything is unformatted.
 fmt-check:
     pnpm exec prettier --check .
