@@ -33,6 +33,20 @@ Specs live in `openspec/` (`specs/` for current behaviour, `changes/` for in-fli
 4. **`/opsx:archive`** — fold the delta specs into `openspec/specs/` and move the change to
    `changes/archive/` once it is implemented and verified.
 
+**During `/opsx:apply`, commit once per top-level task group** — after every task under a `## N.` heading
+is finished and its checkboxes are ticked, including the `tasks.md` update in that same commit. One
+group, one commit.
+
+- **Never commit a half-finished group.** If a group is abandoned mid-way, say so and leave it
+  uncommitted rather than banking a partial state that reads as complete.
+- **The commit message follows the group**, not the change: `## 2. The generator` becomes
+  `feat(grade-spec): add the scale generator`, with the type chosen for what that group actually did
+  (`test:` for a test-only group, `build:` for wiring).
+- **A group whose tasks are pure verification** (`## 6. Verify`) still gets a commit if it ticked
+  boxes or produced fixes; if it changed nothing but checkboxes, fold it into the previous commit
+  instead of making an empty-ish one.
+- **Groups are not pushed automatically.** Push when the user asks, or when the whole change is done.
+
 `/opsx:sync` folds delta specs into the main specs *without* archiving — use it when a change is
 still in flight but its specs have settled.
 
