@@ -1,0 +1,16 @@
+# Cloudflare Pages response headers.
+
+# The service worker decides what every installed client runs next. If it is cached for a year, a bad
+# build is pinned on the device with no way back short of uninstalling. Always revalidate.
+/sw.js
+  Cache-Control: no-cache
+
+/workbox-*.js
+  Cache-Control: no-cache
+
+/manifest.webmanifest
+  Cache-Control: no-cache
+
+# Vite fingerprints these, so the URL changes whenever the content does.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

@@ -1,0 +1,27 @@
+<!doctype html>
+<!--
+  data-theme belongs on <html>, never on a subtree: Base UI portals dialogs and drawers outside the
+  React root, and a scoped theme would leave them unthemed. CONCEPT.md / DESIGN.md §5.
+-->
+<html lang="en" data-theme="dim">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      maximum-scale is deliberately absent: pinch-zoom stays available for accessibility.
+      interactive-widget keeps the on-screen keyboard from shoving the layout around during entry.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="description" content="An indoor climbing logbook. Rope and boulder." />
+    <meta name="theme-color" content="#1c212b" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
+    <title>tickd</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

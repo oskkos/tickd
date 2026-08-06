@@ -1,0 +1,21 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+pnpm-lock.yaml
+
+# The design documents are the product and are hand-formatted — CONCEPT.md and DESIGN.md are written
+# to a deliberate 100-column wrap with intentional emphasis markers. Prettier rewrites both.
+*.md
+!apps/web/**/*.md
+
+# Agent and tooling instructions are maintained upstream.
+.claude/
+openspec/
+
+# Licence texts are distributed verbatim.
+apps/web/src/assets/fonts/OFL-*.txt
+
+# Cloudflare Pages config files are not a format Prettier understands.
+apps/web/public/_headers
+apps/web/public/_redirects
