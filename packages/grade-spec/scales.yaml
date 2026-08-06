@@ -1,0 +1,92 @@
+# tickd — grade scales
+#
+# The authoritative definition of every grade scale the app understands. `CONCEPT.md` §7.3 and
+# `DESIGN.md` §5 restate the counts below; this file is what they restate.
+#
+# Two rules this file exists to enforce, both from CONCEPT.md §7.3 and D5:
+#
+#   1. Font and French are SEPARATE ORDINAL NAMESPACES. Font `6A` and French `6a` differ only by
+#      letter case and mean very different difficulties. They must never share an ordinal scale, or
+#      boulders and routes land on one pyramid and every metric is silently wrong.
+#
+#   2. Labels are ENUMERATED, never generated. A pattern over number x letter x modifier would
+#      happily emit `6d`, `9c+` and `5A`, none of which exist.
+#
+# EVERY LABEL MUST BE QUOTED. Unquoted, `4` and `5` parse as YAML integers while `4+` and `6a` parse
+# as strings, producing a list of mixed types. The generator rejects any non-string label rather than
+# coercing it, because a coerced `4` is indistinguishable from a correct one.
+#
+# Labels are ordered easiest first. Whether the grade grid renders them bottom-up or top-down is a UI
+# decision (`DESIGN.md` §5) and deliberately not encoded here.
+
+# Bump when the contents change in a way that could alter a derived value. Phase 0 defines no
+# cross-scale conversions, so nothing here is contested yet — the field exists so that a future
+# corrected conversion is a new version rather than a silent rewrite of history (§8.4).
+version: 1
+
+scales:
+  # ── French, for rope ────────────────────────────────────────────────────────
+  # Sub-6a French grades use number-plus-modifier rather than letters, so `4+` and `5+` are not
+  # additions — that is the standard scale. Letters run a–c only: there is no `6d`.
+  # Stops at `9c`; `9c+` is not a graded difficulty.
+  french:
+    count: 27
+    labels:
+      - '4'
+      - '4+'
+      - '5'
+      - '5+'
+      - '6a'
+      - '6a+'
+      - '6b'
+      - '6b+'
+      - '6c'
+      - '6c+'
+      - '7a'
+      - '7a+'
+      - '7b'
+      - '7b+'
+      - '7c'
+      - '7c+'
+      - '8a'
+      - '8a+'
+      - '8b'
+      - '8b+'
+      - '8c'
+      - '8c+'
+      - '9a'
+      - '9a+'
+      - '9b'
+      - '9b+'
+      - '9c'
+
+  # ── Fontainebleau, for boulder ──────────────────────────────────────────────
+  # What Kiipeilyareena uses, having switched to it explicitly and kept the old circuit colour as the
+  # tag background. Identical to the French sequence for the first 22 entries apart from letter case,
+  # then stops at `9A` where French continues through the 9s.
+  font:
+    count: 23
+    labels:
+      - '4'
+      - '4+'
+      - '5'
+      - '5+'
+      - '6A'
+      - '6A+'
+      - '6B'
+      - '6B+'
+      - '6C'
+      - '6C+'
+      - '7A'
+      - '7A+'
+      - '7B'
+      - '7B+'
+      - '7C'
+      - '7C+'
+      - '8A'
+      - '8A+'
+      - '8B'
+      - '8B+'
+      - '8C'
+      - '8C+'
+      - '9A'
