@@ -20,15 +20,15 @@
 
 ## 3. The hand-written API
 
-- [ ] 3.1 Define `Ordinal<S>` as `{ scale: S; kind: 'exact'; index: number }` — the scale field is the
+- [x] 3.1 Define `Ordinal<S>` as `{ scale: S; kind: 'exact'; index: number }` — the scale field is the
       brand, `kind` is the tag a future `range` variant extends
-- [ ] 3.2 `ordinalOf(label, scale)` returning a typed ordinal, and `labelOf(ordinal)` returning the
+- [x] 3.2 `ordinalOf(label, scale)` returning a typed ordinal, and `labelOf(ordinal)` returning the
       label verbatim
-- [ ] 3.3 `compare(a, b)` with `NoInfer` on the second parameter, and a comment at the signature saying
+- [x] 3.3 `compare(a, b)` with `NoInfer` on the second parameter, and a comment at the signature saying
       why removing it silently breaks the invariant
-- [ ] 3.4 `isLabel(raw, scale)` as a type guard — exact comparison, no trimming, no case folding
-- [ ] 3.5 `clampRange(from, to, scale)` for the grid's `[min − 2 … max + 2]`, clamped to scale bounds
-- [ ] 3.6 Export no function that converts between scales
+- [x] 3.4 `isLabel(raw, scale)` as a type guard — exact comparison, no trimming, no case folding
+- [x] 3.5 `clampRange(from, to, scale)` for the grid's `[min − 2 … max + 2]`, clamped to scale bounds
+- [x] 3.6 Export no function that converts between scales
 
 ## 4. Tests
 
