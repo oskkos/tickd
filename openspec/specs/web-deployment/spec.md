@@ -1,0 +1,99 @@
+# web-deployment
+
+## Purpose
+
+How the PWA reaches a phone: the hosting provider, the origin and its expected lifecycle, and the
+routing and cache behaviour a misconfiguration breaks silently. Phase 0 hosting is decided in
+`CONCEPT.md` §9.0 and D16 — a throwaway origin the app leaves at Phase 1.
+
+## Requirements
+
+### Requirement: Phase 0 is served from Cloudflare Pages on a throwaway origin
+
+The built web app SHALL be served over HTTPS from Cloudflare Pages using its free `*.pages.dev`
+subdomain. No custom domain SHALL be registered or configured in Phase 0, and the origin is expected to
+change at Phase 1 (`CONCEPT.md` §9.0, D16).
+
+#### Scenario: The trial origin serves over HTTPS
+
+- **WHEN** the production URL is opened on a phone
+- **THEN** it is served over HTTPS, satisfying the secure-context requirement for service workers,
+  `navigator.storage.persist()` and Add-to-Home-Screen
+
+#### Scenario: No custom domain is configured
+
+- **WHEN** the Pages project configuration is inspected
+- **THEN** no custom domain is attached
+
+### Requirement: Deployment is triggered from the default branch
+
+The Pages project SHALL treat `develop` as its production branch. Every other branch SHALL produce a
+preview deployment on a distinct hostname.
+
+#### Scenario: A push to develop deploys production
+
+- **WHEN** a commit is pushed to `develop`
+- **THEN** Cloudflare Pages builds it and publishes to the production `*.pages.dev` hostname
+
+#### Scenario: Preview deployments are isolated
+
+- **WHEN** a branch other than `develop` is pushed
+- **THEN** it is published to a preview hostname, which is a separate origin and therefore cannot read
+  the trial device's stored data
+
+### Requirement: Client-side routes resolve
+
+The deployment SHALL serve `index.html` for paths that do not correspond to a static asset, so that
+deep links and a manifest `start_url` below the root resolve instead of returning 404. The project
+SHALL NOT contain a top-level `404.html`, because Cloudflare Pages applies this fallback only in its
+absence.
+
+#### Scenario: A deep link loads the app
+
+- **WHEN** a client-side route URL is requested directly
+- **THEN** the app shell is served and the route renders
+
+#### Scenario: The service worker is not swallowed by the fallback
+
+- **WHEN** `/sw.js` is requested
+- **THEN** it is served as `application/javascript`, not as the app shell with `text/html`
+
+#### Scenario: A missing asset returns the shell, knowingly
+
+- **WHEN** a request is made for a nonexistent file under `/assets/`
+- **THEN** the response is `index.html` with status 200
+
+Distinguishing navigation requests from subresource requests would require a Pages Function, which is
+not worth adding to Phase 0. The consequence — a broken deploy looking healthy to a `curl` of an asset
+URL — is accepted, and the service-worker content-type check above is the signal that does catch it.
+
+### Requirement: Cache headers do not pin clients to a stale build
+
+The service worker script SHALL NOT be served with a long-lived cache lifetime. Fingerprinted build
+assets MAY be cached long-term.
+
+#### Scenario: The service worker is revalidated
+
+- **WHEN** the response headers for the service worker script are inspected
+- **THEN** its cache lifetime requires revalidation rather than allowing a long-lived cached copy
+
+#### Scenario: A deploy reaches an already-installed client
+
+- **WHEN** a new build is deployed and an installed client is launched with network available
+- **THEN** the client picks up the new service worker rather than continuing to serve the previous build
+  indefinitely
+
+Note: Cloudflare currently ignores an `immutable` `Cache-Control` set on `/assets/*` via `_headers`,
+returning its own `max-age=0, must-revalidate`, while honouring the same file's `/sw.js` rule. Because
+long-term asset caching is MAY rather than SHALL, this is a missed optimisation rather than a violation.
+See `apps/web/DEPLOY.md`.
+
+### Requirement: The build is reproducible in CI without local tooling
+
+The Pages build SHALL run from the repository using pnpm, requiring no Docker, database, or generated
+code, so a clean checkout builds successfully.
+
+#### Scenario: Clean-checkout build succeeds
+
+- **WHEN** Cloudflare Pages builds a commit from a clean clone
+- **THEN** install and build complete without requiring services beyond the pnpm registry
