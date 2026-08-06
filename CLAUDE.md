@@ -42,9 +42,9 @@ group, one commit.
 - **The commit message follows the group**, not the change: `## 2. The generator` becomes
   `feat(grade-spec): add the scale generator`, with the type chosen for what that group actually did
   (`test:` for a test-only group, `build:` for wiring).
-- **A group whose tasks are pure verification** (`## 6. Verify`) still gets a commit if it ticked
-  boxes or produced fixes; if it changed nothing but checkboxes, fold it into the previous commit
-  instead of making an empty-ish one.
+- **A verification group** (`## 6. Verify`) gets its own commit even when it only ticks checkboxes.
+  The message is the artifact: it records what was checked, against what broken state, and with what
+  result. That is worth more than a tidy diff.
 - **Groups are not pushed automatically.** Push when the user asks, or when the whole change is done.
 
 `/opsx:sync` folds delta specs into the main specs *without* archiving — use it when a change is
