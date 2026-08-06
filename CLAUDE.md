@@ -39,6 +39,34 @@ still in flight but its specs have settled.
 Small, obvious edits (a typo, a doc tweak, a one-line fix) don't need a change folder. Anything that
 adds behaviour, alters the data model, or touches an invariant below does.
 
+## Git workflow
+
+**Never commit directly to `develop`. All work happens on a branch.** `develop` is the main branch and
+receives work through pull requests, not direct pushes — including documentation-only changes.
+
+Branch per OpenSpec change, named after it so the two are obvious together:
+
+```
+<type>/<change-name>        feat/scaffold-phase-0, docs/phase-0-hosting
+```
+
+**Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):**
+
+```
+<type>(<scope>)?: <imperative subject>
+
+<body — why, not what; wrap at 100>
+```
+
+- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `build`, `ci`, `chore`.
+- Scopes track the monorepo: `web`, `grade-spec`, `backend`, `docs`, `openspec`. Optional — omit rather
+  than invent one.
+- Subject is imperative and lower-case, no trailing period: `feat(web): add grade grid`.
+- Breaking changes use `!` before the colon, plus a `BREAKING CHANGE:` footer.
+
+**Commits before this convention was adopted do not follow it.** History up to and including the
+`scaffold-phase-0` proposal is plain sentence-case subjects. Don't rewrite it; just don't imitate it.
+
 ## Working with the documents
 
 **The decision log at the end of `CONCEPT.md` (D1–D15) records positions that were argued through
