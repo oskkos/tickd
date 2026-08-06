@@ -21,7 +21,7 @@
 - [x] 3.1 Add Tailwind and daisyUI, configured with the `dim` and `winter` themes only
 - [x] 3.2 Add `@base-ui/react` — not the deprecated `@base-ui-components/react`
 - [x] 3.3 Set `data-theme` on `<html>` in `index.html`, with `dim` as the default
-- [ ] 3.4 Add a temporary theme switch and confirm a portalled Base UI dialog inherits the theme
+- [x] 3.4 Add a temporary theme switch and confirm a portalled Base UI dialog inherits the theme
 - [x] 3.5 Subset and commit Poppins 600 and Lato 400 as `.woff2`, self-hosted, with `@font-face` and
       preload hints
 - [x] 3.6 Apply tabular figures to a numeric sample and confirm no font request leaves the origin
@@ -47,12 +47,12 @@
 
 ## 6. Cloudflare Pages deployment
 
-- [ ] 6.1 Create the Pages project connected to the GitHub repository, production branch `develop`
+- [x] 6.1 Create the Pages project connected to the GitHub repository, production branch `develop`
 - [ ] 6.2 Set the build command and output directory, and confirm a clean-checkout build succeeds in
       Cloudflare's environment
-- [ ] 6.3 Add `_redirects` for SPA fallback, and verify a deep link resolves while a missing asset still
-      404s
-- [ ] 6.4 Add `_headers` so the service worker script is revalidated rather than long-cached, leaving
+- [x] 6.3 Add `_redirects` for SPA fallback and verify a deep link resolves. No top-level `404.html`:
+      Pages only falls back to `index.html` in its absence. Missing assets return the shell (see spec)
+- [x] 6.4 Add `_headers` so the service worker script is revalidated rather than long-cached, leaving
       fingerprinted assets long-lived
 - [x] 6.5 Record the Pages settings — production branch, build command, output directory — in the
       repository so the configuration is reproducible
@@ -74,5 +74,5 @@
 
 - [x] 8.1 Re-read the `build-tooling` scope fence against the finished tree and confirm no Phase 1
       artifact crept in
-- [ ] 8.2 Record the chosen `*.pages.dev` hostname in the change notes
+- [x] 8.2 Record the chosen `*.pages.dev` hostname in the change notes — `tickd.pages.dev` (apps/web/DEPLOY.md)
 - [ ] 8.3 Commit, push to `develop`, and confirm the deployed origin matches the commit

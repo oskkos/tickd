@@ -39,7 +39,10 @@ export function App() {
           </Dialog.Trigger>
           <Dialog.Portal>
             <Dialog.Backdrop className="fixed inset-0 bg-black/50" />
-            <Dialog.Popup className="modal-box fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            {/* NOT `modal-box`: daisyUI ships it at opacity:0 / scale:.95 and only reveals it via a
+                `.modal` parent's open state, which Base UI deliberately does not provide. Plain
+                utilities over daisyUI's theme tokens instead. */}
+            <Dialog.Popup className="rounded-box fixed left-1/2 top-1/2 w-11/12 max-w-md -translate-x-1/2 -translate-y-1/2 bg-base-100 p-6 text-base-content shadow-xl">
               <Dialog.Title className="text-lg">Portalled content</Dialog.Title>
               <Dialog.Description className="py-2 text-sm opacity-70">
                 Rendered outside the React root. If this is themed, <code>data-theme</code> is on

@@ -20,20 +20,24 @@ configuration is reproducible even though the account is not.
 | Custom domain          | **None.** Deliberate (D16).                                        |
 | Preview deployments    | Enabled for all non-production branches                            |
 
-`_redirects`, `_headers` and `404.html` live in `apps/web/public/` and are copied into `dist` by the
-build, so they need no Pages-side configuration.
+`_redirects` and `_headers` live in `apps/web/public/` and are copied into `dist` by the build, so they
+need no Pages-side configuration.
+
+**Never add a top-level `404.html`.** Cloudflare Pages falls back to `index.html` for unmatched paths
+*only when the project has no `404.html`*. Adding one turns every unmatched route into a 404 —
+including valid client-side routes — and `_redirects`' `/* /index.html 200` rule does not override it.
+This was found the expensive way: deep links 404'd on a live preview while every other check passed.
 
 ## Origins
 
 ```
-<project>.pages.dev            production — the trial vehicle. Install from here.
-<hash>.<project>.pages.dev     previews — a different origin, so they cannot read trial data.
+tickd.pages.dev                        production — the trial vehicle. Install from here.
+<branch>.tickd.pages.dev               previews — a different origin, so they cannot read trial data.
+feat-scaffold-phase-0.tickd.pages.dev  e.g. this change's preview
 ```
 
 **Never install the PWA from a preview URL.** Its IndexedDB is a separate store, and a logbook opened
 from the wrong origin looks empty rather than broken.
-
-The production hostname is recorded in the change notes once the project exists.
 
 ## Verifying a deployment
 
@@ -41,10 +45,20 @@ These are the behaviours the `web-deployment` spec requires, and the ones a Page
 breaks silently:
 
 1. A client-side route requested directly returns the app shell, not 404.
-2. A missing file under `/assets/` returns **404**, not the shell with a 200.
-3. `sw.js` responds with `Cache-Control: no-cache`.
-4. Files under `/assets/` respond `immutable`.
-5. A push to `develop` publishes to production; a push to any other branch publishes to a preview.
+2. `sw.js` responds with `Content-Type: application/javascript` and a revalidating `Cache-Control`.
+   If it ever returns `text/html`, the SPA fallback has swallowed it and the service worker will not
+   register at all — the PWA silently stops being installable and offline-capable.
+3. Files under `/assets/` respond `immutable`.
+4. A push to `develop` publishes to production; a push to any other branch publishes to a preview.
 
-Item 2 depends on Cloudflare applying `_redirects` only to requests that miss a static asset. Confirm
-it against the live deployment rather than assuming it.
+```sh
+B=https://tickd.pages.dev
+curl -sS -o /dev/null -w '%{http_code}\n' $B/some/client/route   # expect 200
+curl -sSI $B/sw.js | grep -iE 'content-type|cache-control'       # expect javascript + no-cache
+```
+
+**Known trade-off:** with the SPA fallback enabled, a request for a *missing* file under `/assets/`
+also returns `index.html` with a 200 rather than a 404. Cloudflare's asset model does not distinguish
+navigation requests from subresource requests without a Pages Function, and a Worker is not worth
+adding to Phase 0 for this. The practical consequence is that a broken deploy can look healthy to a
+`curl` of an asset URL — so check item 2 above, which does catch it.
