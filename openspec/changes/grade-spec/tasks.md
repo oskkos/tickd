@@ -32,17 +32,17 @@
 
 ## 4. Tests
 
-- [ ] 4.1 Round-trip every label in both scales through `ordinalOf` → `labelOf` and assert exact
+- [x] 4.1 Round-trip every label in both scales through `ordinalOf` → `labelOf` and assert exact
       equality including case
-- [ ] 4.2 Assert the counts (27 and 23) and that each label is strictly harder than its predecessor
-- [ ] 4.3 Structural cross-check: indices 0–21 of the two scales are equal case-insensitively, and
+- [x] 4.2 Assert the counts (27 and 23) and that each label is strictly harder than its predecessor
+- [x] 4.3 Structural cross-check: indices 0–21 of the two scales are equal case-insensitively, and
       above 21 French has five labels to Font's one
-- [ ] 4.4 Assert `6d`, `9c+`, `5A`, `V4`, `""` and a trailing-space label all fail validation
-- [ ] 4.5 Assert `("6A", "french")` and `("6a", "font")` are rejected rather than corrected
-- [ ] 4.6 Assert `clampRange` clamps at both ends without producing out-of-bounds indices
-- [ ] 4.7 Type-level assertions in a `@ts-expect-error` file: cross-scale `compare` does not compile,
+- [x] 4.4 Assert `6d`, `9c+`, `5A`, `V4`, `""` and a trailing-space label all fail validation
+- [x] 4.5 Assert `("6A", "french")` and `("6a", "font")` are rejected rather than corrected
+- [x] 4.6 Assert `clampRange` clamps at both ends without producing out-of-bounds indices
+- [x] 4.7 Type-level assertions in a `@ts-expect-error` file: cross-scale `compare` does not compile,
       and an ordinal is not usable as a bare number
-- [ ] 4.8 Confirm the type-level file is inside the package's tsconfig, so `just typecheck` actually
+- [x] 4.8 Confirm the type-level file is inside the package's tsconfig, so `just typecheck` actually
       evaluates it
 
 ## 5. Wiring
