@@ -104,8 +104,12 @@ Phase 0 discipline is the stated main risk. Do not build Phase 1+ concerns into 
 - **Phase 0** — local-only PWA, Dexie/IndexedDB, three tables (`venue`, `session`, `tick`).
   **No accounts, no backend, no sync, no user concept at all, no backup.** Data is disposable, so
   schema changes may wipe and restart — **write no Dexie migrations**. Ships ticking plus exactly
-  one analytic (flash rate by grade), `navigator.storage.persist()`, and a manual JSON export
-  button. Seed venues are hardcoded.
+  one analytic (flash rate by grade), `navigator.storage.persist()`, and manual JSON export *and*
+  import buttons. Seed venues are hardcoded. Hosting is Cloudflare Pages on its free `*.pages.dev`
+  subdomain — a throwaway origin the app leaves at Phase 1 (CONCEPT §9.0, D16).
+  **The importer replaces rather than merges, and refuses a schema-marker mismatch instead of
+  upgrading it** — merging would invent Phase 1's conflict rules, and upgrading would be a Dexie
+  migration by another name.
 - **Phase 1** — Kotlin/Spring Boot backend, OAuth2, sync. Adds `app_user`, `user_identity`, and
   `user_id`/`device_id`/`schema_version`/`visibility` on existing tables. Migration discipline
   starts here.
