@@ -48,14 +48,21 @@ breaks silently:
 2. `sw.js` responds with `Content-Type: application/javascript` and a revalidating `Cache-Control`.
    If it ever returns `text/html`, the SPA fallback has swallowed it and the service worker will not
    register at all — the PWA silently stops being installable and offline-capable.
-3. Files under `/assets/` respond `immutable`.
-4. A push to `develop` publishes to production; a push to any other branch publishes to a preview.
+3. A push to `develop` publishes to production; a push to any other branch publishes to a preview.
 
 ```sh
 B=https://tickd.pages.dev
 curl -sS -o /dev/null -w '%{http_code}\n' $B/some/client/route   # expect 200
 curl -sSI $B/sw.js | grep -iE 'content-type|cache-control'       # expect javascript + no-cache
 ```
+
+**Known gap: the `immutable` rule on `/assets/*` does not take effect.** Cloudflare returns its own
+`public, max-age=0, must-revalidate` for those responses, even though the `/sw.js` rule in the same
+`_headers` file *is* applied. The rule is kept because it is correct and costs nothing, but do not
+assume it works. Practical impact is small — Vite fingerprints the filenames, so revalidation is a
+304 rather than a re-download, and Cloudflare's edge cache still serves them. The `web-deployment`
+spec only says assets MAY be cached long-term, so this is a missed optimisation rather than a
+violation. Worth revisiting if it ever shows up in load times.
 
 **Known trade-off:** with the SPA fallback enabled, a request for a *missing* file under `/assets/`
 also returns `index.html` with a 200 rather than a 404. Cloudflare's asset model does not distinguish
