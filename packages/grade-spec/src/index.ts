@@ -34,15 +34,22 @@ export type LabelOf<S extends ScaleId> = (typeof LABELS_BY_SCALE)[S][number];
  * (`CONCEPT.md` §7.3). When open grades arrive, a `{ kind: 'range' }` variant is added here and every
  * consumer that must handle it stops compiling — which is the point of paying for a union now.
  */
-export type Ordinal<S extends ScaleId = ScaleId> = {
+export interface ExactOrdinal<S extends ScaleId = ScaleId> {
   readonly scale: S;
   readonly kind: 'exact';
   readonly index: number;
-};
+}
+
+/**
+ * Already a union, of one member. When open grades arrive this becomes
+ * `ExactOrdinal<S> | RangeOrdinal<S>` — a one-line change here, and a compile error in every consumer
+ * that assumed there was only ever one variant.
+ */
+export type Ordinal<S extends ScaleId = ScaleId> = ExactOrdinal<S>;
 
 /** All labels of a scale, easiest first. Presentation order is the caller's business. */
 export function labels<S extends ScaleId>(scale: S): readonly LabelOf<S>[] {
-  return LABELS_BY_SCALE[scale] as readonly LabelOf<S>[];
+  return LABELS_BY_SCALE[scale];
 }
 
 /**

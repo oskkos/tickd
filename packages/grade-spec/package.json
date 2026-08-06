@@ -3,10 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Versioned grade specification; generates TypeScript and Kotlin. Empty until its own change.",
+  "description": "Versioned grade scale specification, generated to TypeScript.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "codegen": "node scripts/generate.ts",
+    "codegen:check": "node scripts/generate.ts --check",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.1.2",
+    "eslint": "^10.8.0",
+    "globals": "^17.9.0",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.66.0",
     "vitest": "^4.1.10",
     "yaml": "^2.9.0"
   }

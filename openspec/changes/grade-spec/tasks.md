@@ -47,11 +47,11 @@
 
 ## 5. Wiring
 
-- [ ] 5.1 Add `typecheck`, `lint` and `test` scripts to `packages/grade-spec` so `pnpm -r` picks it up
-- [ ] 5.2 Add a `codegen` recipe to the justfile
-- [ ] 5.3 Add a non-mutating drift check that regenerates in memory and diffs against the committed file
-- [ ] 5.4 Add the drift check to `just check`
-- [ ] 5.5 Commit the generated module
+- [x] 5.1 Add `typecheck`, `lint` and `test` scripts to `packages/grade-spec` so `pnpm -r` picks it up
+- [x] 5.2 Add a `codegen` recipe to the justfile
+- [x] 5.3 Add a non-mutating drift check that regenerates in memory and diffs against the committed file
+- [x] 5.4 Add the drift check to `just check`
+- [x] 5.5 Commit the generated module
 
 ## 6. Verify
 
