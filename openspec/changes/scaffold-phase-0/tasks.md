@@ -48,7 +48,7 @@
 ## 6. Cloudflare Pages deployment
 
 - [x] 6.1 Create the Pages project connected to the GitHub repository, production branch `develop`
-- [ ] 6.2 Set the build command and output directory, and confirm a clean-checkout build succeeds in
+- [x] 6.2 Set the build command and output directory, and confirm a clean-checkout build succeeds in
       Cloudflare's environment
 - [x] 6.3 Add `_redirects` for SPA fallback and verify a deep link resolves. No top-level `404.html`:
       Pages only falls back to `index.html` in its absence. Missing assets return the shell (see spec)
