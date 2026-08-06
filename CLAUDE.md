@@ -20,6 +20,25 @@ The two documents are the product:
 They cross-reference by section number (`CONCEPT.md` §7.4) rather than restating each other. Keep
 that boundary when editing: a flow change goes in CONCEPT, its visual expression in DESIGN.
 
+## Feature workflow — OpenSpec
+
+**Every new feature goes through OpenSpec. Do not start editing code from a bare prompt.**
+Specs live in `openspec/` (`specs/` for current behaviour, `changes/` for in-flight change folders,
+`changes/archive/` for shipped ones). The chain is:
+
+1. **`/opsx:explore`** — think through the idea, investigate, clarify requirements. No artifacts yet.
+2. **`/opsx:propose`** — create the change folder and generate its artifacts (proposal, design,
+   delta specs, tasks). This is the review gate: the user approves the proposal before any code.
+3. **`/opsx:apply`** — implement the tasks from the approved change, ticking them off as they land.
+4. **`/opsx:archive`** — fold the delta specs into `openspec/specs/` and move the change to
+   `changes/archive/` once it is implemented and verified.
+
+`/opsx:sync` folds delta specs into the main specs *without* archiving — use it when a change is
+still in flight but its specs have settled.
+
+Small, obvious edits (a typo, a doc tweak, a one-line fix) don't need a change folder. Anything that
+adds behaviour, alters the data model, or touches an invariant below does.
+
 ## Working with the documents
 
 **The decision log at the end of `CONCEPT.md` (D1–D15) records positions that were argued through
