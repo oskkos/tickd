@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+dist-ssr/
+*.local
+
+# test / tooling caches
+coverage/
+.vite/
+.eslintcache
+
+# editor and OS noise
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

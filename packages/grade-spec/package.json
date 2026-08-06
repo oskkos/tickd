@@ -1,0 +1,7 @@
+{
+  "name": "@tickd/grade-spec",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned grade specification; generates TypeScript and Kotlin. Empty until its own change."
+}
