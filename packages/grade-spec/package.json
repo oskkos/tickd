@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Versioned grade specification; generates TypeScript and Kotlin. Empty until its own change.",
   "devDependencies": {
+    "@types/node": "^26.1.2",
     "typescript": "^6.0.3",
     "yaml": "^2.9.0"
   }
