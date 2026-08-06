@@ -1,8 +1,8 @@
-# Cloudflare Pages. Rules apply only to requests that do not match a static asset.
+# Cloudflare Pages. Rules apply only to requests that miss a static asset.
 #
-# Missing files under /assets/ must 404 rather than silently returning the app shell — a 200-with-HTML
-# for a missing script is how a broken deploy looks healthy.
-/assets/*  /404.html  404
-
-# Everything else is a client-side route: serve the shell so deep links resolve.
+# Client-side routes must resolve to the shell so deep links work.
+#
+# Do NOT add a top-level 404.html alongside this: Pages falls back to index.html only when the
+# project has no 404.html, and adding one turns every unmatched route — including valid client-side
+# routes — into a 404. Verified empirically on a preview deployment.
 /*  /index.html  200

@@ -36,17 +36,28 @@ preview deployment on a distinct hostname.
 ### Requirement: Client-side routes resolve
 
 The deployment SHALL serve `index.html` for paths that do not correspond to a static asset, so that
-deep links and a manifest `start_url` below the root resolve instead of returning 404.
+deep links and a manifest `start_url` below the root resolve instead of returning 404. The project
+SHALL NOT contain a top-level `404.html`, because Cloudflare Pages applies this fallback only in its
+absence.
 
 #### Scenario: A deep link loads the app
 
 - **WHEN** a client-side route URL is requested directly
 - **THEN** the app shell is served and the route renders
 
-#### Scenario: A missing asset still 404s
+#### Scenario: The service worker is not swallowed by the fallback
 
-- **WHEN** a request is made for a nonexistent file with an asset extension
-- **THEN** the response is 404 rather than the app shell
+- **WHEN** `/sw.js` is requested
+- **THEN** it is served as `application/javascript`, not as the app shell with `text/html`
+
+#### Scenario: A missing asset returns the shell, knowingly
+
+- **WHEN** a request is made for a nonexistent file under `/assets/`
+- **THEN** the response is `index.html` with status 200
+
+Distinguishing navigation requests from subresource requests would require a Pages Function, which is
+not worth adding to Phase 0. The consequence — a broken deploy looking healthy to a `curl` of an asset
+URL — is accepted, and the service-worker content-type check above is the signal that does catch it.
 
 ### Requirement: Cache headers do not pin clients to a stale build
 

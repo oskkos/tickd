@@ -200,8 +200,14 @@ sliding ~90 days, offline logging must never depend on auth, and the sync queue 
 
 - Package is **`@base-ui/react`** — the widely-cited `@base-ui-components/react` is deprecated and
   will show up constantly in older snippets.
-- Use daisyUI's *skin* classes (`btn`, `modal-box`, `menu`, `tabs`, `card`, `input`); avoid its
-  *behavioural* ones (`.dropdown`, `.modal` open-state, `.collapse`) — Base UI owns that state.
+- Use daisyUI's *skin* classes (`btn`, `menu`, `tabs`, `card`, `input`); avoid its *behavioural* ones
+  (`.dropdown`, `.modal` open-state, `.collapse`) — Base UI owns that state.
+- **`modal-box` is not a skin class — do not use it on a Base UI popup.** daisyUI 5 ships it as
+  `opacity: 0; scale: .95` and only reveals it through a `.modal` parent's open state, which Base UI
+  deliberately does not provide. The result is an invisible dialog with a working backdrop, which
+  reads as a rendering bug rather than a CSS one. Style popups with plain utilities over daisyUI's
+  theme tokens (`bg-base-100`, `rounded-box`, `text-base-content`). `apps/web/src/App.test.tsx` has a
+  guard.
 - **Put `data-theme` on `<html>`, never a subtree** — portalled dialogs and drawers render outside
   the React root and would miss a scoped theme.
 - Themes: daisyUI `dim` (dark) and `winter` (light). Dark mode is not optional; gyms are dimly lit.
