@@ -296,12 +296,20 @@ values.
 
 **Scales:**
 
-- **French** for rope: `4, 4+, 5, 5+, 6a, 6a+, 6b … 9c`. Note that `4+` and `5+` aren't additions —
-  sub-6a French grades use number-plus-modifier rather than letters, so that *is* the standard
-  scale.
-- **Fontainebleau** for boulder: uppercase `6A`, `7B`. This is what Kiipeilyareena uses, having
-  switched to it explicitly and kept the old circuit colour as the tag background
+- **French** for rope, **27 values**: `4 4+ 5 5+ 6a 6a+ 6b 6b+ 6c 6c+ 7a 7a+ 7b 7b+ 7c 7c+ 8a 8a+
+  8b 8b+ 8c 8c+ 9a 9a+ 9b 9b+ 9c`. Note that `4+` and `5+` aren't additions — sub-6a French grades
+  use number-plus-modifier rather than letters, so that *is* the standard scale. Letters run `a`–`c`
+  only; there is no `6d` and no `9c+`.
+- **Fontainebleau** for boulder, **23 values**: the same sequence with uppercase letters, stopping at
+  `9A` — `4 4+ 5 5+ 6A 6A+ … 8C 8C+ 9A`. This is what Kiipeilyareena uses, having switched to it
+  explicitly and kept the old circuit colour as the tag background
   ([announcement](https://kiipeilyareena.com/uusi-bouldereiden-greidaussysteemi/)).
+
+**These two lists are the same for their first 22 entries but for letter case**, and diverge only in
+the 9s, where French has five values and Font one. That is a property worth testing rather than
+merely asserting — it catches a typo in either list and demonstrates the case-only difference the
+next paragraph depends on. `packages/grade-spec` is the source of truth; the counts above and in
+`DESIGN.md` §5 are restatements of it.
 
 **One UI component, two ordinal namespaces.** Both scales are number + letter + optional `+`, so
 one grid component with two label sets serves both. But they are **not the same scale**: Font `6A`
@@ -313,8 +321,14 @@ data-model one.
 **The model must also handle:**
 
 - **Open grades** — `"6A/6A+"`, `"7a/7a+"`. Ordinals are a *range* or fractional value.
-  Retrofitting this is expensive.
+  Retrofitting this is expensive. **Indoor tags are always a single grade, so Phase 0 never enters
+  one** — the grid is discrete buttons and both seed gyms tag one value per climb. The cheap
+  insurance against the expensive retrofit is therefore a *shape*, not a feature: an ordinal is a
+  discriminated union (`{ kind: 'exact', index }`) from the first commit, so adding a `range` variant
+  later fails to compile in every consumer that must change, rather than being a silent widening of a
+  bare number.
 - **Unknown / project grades** — nullable ordinal, excluded from pyramids and surfaced separately.
+  Also not reachable in Phase 0: the grid always yields a grade, and projects are Phase 2.
 
 Deferred: Finnish sport/trad, Scandinavian and UIAA matter only for outdoor. V-scale and YDS stay
 display-only conversions. The model supports them all; the UI ships French and Font.
@@ -415,7 +429,8 @@ Cloudflare R2 (§9.4). Disposable is fine for a month and unacceptable for a yea
 
 venue        id, type(indoor|outdoor), name, brand?, city, country, geo?,
              default_route_length_m?,        -- wall height, per location
-             default_grade_scale,            -- 'french' rope / 'font' boulder
+             default_scale_rope,             -- 'french'; serves sport and trad
+             default_scale_boulder,          -- 'font'
              pending_review, canonical_id?   -- §7.5
 
 session      id, venue_id, date_local, started_at, ended_at,
@@ -970,8 +985,10 @@ push notifications, and any native plugin bridge.
 
 1. **Which Kiipeilyareena site**, and wall heights at both gyms? Needed for the seed rows and the
    vertical-metres metric.
-2. **Does Tampereen Kiipeilykeskus also grade boulders in Font?** Kiipeilyareena does. If Tampere
-   differs, `default_grade_scale` must be per-discipline per-venue rather than a single field.
+2. **Does Tampereen Kiipeilykeskus also grade boulders in Font?** Kiipeilyareena does. **This is now
+   a seed-data question only** — `venue` carries `default_scale_rope` and `default_scale_boulder`
+   per-discipline unconditionally (§7.7), so the schema no longer depends on the answer and it is
+   resolvable by looking at a wall.
 3. **iOS and the App Store?** TWA is Android-only by construction, so §10 says nothing about iOS.
    Reaching it would mean Capacitor or similar — a second build target with a plugin bridge, which
    would also close the iOS haptics gap in `DESIGN.md` §4. Not planned, and not answered (D15).

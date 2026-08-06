@@ -7,7 +7,7 @@ exclude analytics. This document owns how that flow looks. Cross-reference rathe
 the two don't drift apart.
 
 Status: first draft. Logo exists (`tickd.png`), fonts and UI stack chosen, visual details open.
-Last updated: 2026-08-01
+Last updated: 2026-08-06
 
 ---
 
@@ -235,7 +235,9 @@ The most important screen in Phase 0, and the hardest layout problem.
 
 ### The grade grid
 
-French 4→9c is **27 values**; Font 4→9A is **22**. Neither fits on a phone at a 56 px target size.
+French 4→9c is **27 values**; Font 4→9A is **23**. Neither fits on a phone at a 56 px target size.
+Both counts are restatements — `packages/grade-spec` holds the authoritative lists, and `CONCEPT.md`
+§7.3 explains why the two scales must never share an ordinal namespace.
 
 On a 390 px viewport with 16 px margins, 3 columns at an 8 px gap gives ~114 px wide cells — very
 comfortable. About six rows are visible without scrolling, so ~18 grades.
