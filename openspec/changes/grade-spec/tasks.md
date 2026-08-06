@@ -55,10 +55,10 @@
 
 ## 6. Verify
 
-- [ ] 6.1 `just check` passes from a clean install with no codegen step run first
-- [ ] 6.2 Edit the YAML without regenerating and confirm the drift check fails
-- [ ] 6.3 Run the generator twice and confirm byte-identical output
-- [ ] 6.4 Temporarily remove `NoInfer` and confirm the type-level assertions fail, then restore it
-- [ ] 6.5 Confirm `apps/web` still builds and typechecks without depending on the package yet
-- [ ] 6.6 Re-read the `build-tooling` delta against the finished tree and confirm no Phase 1 tooling
+- [x] 6.1 `just check` passes from a clean install with no codegen step run first
+- [x] 6.2 Edit the YAML without regenerating and confirm the drift check fails
+- [x] 6.3 Run the generator twice and confirm byte-identical output
+- [x] 6.4 Temporarily remove `NoInfer` and confirm the type-level assertions fail, then restore it
+- [x] 6.5 Confirm `apps/web` still builds and typechecks without depending on the package yet
+- [x] 6.6 Re-read the `build-tooling` delta against the finished tree and confirm no Phase 1 tooling
       arrived alongside
