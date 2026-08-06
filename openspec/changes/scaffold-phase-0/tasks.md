@@ -43,7 +43,7 @@
 
 - [x] 5.1 Add a root `justfile` with `install`, `dev`, `build`, `typecheck`, `lint`, `test`
 - [x] 5.2 Confirm no target invokes Gradle, Flyway, jOOQ, Docker or OpenAPI generation
-- [ ] 5.3 Confirm every target succeeds on a clean checkout after install
+- [x] 5.3 Confirm every target succeeds on a clean checkout after install
 
 ## 6. Cloudflare Pages deployment
 
