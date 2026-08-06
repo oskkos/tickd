@@ -78,7 +78,13 @@ export function ordinalOf<S extends ScaleId>(label: LabelOf<S>, scale: S): Ordin
  * This is the importer's entry point — Phase 0's only untrusted input path (`CONCEPT.md` §7.6).
  */
 export function parseOrdinal<S extends ScaleId>(raw: unknown, scale: S): Ordinal<S> | undefined {
-  return isLabel(raw, scale) ? ordinalOf(raw, scale) : undefined;
+  // One scan. `isLabel` then `ordinalOf` would walk the label list twice for the same answer, and
+  // this runs once per tick when analytics read `grade_raw` back out of Dexie.
+  if (typeof raw !== 'string') {
+    return undefined;
+  }
+  const index = (labels(scale) as readonly string[]).indexOf(raw);
+  return index === -1 ? undefined : { scale, kind: 'exact', index };
 }
 
 /** The label for an ordinal, verbatim. */

@@ -37,13 +37,42 @@ describe('scale definitions', () => {
     expect(font.slice(-2)).toEqual(['8C+', '9A']);
   });
 
-  it.each(SCALE_IDS)('orders %s strictly easiest-first', (scale) => {
-    const all = labels(scale);
-    for (let i = 1; i < all.length; i += 1) {
-      const previous = ordinalOf(all[i - 1]!, scale);
-      const current = ordinalOf(all[i]!, scale);
-      expect(compare(previous, current)).toBeLessThan(0);
+  // Asserting `compare(ordinalOf(all[i-1]), ordinalOf(all[i])) < 0` would pass for ANY list in ANY
+  // order — the ordinals are derived from the same array being iterated, so it is true by
+  // construction. It has to constrain the label *content* instead: difficulty ascends if the leading
+  // number never decreases, the letter never goes backwards within a number, and `+` follows its
+  // bare grade.
+  it.each(SCALE_IDS)('ascends in difficulty through %s', (scale) => {
+    const parsed = labels(scale).map((label) => {
+      const match = /^(\d)([a-cA-C]?)(\+?)$/.exec(label);
+      expect(match, `"${label}" does not match the grade grammar`).not.toBeNull();
+      const [, digit, letter, plus] = match!;
+      return { label, digit: Number(digit), letter: letter!.toLowerCase(), plus: plus === '+' };
+    });
+
+    for (let i = 1; i < parsed.length; i += 1) {
+      const previous = parsed[i - 1]!;
+      const current = parsed[i]!;
+      const context = `${previous.label} -> ${current.label}`;
+
+      expect(current.digit, context).toBeGreaterThanOrEqual(previous.digit);
+      if (current.digit === previous.digit) {
+        // Same number: either the same letter gaining a `+`, or the next letter starting fresh.
+        if (current.letter === previous.letter) {
+          expect({ context, plus: current.plus }).toEqual({ context, plus: true });
+          expect({ context, plus: previous.plus }).toEqual({ context, plus: false });
+        } else {
+          expect(current.letter.localeCompare(previous.letter), context).toBe(1);
+          expect({ context, plus: current.plus }).toEqual({ context, plus: false });
+        }
+      }
     }
+  });
+
+  it('uses lowercase letters for French and uppercase for Font', () => {
+    // The case difference is data, not presentation (CONCEPT.md §7.3).
+    expect(labels('french').filter((l) => /[A-Z]/.test(l))).toEqual([]);
+    expect(labels('font').filter((l) => /[a-z]/.test(l))).toEqual([]);
   });
 
   it.each(SCALE_IDS)('has no duplicate labels in %s', (scale) => {

@@ -25,13 +25,15 @@ dev-lan:
 
 # Regenerate code from versioned specs.
 codegen:
-    pnpm --filter @tickd/grade-spec codegen
+    # Fans out like typecheck/lint/test: any package declaring a `codegen` script is picked up with
+    # no edit here. `--filter` is reserved for genuinely web-specific recipes.
+    pnpm -r codegen
 
 # Fail if committed generated code disagrees with its spec.
 codegen-check:
     # Compares in memory and never writes, so this is safe on a dirty tree and cannot be confused
     # with uncommitted work.
-    pnpm --filter @tickd/grade-spec codegen:check
+    pnpm -r codegen:check
 
 # Production build.
 build:

@@ -52,15 +52,13 @@ ordinalOf('9c', 'font');
 // narrow on the tag rather than treating an ordinal as arithmetic.
 
 // @ts-expect-error An ordinal is a tagged object, not a number.
-const arithmetic: number = rope;
+export const arithmetic: number = rope;
 
 // @ts-expect-error A number is not an ordinal.
 labelOf(4);
 
 // @ts-expect-error 'range' is not a constructible variant in Phase 0.
-const openGrade: Ordinal<'font'> = { scale: 'font', kind: 'range', lo: 4, hi: 5 };
+export const openGrade: Ordinal<'font'> = { scale: 'font', kind: 'range', lo: 4, hi: 5 };
 
 // @ts-expect-error The scale field is the brand and cannot be reassigned across scales.
-const mislabelled: Ordinal<'french'> = boulder;
-
-export type { arithmetic, openGrade, mislabelled };
+export const mislabelled: Ordinal<'french'> = boulder;

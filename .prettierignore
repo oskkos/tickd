@@ -19,8 +19,9 @@ apps/web/src/assets/fonts/OFL-*.txt
 
 # Generated output: the generator owns its formatting. Running Prettier over it would couple the
 # drift check to Prettier's version, so a Prettier upgrade would fail `just check` until every
-# generated file was regenerated.
-packages/grade-spec/src/generated/
+# generated file was regenerated. The policy is general — jOOQ classes, openapi.json and the TS
+# client are all committed generated artifacts too (CLAUDE.md, "Codegen chain").
+**/generated/
 
 # Cloudflare Pages config files are not a format Prettier understands.
 apps/web/public/_headers
