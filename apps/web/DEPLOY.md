@@ -24,7 +24,7 @@ configuration is reproducible even though the account is not.
 need no Pages-side configuration.
 
 **Never add a top-level `404.html`.** Cloudflare Pages falls back to `index.html` for unmatched paths
-*only when the project has no `404.html`*. Adding one turns every unmatched route into a 404 —
+_only when the project has no `404.html`_. Adding one turns every unmatched route into a 404 —
 including valid client-side routes — and `_redirects`' `/* /index.html 200` rule does not override it.
 This was found the expensive way: deep links 404'd on a live preview while every other check passed.
 
@@ -58,13 +58,13 @@ curl -sSI $B/sw.js | grep -iE 'content-type|cache-control'       # expect javasc
 
 **Known gap: the `immutable` rule on `/assets/*` does not take effect.** Cloudflare returns its own
 `public, max-age=0, must-revalidate` for those responses, even though the `/sw.js` rule in the same
-`_headers` file *is* applied. The rule is kept because it is correct and costs nothing, but do not
+`_headers` file _is_ applied. The rule is kept because it is correct and costs nothing, but do not
 assume it works. Practical impact is small — Vite fingerprints the filenames, so revalidation is a
 304 rather than a re-download, and Cloudflare's edge cache still serves them. The `web-deployment`
 spec only says assets MAY be cached long-term, so this is a missed optimisation rather than a
 violation. Worth revisiting if it ever shows up in load times.
 
-**Known trade-off:** with the SPA fallback enabled, a request for a *missing* file under `/assets/`
+**Known trade-off:** with the SPA fallback enabled, a request for a _missing_ file under `/assets/`
 also returns `index.html` with a 200 rather than a 404. Cloudflare's asset model does not distinguish
 navigation requests from subresource requests without a Pages Function, and a Worker is not worth
 adding to Phase 0 for this. The practical consequence is that a broken deploy can look healthy to a

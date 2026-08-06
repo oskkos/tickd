@@ -12,9 +12,15 @@ pnpm-lock.yaml
 # Agent and tooling instructions are maintained upstream.
 .claude/
 openspec/
+.remember/
 
 # Licence texts are distributed verbatim.
 apps/web/src/assets/fonts/OFL-*.txt
+
+# Generated output: the generator owns its formatting. Running Prettier over it would couple the
+# drift check to Prettier's version, so a Prettier upgrade would fail `just check` until every
+# generated file was regenerated.
+packages/grade-spec/src/generated/
 
 # Cloudflare Pages config files are not a format Prettier understands.
 apps/web/public/_headers
