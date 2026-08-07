@@ -18,6 +18,11 @@ coverage/
 .DS_Store
 Thumbs.db
 
+# WSL writes an NTFS alternate data stream beside every file copied in from Windows, and it surfaces
+# on the Linux side as a literal `<name>:Zone.Identifier` file. Copying assets in from the Windows
+# filesystem produces one per asset.
+*:Zone.Identifier
+
 # logs
 *.log
 npm-debug.log*

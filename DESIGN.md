@@ -6,46 +6,64 @@ Visual identity and UI system. Companion to `CONCEPT.md`, which owns *what* the 
 exclude analytics. This document owns how that flow looks. Cross-reference rather than restate, so
 the two don't drift apart.
 
-Status: first draft. Logo exists (`tickd.png`), fonts and UI stack chosen, visual details open.
+Status: first draft. Logo, icon set and fonts are production assets; UI stack chosen; screen-level
+visual details open.
 Last updated: 2026-08-07
 
 ---
 
 ## 1. Logo
 
-Current asset: `tickd.png` (1024×1024, white background).
+A lowercase **k** in slate grey, with a climber silhouette reaching past it for two pale holds,
+optionally over the wordmark **tickd**.
 
-A lowercase **k** in slate grey, with a black climber silhouette reaching past it for two pale
-holds, over the wordmark **tickd** in black.
+`tickd.png` (1024×1024) remains in the repo root as the original presentation lockup. It is **not** a
+production asset and nothing references it.
 
-### What's needed before it's usable
+### The asset set
 
-The PNG is a presentation lockup, not a production asset set.
+Vector sources live in `apps/web/src/assets/brand/`; rendered icons in `apps/web/public/`. Both are
+catalogued in `apps/web/ICONS.md`, which owns the operational detail — this section owns the intent.
 
 | Asset | Format | Notes |
 |---|---|---|
-| Full lockup | SVG | Transparent background. For marketing, README, login screen. |
-| Icon (no wordmark) | SVG | Just the `k` + climber. The lockup is unreadable below ~120 px. |
-| App icon | PNG 192, 512 | From the icon, not the lockup. |
-| Maskable icon | PNG 512 | Android crops to circle/squircle — artwork must sit inside the centre **80%** safe zone, with the background bled to the edges. |
-| `apple-touch-icon` | PNG 180 | iOS ignores the manifest and doesn't apply rounding to a transparent PNG — needs an opaque background baked in. |
-| Favicon | SVG + ICO 32 | At 16 px only the `k` silhouette will read. |
-| Dark variant | SVG | See below. |
+| Mark | SVG | `k` + climber, no wordmark. `viewBox="0 0 360 498"`, so it is not square. |
+| Inline lockup | SVG | Mark beside wordmark. For README, headers, a future login screen. |
+| Stacked lockup | SVG | Mark above wordmark. Splash and marketing. |
+| App icon | PNG 192, 512 | From the **stacked lockup** — see the exception below. |
+| Maskable icon | PNG 512 | From the mark. Android crops to circle/squircle — artwork sits inside the centre **80%** safe zone, background bled to the edges. |
+| `apple-touch-icon` | PNG 180 | From the mark. iOS ignores the manifest and doesn't round a transparent PNG, so the background is opaque. |
+| Favicon | SVG | From the mark, on a dark rounded square. |
 
-### Three problems to solve
+Every SVG ships in two variants. **The unsuffixed file is the dark-theme one** — `dim` is the default
+and dark is not optional in a gym, so the default theme is the unqualified one; `-light` means *for
+light backgrounds*. Fills are hardcoded, not `currentColor`, so a theme switch swaps files rather than
+recolouring one.
 
-**The climber disappears in dark mode.** A black silhouette on a dark background has no contrast.
-The dark variant needs the climber inverted to off-white, or the `k` lightened enough to hold the
-silhouette. Worth deciding deliberately rather than shipping a washed-out auto-inversion.
+### The two contrast problems, solved
 
-**Black-on-slate is low contrast at small sizes.** The silhouette against the grey `k` works at
-poster scale; at 48 px they merge into one blob. The icon version likely needs the climber knocked
-out in white, or a thin light outline.
+**The climber disappears in dark mode.** Solved by inverting it to off-white (`#EDF2F3`) in the dark
+variant, decided deliberately rather than shipping a washed-out auto-inversion.
+
+**Black-on-slate is low contrast at small sizes.** Solved by the same inversion: off-white on the
+`#6E8085` slate `k` separates cleanly at 48 px, where black-on-slate merged into one blob.
+
+### One problem still open
 
 **The `k` is doing unexplained work.** It's presumably lifted from ti-**ck**-d, but that isn't
 obvious — it could equally read as *kiipeily* or *klättring*. Not a problem to fix, just worth being
-deliberate about, since it's the shape that will represent the app at 48 px with no wordmark to
-explain it.
+deliberate about, since it's the shape that represents the app at 48 px with no wordmark to explain it.
+
+### The wordmark exception
+
+The rule is that an icon carries no wordmark, because the lockup is unreadable below ~120 px. **The
+manifest `any` icons break it deliberately**: `icon-192.png` and `icon-512.png` include the wordmark,
+while the maskable and `apple-touch` icons — the two actually rendered small — do not.
+
+The trade-off is accepted, not overlooked: `any` icons appear in the install dialog and splash at large
+sizes, where the wordmark earns its place. The cost is that at 48 px it degrades to a smudge, and the
+four PNGs are not consistent with each other. If the launcher icon ever looks muddy, re-render the two
+`any` icons from the mark; nothing else in the system depends on their contents.
 
 ---
 
@@ -158,8 +176,8 @@ contrast relationships between them. daisyUI's are already contrast-checked.
 **If more personality than `dim` is wanted, `dracula` is the compromise** — synthwave's purple/pink
 family at a fraction of the saturation. Keeps the feel without the legibility cost.
 
-**Tuning later, not now.** Once the logo hexes are sampled, override two or three values and let the
-rest inherit:
+**Tuning later, not now.** The logo hexes are known (below), so this is a matter of overriding two or
+three values and letting the rest inherit — but it wants real UI to judge against:
 
 ```css
 @plugin "daisyui/theme" { name: "dim"; --color-primary: <slate>; }
@@ -168,16 +186,29 @@ rest inherit:
 Extra themes can also simply be enabled — the token-based approach supports many, so `synthwave`
 could ship as an opt-in without affecting the default experience.
 
-### Brand palette, sampled from the logo
+### Brand palette, read from the logo
 
-**Estimated by eye — verify with a colour picker against `tickd.png` before committing.**
+**Exact, not estimated** — these are the literal fill values in `src/assets/brand/`, which carries
+only two fills per lockup plus the icon background.
 
-| Token | Approx. | Source |
+| Token | Value | Source |
 |---|---|---|
-| `--ink` | `#141414` | Wordmark and climber silhouette |
-| `--slate` | `#404B4E` | The `k`. Slightly blue-grey. The primary brand colour. |
-| `--hold` | `#C9CED1` | The two pale holds |
-| `--paper` | `#FFFFFF` | Background |
+| `--ink` | `#14181A` | Wordmark and climber, **light** variant |
+| `--paper` | `#EDF2F3` | Wordmark and climber, **dark** variant |
+| `--slate` | `#6E8085` | The `k`, dark variant. Slightly blue-grey. The primary brand colour. |
+| `--slate-light` | `#9AA9AD` | The `k`, light variant |
+| `--surface` | `#15191A` | Icon and favicon background |
+
+`--slate` is the one distinctive colour here and should carry the brand.
+
+**The pale holds no longer have a colour.** In the original `tickd.png` they were a third value; in the
+production vectors they are merged into the climber path and take its fill. Anything that wanted a
+`--hold` accent needs to pick one rather than sample it.
+
+**A seam worth knowing about:** the manifest's `background_color`/`theme_color` is `#1c212b` (daisyUI
+`dim`), while the icon background is `#15191A`. On the Android splash the icon sits on the manifest
+colour, so the two near-blacks meet — one slightly blue, one slightly green. Harmless, but if the
+splash ever looks like the icon has a faint panel behind it, this is why.
 
 `--slate` is the one distinctive colour here and should carry the brand. `--hold` is a natural
 accent — it already means "the thing you're reaching for", which is a pleasingly apt association
@@ -411,14 +442,20 @@ If this grows, promote it to `packages/tokens/` in the monorepo alongside `grade
 
 ## 7. Open questions
 
-1. **Exact hex values** — sample `tickd.png` with a picker, then override two or three daisyUI theme
-   values (§3). The brand-palette table is estimated by eye.
-2. **Dark-mode logo treatment** — invert the climber, or lighten the `k`?
-3. **Grade grid direction** — easiest at the bottom or the top?
-4. **`protection` iconography** — lead / toprope / auto-belay need three glyphs that read at 24 px.
+1. **daisyUI theme overrides** — the brand hexes are now exact (§3), but no `--color-primary` override
+   has been applied to `dim` or `winter` yet. Worth doing once there is UI to judge it against.
+2. **`protection` iconography** — lead / toprope / auto-belay need three glyphs that read at 24 px.
    Rope-and-quickdraw versus rope-over-anchor versus a coiled auto-belay? Needs sketching.
-5. **Does the logo need an SVG redraw?** If `tickd.png` is raster-only with no vector source, the
-   icon set will need redrawing regardless — which is also the moment to fix the small-size contrast.
+3. **What the `k` means** — see §1. Left open deliberately.
+
+### Closed
+
+- **~~Exact hex values~~** — read from the vectors rather than sampled by eye (§3).
+- **~~Dark-mode logo treatment~~** — the climber is inverted to off-white; the `k` also lightens
+  between variants (§1).
+- **~~Grade grid direction~~** — easiest at the top.
+- **~~Does the logo need an SVG redraw?~~** — done. `src/assets/brand/` is the vector source, and the
+  small-size contrast was fixed in the same pass.
 
 ---
 
