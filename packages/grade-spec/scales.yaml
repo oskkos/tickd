@@ -7,7 +7,8 @@
 #
 #   1. Font and French are SEPARATE ORDINAL NAMESPACES. Font `6A` and French `6a` differ only by
 #      letter case and mean very different difficulties. They must never share an ordinal scale, or
-#      boulders and routes land on one pyramid and every metric is silently wrong.
+#      incomparable values get ranked against each other and every metric is silently wrong.
+#      This separates NOTATIONS. Disciplines are separated by the consuming layer — see D17.
 #
 #   2. Labels are ENUMERATED, never generated. A pattern over number x letter x modifier would
 #      happily emit `6d`, `9c+` and `5A`, none of which exist.
@@ -16,8 +17,9 @@
 # as strings, producing a list of mixed types. The generator rejects any non-string label rather than
 # coercing it, because a coerced `4` is indistinguishable from a correct one.
 #
-# Labels are ordered easiest first. Whether the grade grid renders them bottom-up or top-down is a UI
-# decision (`DESIGN.md` §5) and deliberately not encoded here.
+# Labels are ordered easiest first, which is also the order the grade grid renders them —
+# easiest at the top (`DESIGN.md` §5). Presentation stays a UI concern; this file just happens to
+# store them the same way round, so no reversal is needed.
 
 # Bump when the contents change in a way that could alter a derived value. Phase 0 defines no
 # cross-scale conversions, so nothing here is contested yet — the field exists so that a future
@@ -25,7 +27,12 @@
 version: 1
 
 scales:
-  # ── French, for rope ────────────────────────────────────────────────────────
+  # ── French ──────────────────────────────────────────────────────────────────
+  # A NOTATION, NOT A DISCIPLINE. French serves rope everywhere, and boulders at venues that grade
+  # them that way — Tampereen Kiipeilykeskus does. Which scale a venue uses for which discipline is
+  # data (`venue.default_scale_rope` / `default_scale_boulder`), never implied by the notation. See
+  # CONCEPT.md D17.
+  #
   # Sub-6a French grades use number-plus-modifier rather than letters, so `4+` and `5+` are not
   # additions — that is the standard scale. Letters run a–c only: there is no `6d`.
   # Stops at `9c`; `9c+` is not a graded difficulty.
@@ -60,10 +67,12 @@ scales:
       - '9b+'
       - '9c'
 
-  # ── Fontainebleau, for boulder ──────────────────────────────────────────────
-  # What Kiipeilyareena uses, having switched to it explicitly and kept the old circuit colour as the
-  # tag background. Identical to the French sequence for the first 22 entries apart from letter case,
-  # then stops at `9A` where French continues through the 9s.
+  # ── Fontainebleau ───────────────────────────────────────────────────────────
+  # What Kiipeilyareena uses for its boulders, having switched to it explicitly and kept the old
+  # circuit colour as the tag background. NOT "the boulder scale" — Tampere grades boulders in
+  # French.
+  # Identical to the French sequence for the first 22 entries apart from letter case, then stops at
+  # `9A` where French continues through the 9s.
   font:
     count: 23
     labels:

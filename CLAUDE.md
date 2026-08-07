@@ -114,11 +114,25 @@ is indistinguishable from the one it replaced. Do not add route matching, natura
 fields (`set_at`/`removed_at`), or a "currently up" view. Projects (Phase 2) are a user-named
 grouping key, not a route. (CONCEPT §7.2, D2, D3)
 
-**Font and French are separate ordinal namespaces.** Font `6A` (boulder) and French `6a` (rope)
-differ only by letter case and mean very different difficulties. One shared *UI* grid component,
-never one shared ordinal scale — mapping them together puts boulders and routes on the same pyramid
-and corrupts every metric. Correspondingly: **never apply `text-transform` to `grade_raw`**;
-grade text renders verbatim. (CONCEPT §7.3, DESIGN §2)
+**Font and French are separate ordinal namespaces.** Font `6A` and French `6a` differ only by letter
+case and mean very different difficulties. One shared *UI* grid component, never one shared ordinal
+scale. Correspondingly: **never apply `text-transform` to `grade_raw`**; grade text renders verbatim.
+(CONCEPT §7.3, DESIGN §2)
+
+**A scale is a notation, not a discipline.** Kiipeilyareena grades boulders in Font; Tampere grades
+them in **French**. So one scale spans two disciplines and one discipline spans two scales — "French
+for rope, Font for boulder" was a coincidence of two gyms, not a rule (CONCEPT §7.3, D17). Separation
+is two-layer and neither layer can do the other's job:
+
+- **Notation** — separated by the type system; comparing a Font ordinal with a French one is a
+  compile error.
+- **Discipline** — separated by the consuming layer, since `discipline` and `protection` are fields
+  on the tick, not properties of a grade.
+
+**Every metric therefore groups by `(discipline, grade_scale)`.** Grouping by discipline alone pools
+Font and French boulders into one ranking of incomparable values; grouping by scale alone pools
+boulders with routes. Either yields a plausible wrong number rather than an error. Two boulder scales
+means two boulder pyramids in Phase 0 — the merging conversion table is deferred (D17).
 
 **Store `grade_raw` + `grade_scale`; convert to ordinals at read time** through a versioned
 conversion table. Never bake a canonical ordinal at write time — conversion is lossy and contested,

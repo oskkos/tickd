@@ -3,8 +3,12 @@
  *
  * The one thing this module exists to make impossible: comparing a Font ordinal with a French one.
  * Font `6A` and French `6a` differ only by letter case and mean very different difficulties, so
- * mixing them puts boulders and routes on a single pyramid and silently corrupts every metric
+ * mixing them ranks incomparable values against each other and silently corrupts every metric
  * (`CONCEPT.md` §7.3, D5).
+ *
+ * That is a *notation* guarantee, not a discipline one. A scale does not imply a discipline — French
+ * serves boulders at some venues — so keeping boulders and routes apart is the consuming layer's job,
+ * via the `discipline` and `protection` fields on a tick (`CONCEPT.md` §4.2, D17).
  *
  * Separation is structural rather than asserted. See `Ordinal` and `compare` below.
  */
@@ -55,9 +59,12 @@ export function labels<S extends ScaleId>(scale: S): readonly LabelOf<S>[] {
 /**
  * Whether `raw` is a label of `scale`, compared exactly.
  *
- * Nothing is trimmed, lowercased or uppercased. Case is the only thing distinguishing a boulder
- * grade from a rope grade, so normalising here would reclassify `6A` as a rope grade rather than
+ * Nothing is trimmed, lowercased or uppercased. Case is the only thing distinguishing a Font label
+ * from a French one, so normalising here would move a grade onto the other scale rather than
  * rejecting it (`DESIGN.md` §2 forbids the same thing in CSS).
+ *
+ * Note that a scale does not imply a discipline — French serves boulders at some venues
+ * (`CONCEPT.md` D17). Case identifies the scale, nothing more.
  */
 export function isLabel<S extends ScaleId>(raw: unknown, scale: S): raw is LabelOf<S> {
   return typeof raw === 'string' && (labels(scale) as readonly string[]).includes(raw);

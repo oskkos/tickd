@@ -11,13 +11,13 @@
 
 import { compare, equals, labelOf, ordinalOf, type Ordinal } from './index.ts';
 
-const rope = ordinalOf('6a', 'french');
-const boulder = ordinalOf('6A', 'font');
+const frenchGrade = ordinalOf('6a', 'french');
+const fontGrade = ordinalOf('6A', 'font');
 
 // Same scale — these must keep compiling.
-compare(rope, ordinalOf('7a', 'french'));
-compare(boulder, ordinalOf('7A', 'font'));
-equals(rope, ordinalOf('6a', 'french'));
+compare(frenchGrade, ordinalOf('7a', 'french'));
+compare(fontGrade, ordinalOf('7A', 'font'));
+equals(frenchGrade, ordinalOf('6a', 'french'));
 
 // ── The invariant ───────────────────────────────────────────────────────────────
 // Cross-scale comparison must not compile. If `NoInfer` is removed from `compare`, TypeScript infers
@@ -25,13 +25,13 @@ equals(rope, ordinalOf('6a', 'french'));
 // this file fails to typecheck, which is exactly the alarm.
 
 // @ts-expect-error Font and French ordinals cannot be compared.
-compare(rope, boulder);
+compare(frenchGrade, fontGrade);
 
 // @ts-expect-error Font and French ordinals cannot be compared.
-compare(boulder, rope);
+compare(fontGrade, frenchGrade);
 
 // @ts-expect-error Font and French ordinals cannot be tested for equality.
-equals(rope, boulder);
+equals(frenchGrade, fontGrade);
 
 // ── A label belongs to exactly one scale ───────────────────────────────────────
 
@@ -52,7 +52,7 @@ ordinalOf('9c', 'font');
 // narrow on the tag rather than treating an ordinal as arithmetic.
 
 // @ts-expect-error An ordinal is a tagged object, not a number.
-export const arithmetic: number = rope;
+export const arithmetic: number = frenchGrade;
 
 // @ts-expect-error A number is not an ordinal.
 labelOf(4);
@@ -61,4 +61,4 @@ labelOf(4);
 export const openGrade: Ordinal<'font'> = { scale: 'font', kind: 'range', lo: 4, hi: 5 };
 
 // @ts-expect-error The scale field is the brand and cannot be reassigned across scales.
-export const mislabelled: Ordinal<'french'> = boulder;
+export const mislabelled: Ordinal<'french'> = fontGrade;
