@@ -1,10 +1,13 @@
 ## 1. Dependencies and test harness
 
-- [ ] 1.1 Add `dexie` to `apps/web` dependencies and `fake-indexeddb` to devDependencies
-- [ ] 1.2 Register `fake-indexeddb/auto` in `apps/web/vitest.setup.ts` so jsdom gains an IndexedDB
-- [ ] 1.3 Verify `crypto.randomUUID` is available under jsdom; if it is not, note what the id wrapper
+- [x] 1.1 Add `dexie` to `apps/web` dependencies and `fake-indexeddb` to devDependencies
+      — also added `@tickd/grade-spec` as a workspace dependency, which the row types need
+- [x] 1.2 Register `fake-indexeddb/auto` in `apps/web/vitest.setup.ts` so jsdom gains an IndexedDB
+- [x] 1.3 Verify `crypto.randomUUID` is available under jsdom; if it is not, note what the id wrapper
       must fall back to in tests
-- [ ] 1.4 Confirm `just check` still passes and the Phase 0 scope fence test is unaffected
+      — **available**, so no fallback is needed. The probe also found `navigator.storage` itself
+      undefined under jsdom, not merely `.persist`, so the guard in group 6 must chain at both levels
+- [x] 1.4 Confirm `just check` still passes and the Phase 0 scope fence test is unaffected
 
 ## 2. Row types and the invariant encoding
 
