@@ -178,8 +178,9 @@ Indoor only, rope *and* boulder. One grade-grid component with French and Font l
 with per-venue autocomplete. Instant undo. Manual JSON export *and* import buttons. **Plus
 flash-rate-by-grade.**
 
-Seed venues: **Tampereen Kiipeilykeskus** and **Kiipeilyareena** (a specific Helsinki site — see
-§7.5). Wall heights needed for the vertical-metres metric.
+Seed venues: **Tampereen Kiipeilykeskus**, **Kiipeilyareena Salmisaari** and **Kiipeilyareena
+Ristikko** — three locations, not two brands (§7.5). Wall heights are still needed for the
+vertical-metres metric and are seeded absent until known (§12).
 
 Data is disposable: schema changes may wipe and restart, so **no Dexie migration work** (§7.6).
 
@@ -407,6 +408,11 @@ display. Wall height is per location, since it drives the vertical-metres metric
 
 In Phase 0 this is trivial — hardcode your gyms as seed rows. Curation and submission only become
 real in Phase 1.
+
+**One Phase 0 shortcut has a Phase 1 expiry date.** Seeding overwrites its rows on every launch
+(`bulkPut`), which is idempotent and correct only while venues are not user-editable. The moment the
+"my gym isn't listed" path above exists, overwriting would discard a user's own venue or correction,
+and seeding has to become insert-if-absent.
 
 ### 7.6 Durability
 
@@ -1009,8 +1015,12 @@ push notifications, and any native plugin bridge.
 
 ## 12. Open questions
 
-1. **Which Kiipeilyareena site**, and wall heights at both gyms? Needed for the seed rows and the
-   vertical-metres metric.
+1. ~~**Which Kiipeilyareena site**~~, and **wall heights** at both gyms? **Sites answered:
+   Salmisaari and Ristikko**, both seeded as separate venue rows sharing the `Kiipeilyareena` brand,
+   alongside Tampereen Kiipeilykeskus. **Wall heights are still open**, so `default_route_length_m` is
+   seeded absent rather than guessed — a wrong height skews every vertical-metres figure silently
+   instead of erroring, and the field is optional precisely so the metric can have no data until the
+   real numbers are known.
 2. ~~**Does Tampereen Kiipeilykeskus also grade boulders in Font?**~~ **Answered: no — Tampere grades
    boulders in French.** So `default_scale_boulder` is `french` for Tampere and `font` for
    Kiipeilyareena. This is what established that a scale is a notation rather than a discipline, and

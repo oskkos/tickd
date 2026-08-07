@@ -106,10 +106,14 @@
 
 ## 7. Documentation
 
-- [ ] 7.1 Narrow `CONCEPT.md` §12 Q1 to wall heights only, recording that the sites are decided
-- [ ] 7.2 Update the `Last updated:` line in `CONCEPT.md`
-- [ ] 7.3 Note in the design or a code comment that `bulkPut` seeding becomes wrong once §7.5's venue
+- [x] 7.1 Narrow `CONCEPT.md` §12 Q1 to wall heights only, recording that the sites are decided
+      — also corrected §5's Phase 0 summary, which still listed two seed venues and described
+      Kiipeilyareena as one brand rather than two locations
+- [x] 7.2 Update the `Last updated:` line in `CONCEPT.md` — already today's date, left as is
+- [x] 7.3 Note in the design or a code comment that `bulkPut` seeding becomes wrong once §7.5's venue
       submission flow exists in Phase 1
+      — recorded in `CONCEPT.md` §7.5 as well as at the call site, since it is a product-level expiry
+      date rather than an implementation note
 
 ## 8. Verify
 
