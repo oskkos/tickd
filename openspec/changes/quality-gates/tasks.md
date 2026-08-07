@@ -5,11 +5,12 @@
 
 ## 2. Hook installation
 
-- [ ] 2.1 Add `"prepare": "git config core.hooksPath .githooks"` to the root `package.json`
-- [ ] 2.2 Add a `just install-hooks` recipe as the explicit path for anyone who installed with
+- [x] 2.1 Add `"prepare": "git config core.hooksPath .githooks"` to the root `package.json`
+- [x] 2.2 Add a `just install-hooks` recipe as the explicit path for anyone who installed with
       `--ignore-scripts`
-- [ ] 2.3 Create `.githooks/` and confirm `git config core.hooksPath` reports it after `pnpm install`
+- [x] 2.3 Create `.githooks/` and confirm `git config core.hooksPath` reports it after `pnpm install`
 - [ ] 2.4 Set the executable bit on both hooks in git, and verify it survives a fresh clone
+      (verified at the end of group 4, once both hooks exist)
 
 ## 3. The pre-commit hook
 
