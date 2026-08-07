@@ -93,8 +93,17 @@ requirement.
 
 **Git's own messages pass through unvalidated.** Merge, revert, fixup and squash messages are generated
 by git and do not follow the convention. A hook that rejects them breaks `git merge` and
-`git rebase --autosquash`, which is how the rule gets deleted rather than followed. Detection is by
-message prefix plus `$2`, the commit source argument git passes to `commit-msg`.
+`git rebase --autosquash`, which is how the rule gets deleted rather than followed.
+
+**Measured, and it inverted the assumption.** `git merge` *does* invoke `commit-msg`, and it passes an
+**empty** `$2` — verified in an isolated repository with a hook that failed unconditionally, which
+aborted the merge and created no merge commit. So the message-prefix check (`Merge `, `Revert `,
+`fixup!`, …) is the load-bearing signal, and `$2` is the redundant one, which is the reverse of how this
+was first written. `$2` is kept because it does carry `merge`/`squash` when git supplies a template for
+an interactive commit, and it costs nothing.
+
+This is precisely the risk called out above as concentrated in the passthrough. It was wrong on the
+first attempt and only testing caught it.
 
 **The hook runs `just`, not the underlying commands.** Same for CI. This is the whole reason the justfile
 exists, and it means adding a check is a one-line edit in one file rather than three.

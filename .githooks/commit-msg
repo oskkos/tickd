@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# Enforce the Conventional Commits rule documented in CLAUDE.md.
+#
+# Deliberately a script rather than commitlint: the allowed scopes are specific to this repository, and
+# commitlint would not save maintaining them (config-conventional does not restrict scopes by default,
+# so scope-enum has to be configured either way). The cost of hand-rolling is concentrated in the
+# passthrough below — see the comment there.
+
+set -e
+
+MSG_FILE="$1"
+COMMIT_SOURCE="$2"
+
+TYPES="feat fix docs refactor test build ci chore"
+SCOPES="web grade-spec backend docs openspec"
+
+# ── Passthrough ────────────────────────────────────────────────────────────────
+# Messages git generates itself do not follow the convention, and rejecting them breaks `git merge`,
+# `git revert` and `git rebase --autosquash` — which is how a rule gets deleted rather than followed.
+#
+# MEASURED, not assumed: `git merge` DOES invoke this hook, and it passes an EMPTY $2. A hook that
+# returns non-zero there aborts the merge with no merge commit created. So the subject-prefix check
+# below is the load-bearing signal for merges, not the $2 check — which was the opposite of the initial
+# assumption. $2 is kept because it does carry "merge" or "squash" when git supplies a message template
+# for an interactive commit, and costs nothing.
+case "$COMMIT_SOURCE" in
+  merge | squash) exit 0 ;;
+esac
+
+# First line that is neither blank nor one of git's comment lines.
+SUBJECT=$(grep -v '^#' "$MSG_FILE" | grep -v '^[[:space:]]*$' | head -n 1)
+
+case "$SUBJECT" in
+  "Merge "* | "Revert "* | "fixup!"* | "squash!"* | "amend!"*) exit 0 ;;
+esac
+
+# ── Validation ─────────────────────────────────────────────────────────────────
+reject() {
+  echo "" >&2
+  echo "commit-msg: $1" >&2
+  echo "" >&2
+  echo "  subject:  ${SUBJECT:-(empty)}" >&2
+  echo "  expected: <type>(<scope>)?!?: <imperative subject>" >&2
+  echo "  types:    $TYPES" >&2
+  echo "  scopes:   $SCOPES   (optional — omit rather than invent one)" >&2
+  echo "" >&2
+  echo "  See CLAUDE.md, \"Git workflow\". Bypass with --no-verify." >&2
+  exit 1
+}
+
+if [ -z "$SUBJECT" ]; then
+  reject "the commit message is empty."
+fi
+
+# Shape first, so a malformed subject gets a shape error rather than a confusing "unknown type".
+if ! printf '%s' "$SUBJECT" | grep -Eq '^[a-z]+(\([a-z0-9-]+\))?!?: .+$'; then
+  reject "the subject does not match <type>(<scope>)?!?: <description>."
+fi
+
+TYPE=$(printf '%s' "$SUBJECT" | sed -E 's/^([a-z]+).*/\1/')
+case " $TYPES " in
+  *" $TYPE "*) ;;
+  *) reject "\"$TYPE\" is not an allowed type." ;;
+esac
+
+# Empty when there is no scope, which is allowed.
+SCOPE=$(printf '%s' "$SUBJECT" | sed -nE 's/^[a-z]+\(([a-z0-9-]+)\).*/\1/p')
+if [ -n "$SCOPE" ]; then
+  case " $SCOPES " in
+    *" $SCOPE "*) ;;
+    *) reject "\"$SCOPE\" is not an allowed scope." ;;
+  esac
+fi
