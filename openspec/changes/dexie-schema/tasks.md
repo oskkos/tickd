@@ -52,14 +52,20 @@
 
 ## 4. The database and its indexes
 
-- [ ] 4.1 Write `apps/web/src/db/schema.ts` declaring the Dexie subclass with `version(1)` only
-- [ ] 4.2 Declare stores and indexes per design decision 5, including the `[discipline+grade_scale]`
+- [x] 4.1 Write `apps/web/src/db/schema.ts` declaring the Dexie subclass with `version(1)` only
+- [x] 4.2 Declare stores and indexes per design decision 5, including the `[discipline+grade_scale]`
       compound index and no `*tags` multiEntry index
-- [ ] 4.3 Export the `SCHEMA_MARKER` constant tied to version 1
-- [ ] 4.4 Add the id wrapper around `crypto.randomUUID()` rather than calling it inline
-- [ ] 4.5 Write a test asserting exactly one version is declared and no upgrade callback is attached
-- [ ] 4.6 Write a test asserting the compound index exists and that querying by
+- [x] 4.3 Export the `SCHEMA_MARKER` constant tied to version 1
+- [x] 4.4 Add the id wrapper around `crypto.randomUUID()` rather than calling it inline
+- [x] 4.5 Write a test asserting exactly one version is declared and no upgrade callback is attached
+      — Dexie exposes no public accessor, so the upgrade check reads `_versions[i]._cfg.contentUpgrade`.
+      Verified by adding a real `version(2).upgrade(...)`: both guards failed, then passed once removed
+- [x] 4.6 Write a test asserting the compound index exists and that querying by
       `(discipline, grade_scale)` returns only matching ticks
+      — the test fixture builder was rewritten mid-task. The first version was
+      `{ ...defaults, ...overrides } as Tick`, which left `send_style: 'flash'` in place when a test
+      overrode `is_send` to `false`; the cast silenced the invariant the module exists to enforce.
+      It now takes whole typed `TickOutcome`/`TickGrade` values and needs no cast
 
 ## 5. Seed venues
 
