@@ -88,12 +88,21 @@
 
 ## 6. Storage persistence and startup
 
-- [ ] 6.1 Write `apps/web/src/db/persist.ts` requesting `navigator.storage.persist()` once,
+- [x] 6.1 Write `apps/web/src/db/persist.ts` requesting `navigator.storage.persist()` once,
       guarded for absence
-- [ ] 6.2 Wire startup in `main.tsx` to await seeding before first read, and to request persistence
+      — the DOM lib types `navigator.storage` as always present and `persist` as always callable;
+      both overstate reality. Widened with `Omit<Navigator, 'storage'> & { storage?: StorageManager }`,
+      since intersecting with an optional property does **not** make the required one optional and the
+      lint rule correctly flagged the guard as dead code until then
+- [x] 6.2 Wire startup in `main.tsx` to await seeding before first read, and to request persistence
       without blocking on it
-- [ ] 6.3 Test that a missing `navigator.storage.persist` does not throw
-- [ ] 6.4 Test that a refused request does not throw
+      — `initialiseStorage` never rejects. If IndexedDB is unavailable (Firefox private browsing
+      throws on open) the app still renders, because a white screen tells the user nothing
+- [x] 6.3 Test that a missing `navigator.storage.persist` does not throw
+      — covered twice: `navigator.storage` absent entirely, which is jsdom's default and Safari's
+      real behaviour, and present-but-without-`persist`
+- [x] 6.4 Test that a refused request does not throw — plus a rejected promise, which is a separate
+      path from a `false` return
 
 ## 7. Documentation
 
