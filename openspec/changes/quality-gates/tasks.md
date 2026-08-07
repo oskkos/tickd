@@ -14,15 +14,15 @@
 
 ## 3. The pre-commit hook
 
-- [ ] 3.1 Write `.githooks/pre-commit` calling `just codegen-check fmt-check typecheck lint` — recipes,
+- [x] 3.1 Write `.githooks/pre-commit` calling `just codegen-check fmt-check typecheck lint` — recipes,
       not the underlying commands
-- [ ] 3.2 Abort on the first failure with a message naming the failing check and the command that fixes
+- [x] 3.2 Abort on the first failure with a message naming the failing check and the command that fixes
       it
-- [ ] 3.3 Fail loudly if `just` is not on PATH, rather than passing silently
-- [ ] 3.4 Verify each of the four checks blocks a commit: drifted generated module, unformatted file,
+- [x] 3.3 Fail loudly if `just` is not on PATH, rather than passing silently
+- [x] 3.4 Verify each of the four checks blocks a commit: drifted generated module, unformatted file,
       type error, lint error
-- [ ] 3.5 Verify a clean tree commits, and time the hook to confirm it stays near the measured ~7 s
-- [ ] 3.6 Verify `--no-verify` still bypasses it
+- [x] 3.5 Verify a clean tree commits, and time the hook to confirm it stays near the measured ~7 s
+- [x] 3.6 Verify `--no-verify` still bypasses it
 
 ## 4. The commit-msg hook
 
