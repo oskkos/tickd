@@ -69,15 +69,22 @@
 
 ## 5. Seed venues
 
-- [ ] 5.1 Write `apps/web/src/db/seed.ts` with the three venues and their hardcoded UUID literals
-- [ ] 5.2 Set `default_scale_rope: 'french'` on all three; `default_scale_boulder: 'font'` for both
+- [x] 5.1 Write `apps/web/src/db/seed.ts` with the three venues and their hardcoded UUID literals
+- [x] 5.2 Set `default_scale_rope: 'french'` on all three; `default_scale_boulder: 'font'` for both
       Kiipeilyareena sites and `'french'` for Tampereen Kiipeilykeskus
-- [ ] 5.3 Give both Kiipeilyareena rows `brand: 'Kiipeilyareena'` and leave
+- [x] 5.3 Give both Kiipeilyareena rows `brand: 'Kiipeilyareena'` and leave
       `default_route_length_m` absent
-- [ ] 5.4 Implement seeding as an idempotent `bulkPut`, and comment why it converges rather than
+- [x] 5.4 Implement seeding as an idempotent `bulkPut`, and comment why it converges rather than
       duplicating
-- [ ] 5.5 Test that seeding twice leaves the venue count unchanged, on a fresh database per test
-- [ ] 5.6 Test that the boulder scale differs across the seed set while the rope scale does not
+- [x] 5.5 Test that seeding twice leaves the venue count unchanged, on a fresh database per test
+      — **the obvious version of this test could not fail and was replaced.** Seeding twice and
+      comparing ids passes even with `crypto.randomUUID()`, because a module-level constant is
+      evaluated once per process; it differs only between browser launches, which one process cannot
+      observe. Verified by planting a generated id: the original test passed. Now asserts the id
+      literals directly, which does fail against that same plant
+- [x] 5.6 Test that the boulder scale differs across the seed set while the rope scale does not
+      — plus a test that Tampere uses French for *both* disciplines, since that is what forbids
+      treating `font` as "the boulder scale"
 
 ## 6. Storage persistence and startup
 
