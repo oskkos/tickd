@@ -117,9 +117,14 @@
 
 ## 8. Verify
 
-- [ ] 8.1 Run `just check` and confirm it exits 0
-- [ ] 8.2 Confirm the Phase 0 scope fence still passes — `apps/web` gained no HTTP, auth or sync
+- [x] 8.1 Run `just check` and confirm it exits 0 — exit 0; 29 tests across 4 files
+- [x] 8.2 Confirm the Phase 0 scope fence still passes — `apps/web` gained no HTTP, auth or sync
       dependency
-- [ ] 8.3 Confirm no Dexie migration exists and the marker is exported
-- [ ] 8.4 Record in the commit message what was verified against what broken state, including the
+      — runtime deps are `@base-ui/react`, `@tickd/grade-spec`, `dexie`, `react`, `react-dom`. No
+      match against HTTP, auth, query-cache, socket or GraphQL libraries. `packages/api-client`,
+      `openapi.json`, `docker-compose.yml` and Gradle files all still absent
+- [x] 8.3 Confirm no Dexie migration exists and the marker is exported
+      — one `db.version(1)` call and no `.upgrade(`; the only other `version(` in the file is prose
+      in a doc comment. `SCHEMA_MARKER = 'tickd.phase0.v1'` exported from `schema.ts`
+- [x] 8.4 Record in the commit message what was verified against what broken state, including the
       outcome of task 3.4
