@@ -1,4 +1,7 @@
 import '@testing-library/jest-dom/vitest';
+// jsdom implements no IndexedDB at all — `globalThis.indexedDB` is undefined — so without this the
+// storage layer would be the one part of the app that ships untested. Measured, not assumed.
+import 'fake-indexeddb/auto';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
