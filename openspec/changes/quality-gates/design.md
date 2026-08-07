@@ -45,8 +45,18 @@ the hook six times. ~45 s per change, spread across the work rather than in one 
 **`core.hooksPath` set from a `prepare` script, no dependency.** husky's actual mechanism is one `git
 config` call in a lifecycle script; the package is convenience around that. `"prepare": "git config
 core.hooksPath .githooks"` gets the same behaviour, keeps the hooks as readable shell in the repo, and
-adds nothing to the tree. pnpm runs `prepare` on install, including Cloudflare's
-`--frozen-lockfile`, where setting a git config is harmless.
+adds nothing to the tree. The command is `|| true`-guarded so an install outside a git working tree
+cannot fail because of it.
+
+**Measured caveat, found while implementing:** pnpm runs `prepare` only when the install actually does
+work. When it reports "Already up to date" it skips lifecycle scripts, so `core.hooksPath` is left
+untouched. A fresh clone is never a no-op, so the fresh-clone path holds — but *reinstalling* is the
+obvious thing to try when hooks look inactive, and it is exactly the case that does nothing. That makes
+`just install-hooks` the repair path rather than a courtesy for `--ignore-scripts` users, and it prints
+the resulting value so the state is visible rather than assumed.
+
+This is husky's one genuine advantage: it re-asserts itself more aggressively. Not enough to buy the
+dependency, but worth naming as the thing given up.
 
 Considered and rejected: **husky** (a dependency for one line), **lefthook** (a binary to install, and
 its parallelism buys nothing at 7 s), **`simple-git-hooks`** (smallest of the three, still a dependency

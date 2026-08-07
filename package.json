@@ -8,6 +8,7 @@
     "node": ">=24"
   },
   "scripts": {
+    "prepare": "git config core.hooksPath .githooks || true",
     "dev": "pnpm --filter @tickd/web dev",
     "build": "pnpm --filter @tickd/web build",
     "preview": "pnpm --filter @tickd/web preview",

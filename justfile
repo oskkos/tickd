@@ -9,9 +9,18 @@
 
 default: dev
 
-# Install workspace dependencies.
+# Install workspace dependencies. Also activates the git hooks via the `prepare` script.
 install:
     pnpm install
+
+# Point git at the committed hooks, and print what is wired.
+#
+# `pnpm install` does this via the `prepare` script, but ONLY when the install actually does work —
+# pnpm skips lifecycle scripts when it reports "Already up to date". So `pnpm install` will not repair
+# hooks on a tree whose node_modules is current, which is exactly when someone would try it. Use this.
+install-hooks:
+    git config core.hooksPath .githooks
+    @echo "core.hooksPath = $(git config core.hooksPath)"
 
 # Run the web app locally with hot reload.
 dev:

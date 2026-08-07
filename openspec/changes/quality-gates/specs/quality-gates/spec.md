@@ -12,6 +12,15 @@ Git hooks SHALL live in a committed `.githooks/` directory and be activated by p
 - **THEN** `git config core.hooksPath` reports `.githooks`
 - **AND** no separate hook-installation command was required
 
+#### Scenario: An explicit recipe repairs hooks when install is a no-op
+
+- **WHEN** `pnpm install` reports "Already up to date" and therefore skips lifecycle scripts
+- **THEN** `git config core.hooksPath` is left untouched
+- **AND** an explicit recipe SHALL exist that sets it and prints the resulting value
+
+Reinstalling is the obvious thing to try when hooks appear inactive, and it is precisely the case where
+`prepare` does not run. The repair path cannot be "install again".
+
 #### Scenario: Hooks are readable and executable as committed
 
 - **WHEN** the hook files are inspected
