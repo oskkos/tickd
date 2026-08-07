@@ -49,11 +49,11 @@
 
 ## 6. Verify end to end
 
-- [ ] 6.1 Push the branch and confirm the workflow runs on the pull request and reports status
-- [ ] 6.2 Push a deliberately failing commit with `--no-verify` and confirm CI catches what the hook
+- [x] 6.1 Push the branch and confirm the workflow runs on the pull request and reports status
+- [x] 6.2 Push a deliberately failing commit with `--no-verify` and confirm CI catches what the hook
       would have
 - [ ] 6.3 Confirm the run is cancelled when superseded by a newer push
-- [ ] 6.4 Confirm CI passes on a clean branch, then revert the deliberate failure
+- [x] 6.4 Confirm CI passes on a clean branch, then revert the deliberate failure
 - [ ] 6.5 Time the CI run and record it, so a future slowdown is visible
 - [ ] 6.6 Update `CLAUDE.md` to say hooks are active, what they check, and that `--no-verify` exists but
       CI does not
