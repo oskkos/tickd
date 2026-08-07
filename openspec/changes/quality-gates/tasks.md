@@ -1,7 +1,7 @@
 ## 1. One aggregate definition
 
-- [ ] 1.1 Add `fmt-check` to the `just check` recipe, before the slower checks so formatting fails fast
-- [ ] 1.2 Confirm `just check` fails on an unformatted file and passes once formatted
+- [x] 1.1 Add `fmt-check` to the `just check` recipe, before the slower checks so formatting fails fast
+- [x] 1.2 Confirm `just check` fails on an unformatted file and passes once formatted
 
 ## 2. Hook installation
 

@@ -56,8 +56,12 @@ lint:
 test:
     pnpm -r test
 
-# Everything CI would run.
-check: codegen-check typecheck lint test build
+# Everything CI would run. The single definition of "the tree is fine" — the git hooks and the CI
+# workflow both defer to these recipes rather than restating the commands.
+#
+# Ordered cheapest-first so a trivial failure does not wait behind lint: codegen-check ~0.6s,
+# fmt-check ~1.0s, typecheck ~1.9s, lint ~3.6s, test ~2.1s.
+check: codegen-check fmt-check typecheck lint test build
 
 # Rewrite sources with Prettier.
 fmt:
