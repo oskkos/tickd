@@ -1,0 +1,37 @@
+#!/bin/sh
+#
+# Refuse a commit that fails the fast checks.
+#
+# Runs `just` recipes rather than the underlying commands, so adding a check is a one-line edit in the
+# justfile and CI cannot drift from this. Measured at ~7s on the current tree; if it grows past ~10s,
+# drop a check from here rather than accepting the latency — a hook slow enough to annoy is a hook that
+# gets --no-verify, which is worse than no hook because it looks like protection.
+#
+# The test suite and the production build are deliberately NOT here. They belong to CI, which cannot be
+# skipped.
+#
+# Note: this validates the WORKING TREE, not the staged snapshot. A partial `git add` can produce a
+# commit that fails CI while this passed. Accepted deliberately — see the change's design notes.
+
+set -e
+
+if ! command -v just > /dev/null 2>&1; then
+  echo "pre-commit: 'just' is not on PATH, so the checks cannot run." >&2
+  echo "            Install it (https://just.systems) or commit with --no-verify." >&2
+  exit 1
+fi
+
+fail() {
+  echo "" >&2
+  echo "pre-commit: $1 failed." >&2
+  echo "            Fix: $2" >&2
+  echo "            Bypass: git commit --no-verify  (CI still runs the full suite)" >&2
+  exit 1
+}
+
+just codegen-check > /dev/null 2>&1 || fail "codegen-check" "just codegen"
+just fmt-check > /dev/null 2>&1 || fail "fmt-check" "just fmt"
+
+# These two print useful diagnostics, so let their output through rather than swallowing it.
+just typecheck || fail "typecheck" "read the errors above"
+just lint || fail "lint" "just lint --fix, or read the errors above"
