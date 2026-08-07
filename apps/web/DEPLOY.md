@@ -36,6 +36,15 @@ tickd.pages.dev                        production — the trial vehicle. Install
 feat-scaffold-phase-0.tickd.pages.dev  e.g. this change's preview
 ```
 
+## The trial install
+
+**Installed from Chrome on Android** (Galaxy S26 Ultra), from `tickd.pages.dev`. That browser owns the
+IndexedDB which will hold real ticks once logging exists.
+
+Samsung Internet is the stock browser on the device and keeps **separate storage** for the same origin,
+so opening the app there shows an empty logbook that is indistinguishable from data loss. For the
+duration of the trial, launch from the home-screen icon only.
+
 **Never install the PWA from a preview URL.** Its IndexedDB is a separate store, and a logbook opened
 from the wrong origin looks empty rather than broken.
 

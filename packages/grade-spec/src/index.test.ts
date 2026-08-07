@@ -104,8 +104,8 @@ describe('structural cross-check between the scales', () => {
       .filter(([label]) => /[a-z]/.test(label));
 
     expect(lettered.length).toBeGreaterThan(0);
-    for (const [ropeLabel, boulderLabel] of lettered) {
-      expect(boulderLabel).not.toBe(ropeLabel);
+    for (const [frenchLabel, fontLabel] of lettered) {
+      expect(fontLabel).not.toBe(frenchLabel);
     }
   });
 
@@ -134,8 +134,8 @@ describe('validation', () => {
     expect(isLabel('4+', 'french')).toBe(true);
   });
 
-  // The whole point: case is data, not presentation. A normalising validator would reclassify a
-  // boulder grade as a rope grade instead of rejecting it.
+  // The whole point: case is data, not presentation. A normalising validator would silently move a
+  // grade onto the other scale instead of rejecting it — a harder failure to notice than an error.
   it('rejects a case-mismatched pair rather than correcting it', () => {
     expect(isLabel('6A', 'french')).toBe(false);
     expect(isLabel('6a', 'font')).toBe(false);
@@ -187,11 +187,12 @@ describe('comparison', () => {
   });
 
   it('gives Font 6A and French 6a the same index without treating them as equal', () => {
-    const rope = ordinalOf('6a', 'french');
-    const boulder = ordinalOf('6A', 'font');
-    expect(boulder.index).toBe(rope.index);
+    const frenchGrade = ordinalOf('6a', 'french');
+    const fontGrade = ordinalOf('6A', 'font');
+    expect(fontGrade.index).toBe(frenchGrade.index);
     // Nothing in the API accepts both, so there is no equality to assert. The scales differ.
-    expect(boulder.scale).not.toBe(rope.scale);
+    // Named by scale, not discipline: a French grade may be a boulder too (CONCEPT.md D17).
+    expect(fontGrade.scale).not.toBe(frenchGrade.scale);
   });
 
   it('constructs only exact ordinals in Phase 0', () => {

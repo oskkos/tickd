@@ -18,8 +18,12 @@ just codegen-check  # fail if the committed module has drifted
 ## The two invariants this package exists to protect
 
 **Font and French are separate ordinal namespaces.** Font `6A` and French `6a` differ only by letter
-case and mean very different difficulties. Mapping them to one ordinal puts boulders and routes on a
-single pyramid and silently corrupts every metric (`CONCEPT.md` §7.3, D5).
+case and mean very different difficulties. Mapping them to one ordinal ranks incomparable values
+against each other and silently corrupts every metric (`CONCEPT.md` §7.3, D5).
+
+This is a **notation** guarantee, not a discipline one. A scale does not imply a discipline — French
+serves boulders at venues that grade them that way — so keeping boulders apart from routes is the
+consuming layer's job, via `discipline` and `protection` on the tick (`CONCEPT.md` §4.2, D17).
 
 Separation is structural, not asserted. An `Ordinal<S>` carries its scale as a literal-typed field, so
 `Ordinal<'french'>` and `Ordinal<'font'>` are incompatible under structural typing, and `compare` takes
@@ -28,7 +32,7 @@ accepts `compare(french6a, font6A)`. `src/types.assert.ts` fails to typecheck if
 removed.
 
 **Case is data, never presentation.** `isLabel` compares exactly: nothing is trimmed, lowercased or
-uppercased. A normalising validator would reclassify `6A` as a rope grade instead of rejecting it. The
+uppercased. A normalising validator would move a grade onto the other scale instead of rejecting it. The
 same rule forbids `text-transform` on a grade anywhere in the UI (`DESIGN.md` §2).
 
 ## Deliberately absent

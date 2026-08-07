@@ -7,7 +7,7 @@ exclude analytics. This document owns how that flow looks. Cross-reference rathe
 the two don't drift apart.
 
 Status: first draft. Logo exists (`tickd.png`), fonts and UI stack chosen, visual details open.
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 ---
 
@@ -85,14 +85,18 @@ precaching.
 This is the one typography rule that is actually a *data* rule, and it falls directly out of
 `CONCEPT.md` §7.3.
 
-**Font `6A` and French `6a` differ only by letter case.** Uppercase means a boulder problem;
-lowercase means a rope route; they represent very different difficulties.
+**Font `6A` and French `6a` differ only by letter case**, and they are different scales representing
+very different difficulties. Case is what tells them apart — it is data, not styling.
+
+Note that case does *not* tell you the discipline: French serves rope everywhere and boulders at
+Tampere, so a lowercase grade may be either (`CONCEPT.md` §7.3, D17). Case identifies the *scale*, and
+that is precisely why transforming it corrupts the record.
 
 Therefore:
 
 - **Never apply `text-transform: uppercase`, `lowercase` or `capitalize` to `grade_raw`.** Ever. A
-  stray uppercase utility class on a heading style would silently turn every rope grade into a
-  boulder grade on screen.
+  stray uppercase utility class on a heading style would silently redisplay every French grade as a
+  Font one — a harder grade, on a scale the climb was never graded with.
 - Grade values render verbatim from the database.
 - Avoid all-caps styling anywhere near grades, so nobody is tempted.
 - Worth an ESLint or stylelint rule, and worth asserting in a component test.
@@ -246,9 +250,11 @@ comfortable. About six rows are visible without scrolling, so ~18 grades.
 last 90 days of ticks, with a "show all" expansion. Almost everyone climbs within a five-or-six-grade
 band, so this makes the common case zero-scroll while keeping 9c reachable.
 
-Open question: whether grade order runs bottom-up (easiest at the bottom, mirroring a wall and a
-pyramid) or top-down (conventional reading order). Bottom-up is more thematically apt; top-down is
-less surprising. Worth trying both.
+**Grade order runs top-down: easiest at the top.** Bottom-up would mirror a wall and a pyramid and is
+the more thematically apt option, but the grid is a list of values and reads in the direction lists
+read. The thematic payoff lands once, on first sight; the cost of an unexpected order is paid on every
+use. `packages/grade-spec` stores labels easiest-first, so the grid renders them in storage order and
+reversal is a UI concern that no longer arises.
 
 ### After the grade
 

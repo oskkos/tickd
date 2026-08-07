@@ -4,7 +4,7 @@
 secondary.
 
 Status: shaping. Nothing built yet.
-Last updated: 2026-08-06
+Last updated: 2026-08-07
 
 The main body describes the current design only. Reasoning that was argued through and changed
 along the way is in the **[Decision log](#decision-log)** at the end, so the design reads cleanly
@@ -21,7 +21,7 @@ without losing the history.
 | **Scope** | Indoor. Outdoor works but is explicitly worse — The Topo owns Finnish outdoor. |
 | **Route data** | None. Ticks are anonymous; the app stores no route database at all. |
 | **Platform** | Mobile-first PWA, offline-capable. Dexie/IndexedDB is the client source of truth. |
-| **Grades** | French (`4`…`9c`) for rope, Fontainebleau for boulder. Separate ordinal namespaces. |
+| **Grades** | French (`4`…`9c`) and Fontainebleau (`4`…`9A`). Separate ordinal namespaces; a scale is a notation, not a discipline (§7.3, D17). |
 | **Venues** | Curated gym list plus user submissions for review. The only entity needing dedup. |
 | **Backend** | Kotlin + Spring Boot 4.1 + jOOQ 3.21 + PostgreSQL. Phase 1 onward. |
 | **Hosting** | Cloud Run `europe-north1` (Hamina, FI), scale-to-zero, + Neon. ~€0, fully managed. |
@@ -127,8 +127,17 @@ pyramids.
   auto-belay) *and* `send_style`, with lead as the default view. Auto-belay laps get their own
   numbers rather than being hidden or discounted — aggregating across categories is what misleads,
   and dropping data is its own distortion.
-- Grade pyramid, rolling 12 months, per discipline and per `protection`. Boulder and rope are
-  always separate, since Font and French are different scales (§7.3).
+- **Every distribution over grades is keyed by `(discipline, grade_scale)`.** Grouping by discipline
+  alone pools grades from different scales into one ranking of values that cannot be compared;
+  grouping by scale alone pools boulders with routes. Either produces a plausible-looking wrong
+  number rather than an error, which is exactly what segmentation exists to prevent. A scale is a
+  notation, not a discipline (§7.3, D17).
+- Grade pyramid, rolling 12 months, per discipline and per `protection`. Boulder and rope are always
+  separate because they are different disciplines — *not* because they use different scales, which
+  they need not. **Two venues grading boulders on two scales produce two boulder pyramids**, since
+  merging them would need a Font↔French conversion that Phase 0 deliberately lacks (D1, D5, D17).
+  Each distribution shows the scale it is keyed on, so two thin pyramids read as two scales rather
+  than as missing data.
 - Volume: sessions, ticks, and vertical metres — the last of which is free indoors via
   `venue.default_route_length_m` (§7.5).
 - Style weakness: send rate by tag (slab / vert / overhang / roof, crimp / sloper / pinch,
@@ -296,14 +305,31 @@ values.
 
 **Scales:**
 
-- **French** for rope, **27 values**: `4 4+ 5 5+ 6a 6a+ 6b 6b+ 6c 6c+ 7a 7a+ 7b 7b+ 7c 7c+ 8a 8a+
+- **French**, **27 values**: `4 4+ 5 5+ 6a 6a+ 6b 6b+ 6c 6c+ 7a 7a+ 7b 7b+ 7c 7c+ 8a 8a+
   8b 8b+ 8c 8c+ 9a 9a+ 9b 9b+ 9c`. Note that `4+` and `5+` aren't additions — sub-6a French grades
   use number-plus-modifier rather than letters, so that *is* the standard scale. Letters run `a`–`c`
   only; there is no `6d` and no `9c+`.
-- **Fontainebleau** for boulder, **23 values**: the same sequence with uppercase letters, stopping at
-  `9A` — `4 4+ 5 5+ 6A 6A+ … 8C 8C+ 9A`. This is what Kiipeilyareena uses, having switched to it
-  explicitly and kept the old circuit colour as the tag background
+- **Fontainebleau**, **23 values**: the same sequence with uppercase letters, stopping at
+  `9A` — `4 4+ 5 5+ 6A 6A+ … 8C 8C+ 9A`. This is what Kiipeilyareena uses for boulders, having
+  switched to it explicitly and kept the old circuit colour as the tag background
   ([announcement](https://kiipeilyareena.com/uusi-bouldereiden-greidaussysteemi/)).
+
+**A scale is a notation, not a discipline.** French serves rope everywhere, *and* boulders at
+Tampereen Kiipeilykeskus, which grades them in French rather than Font. So one discipline spans two
+scales and one scale spans two disciplines. Which scale a venue uses for which discipline is data —
+`venue.default_scale_rope` and `default_scale_boulder` (§7.7) — not something a grade's notation
+implies. The earlier "French for rope, Font for boulder" was a coincidence of the first two gyms
+considered, never an invariant (D17).
+
+**Separation is therefore two-layer, and neither layer can do the other's job:**
+
+- **Notation** is separated by the type system — a Font ordinal and a French ordinal cannot be
+  compared, and that is a compile error (§8.4).
+- **Discipline** is separated by the consuming layer, because `discipline` and `protection` are
+  fields on the tick rather than properties of a grade. No grade-level type can enforce it.
+
+The practical consequence is in §4.2: a metric must group by discipline *and* scale, or it pools
+values that cannot be compared.
 
 **These two lists are the same for their first 22 entries but for letter case**, and diverge only in
 the 9s, where French has five values and Font one. That is a property worth testing rather than
@@ -313,10 +339,9 @@ next paragraph depends on. `packages/grade-spec` is the source of truth; the cou
 
 **One UI component, two ordinal namespaces.** Both scales are number + letter + optional `+`, so
 one grid component with two label sets serves both. But they are **not the same scale**: Font `6A`
-and French `6a` look nearly identical and mean very different things — a Font 6A boulder is far
-harder than a 6a route. Mapping them to one ordinal would put boulders and routes on a single
-pyramid and quietly corrupt every metric. The shared appearance is a UI convenience, never a
-data-model one.
+and French `6a` look nearly identical and mean very different things. Mapping them to one ordinal
+would rank incomparable values against each other and quietly corrupt every metric. The shared
+appearance is a UI convenience, never a data-model one.
 
 **The model must also handle:**
 
@@ -429,8 +454,9 @@ Cloudflare R2 (§9.4). Disposable is fine for a month and unacceptable for a yea
 
 venue        id, type(indoor|outdoor), name, brand?, city, country, geo?,
              default_route_length_m?,        -- wall height, per location
-             default_scale_rope,             -- 'french'; serves sport and trad
-             default_scale_boulder,          -- 'font'
+             default_scale_rope,             -- serves sport and trad; 'french' at both seed gyms
+             default_scale_boulder,          -- per venue: 'font' at Kiipeilyareena, 'french' at
+                                             -- Tampere. A scale is a notation, not a discipline (D17)
              pending_review, canonical_id?   -- §7.5
 
 session      id, venue_id, date_local, started_at, ended_at,
@@ -985,10 +1011,10 @@ push notifications, and any native plugin bridge.
 
 1. **Which Kiipeilyareena site**, and wall heights at both gyms? Needed for the seed rows and the
    vertical-metres metric.
-2. **Does Tampereen Kiipeilykeskus also grade boulders in Font?** Kiipeilyareena does. **This is now
-   a seed-data question only** — `venue` carries `default_scale_rope` and `default_scale_boulder`
-   per-discipline unconditionally (§7.7), so the schema no longer depends on the answer and it is
-   resolvable by looking at a wall.
+2. ~~**Does Tampereen Kiipeilykeskus also grade boulders in Font?**~~ **Answered: no — Tampere grades
+   boulders in French.** So `default_scale_boulder` is `french` for Tampere and `font` for
+   Kiipeilyareena. This is what established that a scale is a notation rather than a discipline, and
+   that boulder pyramids split by scale in Phase 0 (§7.3, §4.2, D17).
 3. **iOS and the App Store?** TWA is Android-only by construction, so §10 says nothing about iOS.
    Reaching it would mean Capacitor or similar — a second build target with a plugin bridge, which
    would also close the iOS haptics gap in `DESIGN.md` §4. Not planned, and not answered (D15).
@@ -1376,6 +1402,52 @@ JSON importer alongside the exporter, plus the two rules fencing it and the Chro
 `persist()`; §5's Phase 0 scope list and §11's eviction row follow from that. §10.5's third
 open-option item is now explicitly still outstanding rather than satisfied, and §11 gained the
 name-availability risk.
+
+### D17 — A scale is a notation, not a discipline
+
+**Considered:** treating French as the rope scale and Font as the boulder scale, as every section of
+this document had assumed; minting a third scale id such as `french_boulder`; building a Font↔French
+conversion table now so boulders form one pyramid; restricting the trial to one gym.
+
+**Decided:** scales are notations. Font and French stay separate ordinal namespaces, but neither
+implies a discipline. Two boulder scales therefore produce two boulder pyramids in Phase 0, and the
+conversion table that would merge them is deferred.
+
+**§12's second open question turned out to matter more than its phrasing suggested.** It asked whether
+Tampere grades boulders in Font, framed as a seed-data detail once `venue` gained per-discipline
+defaults. Tampere grades boulders in **French** — so one scale spans two disciplines and one discipline
+spans two scales, and "French for rope, Font for boulder" was never an invariant. It was a coincidence
+of the only two gyms considered when D5 was written.
+
+**D5 is not reversed.** Its finding — that Font and French are different scales and must not share an
+ordinal namespace — holds exactly. What was wrong is an implication read into it.
+
+**The separation is two-layer, and this is not a weakening.** A grade-level type *cannot* enforce a
+discipline distinction, because `discipline` and `protection` are fields on the tick rather than
+properties of a grade. The old model looked stronger only because the two known gyms made scale and
+discipline coincide. So: the type system separates notations at compile time, the consuming layer
+separates disciplines, and §4.2's grouping key is `(discipline, grade_scale)`.
+
+**`french_boulder` was the tempting fix and is wrong.** §7.3 requires storing what was entered, and the
+tag on the Tampere wall is a French grade. A scale id meaning "French, but for boulders" bakes an
+interpretation at write time — the same error §7.3 forbids for ordinals, and for the same reason: the
+interpretation may be revised and the record of what was entered must survive it. It would also be a
+scale the gym does not believe exists.
+
+**The cost is real and is accepted rather than hidden.** Because both are `Ordinal<'french'>`, nothing
+stops code comparing a Tampere boulder with a rope route, and that comparison is meaningless. The type
+system cannot catch it; the metric key is what must, which is why §4.2 now specifies the key rather than
+leaving the analytics work to infer it. And with bouldering split across two scales, Phase 0's single
+analytic yields two thin distributions instead of one.
+
+**What would reverse it:** bouldering seriously at both gyms and wanting one number. At that point a
+Font↔French conversion earns its cost, and it arrives as a versioned addition to `scales.yaml` — which
+is what the version field has been waiting for, having had nothing to version since it was added.
+
+**What this changed:** §1's summary row, §4.2's segmentation and pyramid bullets, §7.3's scale bullets,
+§12's second question, `CLAUDE.md`'s invariant, and the `scales.yaml` comments. No code:
+`packages/grade-spec` never modelled discipline, so a falsified premise left its API and tests
+untouched.
 
 ### A note on cost estimates in this document
 
