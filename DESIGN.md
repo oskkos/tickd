@@ -268,6 +268,11 @@ Design constraints that come from where this app is used, not from taste:
 
 The most important screen in Phase 0, and the hardest layout problem.
 
+**Mockups live in `apps/web/src/assets/ui-mocks/`** — seven screens, numbered in flow order:
+logging, tick sheet, session start, flash rate, flash rate on day one, history, settings. They are
+reference images rather than a specification: where a mock and this document disagree, this document
+wins, because the mocks predate several decisions recorded here.
+
 ### The grade grid
 
 French 4→9c is **27 values**; Font 4→9A is **23**. Neither fits on a phone at a 56 px target size.
