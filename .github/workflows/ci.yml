@@ -1,0 +1,56 @@
+# The gate that cannot be skipped.
+#
+# `git commit --no-verify` bypasses the pre-commit hook; nothing bypasses this. The pre-commit hook is a
+# fast subset (codegen-check, fmt-check, typecheck, lint); this adds the test suite and the production
+# build by running the same aggregate recipe.
+#
+# Every check is `just check`. No check is restated as a workflow step, because a workflow that lists
+# `pnpm -r typecheck` and friends drifts from the justfile while continuing to look consistent.
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+
+# A superseded run tells you nothing. Cancel it rather than queueing.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # pnpm comes from the `packageManager` field via corepack, so the version is pinned in exactly
+      # one place. Must precede setup-node, which reads that field for its cache.
+      - name: Enable corepack
+        run: corepack enable
+
+      # Node version comes from .nvmrc. Hardcoding it here would create a second source of truth that
+      # fails in the direction of "works in CI, breaks locally".
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: extractions/setup-just@v4
+
+      # --frozen-lockfile fails if the lockfile does not match package.json, which is the reproducible
+      # behaviour CI should have. It is also pnpm's default in CI; stated explicitly so it does not
+      # depend on environment detection.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # codegen-check, fmt-check, typecheck, lint, test, build.
+      - name: Check
+        run: just check

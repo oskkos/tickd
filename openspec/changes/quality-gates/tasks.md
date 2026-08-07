@@ -38,14 +38,14 @@
 
 ## 5. GitHub Actions
 
-- [ ] 5.1 Add `.github/workflows/ci.yml` triggered on `pull_request` targeting `develop` and on `push`
+- [x] 5.1 Add `.github/workflows/ci.yml` triggered on `pull_request` targeting `develop` and on `push`
       to `develop`
-- [ ] 5.2 Set up pnpm via corepack from `packageManager`, and Node from `.nvmrc` — no hardcoded versions
-- [ ] 5.3 Install `just` in the runner so the check step is `just check`
-- [ ] 5.4 Install with the committed lockfile and fail if it is out of date
-- [ ] 5.5 Cache the pnpm store keyed on the lockfile
-- [ ] 5.6 Add a concurrency group cancelling superseded runs for the same ref
-- [ ] 5.7 Confirm no check in the workflow is expressed as a duplicated shell command
+- [x] 5.2 Set up pnpm via corepack from `packageManager`, and Node from `.nvmrc` — no hardcoded versions
+- [x] 5.3 Install `just` in the runner so the check step is `just check`
+- [x] 5.4 Install with the committed lockfile and fail if it is out of date
+- [x] 5.5 Cache the pnpm store keyed on the lockfile
+- [x] 5.6 Add a concurrency group cancelling superseded runs for the same ref
+- [x] 5.7 Confirm no check in the workflow is expressed as a duplicated shell command
 
 ## 6. Verify end to end
 
