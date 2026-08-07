@@ -11,29 +11,44 @@
 
 ## 2. Row types and the invariant encoding
 
-- [ ] 2.1 Write `apps/web/src/db/types.ts` with `Venue`, `Session`, and the `TickBase` fields from
+- [x] 2.1 Write `apps/web/src/db/types.ts` with `Venue`, `Session`, and the `TickBase` fields from
       `CONCEPT.md` §7.7 — including `sector?`, `attempts?`, `high_point?`, `grade_opinion?`, `rating?`,
       `notes?`, `length_m?`, `tags`, `date_local`, `tz_offset`, `created_at`, `updated_at`
-- [ ] 2.2 Add `TickGrade` as a union over `{ grade_scale, grade_raw }` using `FrenchLabel`/`FontLabel`
+      — `session.ended_at` made optional (§7.7 lists it without `?`); a session must be creatable
+      before it is finished, since ticks are written into one that has not ended. `grade_opinion`,
+      `rating`, `conditions` and `felt` have no defined semantics in §7.7 and are typed
+      conservatively, marked provisional in the file
+- [x] 2.2 Add `TickGrade` as a union over `{ grade_scale, grade_raw }` using `FrenchLabel`/`FontLabel`
       from `@tickd/grade-spec`
-- [ ] 2.3 Add `TickOutcome` as the three-member union over `is_send`, `send_style`, `prior_experience`
-- [ ] 2.4 Compose `Tick = TickBase & TickGrade & TickOutcome`, and confirm no `is_repeat` column exists
-- [ ] 2.5 Document the `tz_offset` sign convention (minutes **east** of UTC, opposite of
+- [x] 2.3 Add `TickOutcome` as the three-member union over `is_send`, `send_style`, `prior_experience`
+- [x] 2.4 Compose `Tick = TickBase & TickGrade & TickOutcome`, and confirm no `is_repeat` column exists
+- [x] 2.5 Document the `tz_offset` sign convention (minutes **east** of UTC, opposite of
       `getTimezoneOffset()`) in a comment where it cannot be missed
 
 ## 3. Prove the invariants hold
 
-- [ ] 3.1 Write `apps/web/src/db/types.assert.ts` in the `grade-spec` style, asserting valid
+- [x] 3.1 Write `apps/web/src/db/types.assert.ts` in the `grade-spec` style, asserting valid
       combinations compile
-- [ ] 3.2 Add `@ts-expect-error` assertions for each invalid case: send style on an attempt,
+- [x] 3.2 Add `@ts-expect-error` assertions for each invalid case: send style on an attempt,
       `send_style: undefined` on an attempt, flash with prior experience, send without a send style,
       and a case-mismatched grade/scale pair
-- [ ] 3.3 Assert `redpoint`/`second_go` with `prior_experience: 'none'` *does* compile
-- [ ] 3.4 **Verify intersection narrowing actually works** — if `TickBase & TickGrade & TickOutcome`
+      — **`@ts-expect-error` proved unusable here and was replaced.** An invalid literal reports at
+      different positions depending on the rule broken: a bad `prior_experience` or a cross-scale
+      label reports at the *declaration*, an excess `send_style` at the *property*. Half the
+      directives landed on the wrong line and were flagged unused, so the assertions were testing
+      their own placement. Replaced with position-independent `AssertNotAssignable` type assertions,
+      plus two controls so a trivially-never-assignable helper cannot make them all pass vacuously
+- [x] 3.3 Assert `redpoint`/`second_go` with `prior_experience: 'none'` *does* compile
+- [x] 3.4 **Verify intersection narrowing actually works** — if `TickBase & TickGrade & TickOutcome`
       does not narrow on the discriminants, fall back to the explicit six-member union per design
       decision 2, and record which path was taken
-- [ ] 3.5 Verify the assertions fail when a guard is removed, by deliberately widening the union and
-      confirming `tsc` reports the expected `@ts-expect-error` violations
+      — **narrowing works; no fallback needed.** `styleOf`, `rawOf` and `priorOf` narrow on
+      `is_send` and `grade_scale` through the intersection with no assertion, and typecheck is clean
+- [x] 3.5 Verify the assertions fail when a guard is removed, by deliberately widening the union and
+      confirming `tsc` reports the expected violations
+      — verified twice against real breakage. Widening `send_style?: never` to `send_style?: SendStyle`
+      failed the attempt-with-send-style assertion; widening `grade_raw: FrenchLabel` to `string`
+      failed both cross-scale assertions. Restored clean both times
 
 ## 4. The database and its indexes
 
