@@ -64,6 +64,16 @@ Branch per OpenSpec change, named after it so the two are obvious together:
 <type>/<change-name>        feat/scaffold-phase-0, docs/phase-0-hosting
 ```
 
+**Both of the rules below are enforced by git hooks, not just documented.** `.githooks/pre-commit` runs
+`codegen-check`, `fmt-check`, `typecheck` and `lint` (~7 s); `.githooks/commit-msg` validates the subject
+against the types and scopes below. They activate via a `prepare` script on `pnpm install` — but pnpm
+skips lifecycle scripts when it reports "Already up to date", so **`just install-hooks` is the repair
+path, not `pnpm install`**.
+
+`git commit --no-verify` bypasses both. **CI does not bypass**: `.github/workflows/ci.yml` runs the full
+`just check` on every pull request and every push to `develop`, in ~45 s. Treat CI as the real gate and
+the hook as the fast feedback loop.
+
 **Commit messages follow [Conventional Commits](https://www.conventionalcommits.org):**
 
 ```
