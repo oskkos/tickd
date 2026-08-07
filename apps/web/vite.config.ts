@@ -4,9 +4,10 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// Icon geometry and colours are specified in DESIGN.md §2 — the maskable 512 keeps its artwork
-// inside the centre 80% safe zone, and apple-touch-icon carries an opaque background because iOS
-// ignores the manifest.
+// Icon geometry and colours are specified in DESIGN.md §1 and catalogued in ICONS.md — the maskable
+// 512 keeps its artwork inside the centre 80% safe zone, and apple-touch-icon carries an opaque
+// background because iOS ignores the manifest. Filenames are the contract: replacing the artwork
+// needs no change here as long as they match.
 export default defineConfig({
   plugins: [
     react(),
