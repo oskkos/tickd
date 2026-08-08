@@ -87,28 +87,33 @@
 
 ## 7. Discipline and protection
 
-- [ ] 7.1 Discipline mode selects the venue's scale for that discipline
-- [ ] 7.2 Offer only disciplines the venue provides — a boulder-only venue shows no rope option
-- [ ] 7.3 Boulder forces `protection: 'none'` and hides the control
-- [ ] 7.4 Sticky `protection` for roped disciplines, always visible
-- [ ] 7.5 Tests against the seeded venues, including Lielahti having no rope mode
+- [x] 7.1 Discipline mode selects the venue's scale for that discipline
+- [x] 7.2 Offer only disciplines the venue provides — a boulder-only venue shows no rope option
+- [x] 7.3 Boulder forces `protection: 'none'` and hides the control
+- [x] 7.4 Sticky `protection` for roped disciplines, always visible
+      — switching to boulder forces `none`; switching back restores the previous roped value rather
+      than resetting to lead, since a toprope session stays one across a bouldering detour
+- [x] 7.5 Tests against the seeded venues, including Lielahti having no rope mode
 
 ## 8. The outcome grid and the write
 
-- [ ] 8.1 Build the 3×2 control with nothing preselected and no carry-forward
-- [ ] 8.2 Write the tick on the cell tap — no confirm, no submit
+- [x] 8.1 Build the 3×2 control with nothing preselected and no carry-forward
+- [x] 8.2 Write the tick on the cell tap — no confirm, no submit
 - [ ] 8.3 Touch targets at 48–56 px and the primary controls within the lower thumb-reachable third
-- [ ] 8.4 Tests: two taps produce a tick; nothing is preselected; the previous choice does not persist
+- [x] 8.4 Tests: two taps produce a tick; nothing is preselected; the previous choice does not persist
 
 ## 9. Undo and annotation
 
-- [ ] 9.1 Recent-ticks list for the current session, showing grade, protection, prior experience and
+- [x] 9.1 Recent-ticks list for the current session, showing grade, protection, prior experience and
       whether it was sent
-- [ ] 9.2 Persistent removal, not a timed notification
-- [ ] 9.3 Annotation of a written tick via `update` — `notes`, `angle`, `holds`, `rating`,
+- [x] 9.2 Persistent removal, not a timed notification
+- [x] 9.3 Annotation of a written tick via `update` — `notes`, `angle`, `holds`, `rating`,
       `grade_opinion`, `length_m`
+      — `TickAnnotation` is a hand-written interface rather than `Partial<Pick<…>>`: under
+      `exactOptionalPropertyTypes` absent means "leave alone" and explicit `undefined` means "clear
+      it", and clearing an angle tapped by mistake is a real operation the type must express
 - [ ] 9.4 Reach annotation from the recent list as well as immediately after logging
-- [ ] 9.5 Tests: a tick several entries back is still reversible; annotation never blocks logging
+- [x] 9.5 Tests: a tick several entries back is still reversible; annotation never blocks logging
 
 ## 10. Verify
 
