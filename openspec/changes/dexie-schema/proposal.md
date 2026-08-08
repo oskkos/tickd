@@ -17,9 +17,11 @@ discovering the constraint in a component instead of in a type.
 - **Row types that make the invalid style combinations unrepresentable.** `send_style` is null exactly
   when `is_send = false`, and `flash`/`onsight` require `prior_experience = 'none'`. Both become
   compile errors via a discriminated union rather than runtime assertions.
-- **Three seed venues**, inserted idempotently on startup: Kiipeilyareena Salmisaari, Kiipeilyareena
-  Ristikko (both `default_scale_boulder: 'font'`) and Tampereen Kiipeilykeskus
-  (`default_scale_boulder: 'french'`). All three carry `default_scale_rope: 'french'`.
+- **Four seed venues** across two brands, inserted idempotently on startup: Kiipeilyareena Salmisaari
+  and Ristikko (both `default_scale_boulder: 'font'`), and Tampereen Kiipeilykeskus Nekala and
+  Lielahti (both `'french'`). All carry `default_scale_rope: 'french'` **except Lielahti, which is
+  boulder-only and carries no rope scale at all** — so the default scales are optional, and a missing
+  one means the discipline is not offered there.
 - **`navigator.storage.persist()`** requested once at startup, best-effort and non-blocking.
 - **A schema marker constant**, exported now and consumed by the export/import change later, so the
   refuse-on-mismatch rule in §7.6 has something to compare.

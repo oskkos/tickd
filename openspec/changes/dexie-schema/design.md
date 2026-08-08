@@ -14,9 +14,14 @@ Three constraints shape everything below, and all three come from decisions alre
   here may bake an ordinal.
 
 The repo also has a precedent worth following rather than reinventing: `grade-spec` enforces its
-namespace invariant with the type system and proves the enforcement with `@ts-expect-error`
-assertions that fail the build if a guard is removed. This change uses the same technique for the
-style invariant.
+namespace invariant with the type system and proves the enforcement with assertions that fail the
+build if a guard is removed. This change uses the same idea for the style invariant.
+
+**Amended during implementation:** `@ts-expect-error`, `grade-spec`'s specific mechanism, does not
+work for these shapes. An invalid tick literal reports its error at the *declaration* for some rules
+and at the *property* for others, so half the directives sat on the wrong line and were flagged
+unused — they tested their own placement rather than the invariant. Position-independent type
+assertions replaced them.
 
 ## Goals / Non-Goals
 
@@ -87,15 +92,32 @@ combinations compile and that each invalid one does not. **If narrowing proves u
 fallback is to write the six-member union explicitly** — more verbose, identical guarantees, no
 change to any consumer.
 
+### 2b. A missing venue scale means the discipline is not offered
+
+`default_scale_rope` and `default_scale_boulder` are both optional, and their **absence carries
+meaning**: the venue does not offer that discipline. Tampereen Kiipeilykeskus Lielahti is
+boulder-only, so it has no rope scale rather than a rope scale nobody can use.
+
+**Why not a `disciplines: Discipline[]` field?** It duplicates the same fact and lets the two
+disagree — a venue could claim rope while having no rope scale, and nothing would catch it. Presence
+of the scale is the single source.
+
+A three-member union rather than two independent optionals, so a venue offering *neither* discipline
+is unrepresentable. That row would be a gym nothing can be logged at.
+
+The cost is real: every consumer now handles `undefined`. That is correct rather than annoying —
+the logging screen has to hide rope at Lielahti regardless, and a required field would have forced a
+lie into the seed data.
+
 ### 3. Keys are client-generated UUIDs, and seed venues have fixed ones
 
 `crypto.randomUUID()` for sessions and ticks rather than Dexie auto-increment. Auto-increment keys are
 per-database counters, which collide the moment a second device exists — and Phase 1 sync is the
 stated destination (§8.3). Paying for UUIDs now costs nothing and avoids a rekey later.
 
-**The three seed venues get hardcoded UUID literals.** This is what makes seeding idempotent: startup
-does a `bulkPut` of the same three rows, which converges whether the database is fresh, already
-seeded, or freshly replaced by an import. Random ids would duplicate the venue list on every launch.
+**The four seed venues get hardcoded UUID literals.** This is what makes seeding idempotent: startup
+does a `bulkPut` of the same rows, which converges whether the database is fresh, already seeded, or
+freshly replaced by an import. Random ids would duplicate the venue list on every launch.
 
 ### 4. `version(1)` and nothing else, enforced by a test
 
@@ -160,5 +182,5 @@ it is the exact case the union exists to prevent. Fields outside the union may s
 
 - **Wall heights** (`CONCEPT.md` §12 Q1) remain unanswered. Seeded absent; the field is optional, so
   vertical metres simply has no data until it is filled in.
-- **Is Ristikko correctly a Kiipeilyareena site in Helsinki?** Seeded on that assumption. Wrong seed
-  metadata is cheap to fix and costs no data, but it should be confirmed rather than inherited.
+- ~~**Is Ristikko correctly a Kiipeilyareena site in Helsinki?**~~ **Confirmed** — it is part of the
+  Kiipeilyareena brand.

@@ -137,14 +137,43 @@ Migration discipline begins at Phase 1, when the data becomes worth keeping.
 - **WHEN** a second version is added to the schema
 - **THEN** the test asserting a single version fails
 
+### Requirement: A venue offers at least one discipline, and says which
+
+A venue SHALL carry a default scale for each discipline it offers, and SHALL NOT carry one for a
+discipline it does not. **A missing scale means that discipline is not available at that venue**, and
+the type SHALL make a venue carrying neither scale unrepresentable — a venue nothing can be logged at
+is not a venue.
+
+Presence is the encoding rather than a separate list of disciplines, which would duplicate the same
+fact and allow the two to disagree.
+
+This says nothing about notation implying discipline. A scale still identifies only the notation the
+venue grades in, and the same scale may serve both (D17).
+
+#### Scenario: A venue offering both disciplines carries both scales
+
+- **WHEN** a venue with ropes and boulders is read
+- **THEN** it carries a rope scale and a boulder scale
+
+#### Scenario: A boulder-only venue carries no rope scale
+
+- **WHEN** a venue with no ropes is read
+- **THEN** its rope scale is absent rather than set to a value nobody can use
+
+#### Scenario: A venue offering nothing does not compile
+
+- **WHEN** a venue with neither scale is constructed
+- **THEN** typechecking fails
+
 ### Requirement: Seed venues are fixed and idempotent
 
 The database SHALL be seeded with the Phase 0 venues, each carrying a stable hardcoded identifier so
 that seeding converges rather than duplicating when run repeatedly.
 
-The seed set SHALL be Kiipeilyareena Salmisaari and Kiipeilyareena Ristikko — both
-`default_scale_boulder: 'font'` — and Tampereen Kiipeilykeskus with `default_scale_boulder: 'french'`.
-All three SHALL carry `default_scale_rope: 'french'`.
+The seed set SHALL be four locations across two brands: Kiipeilyareena Salmisaari and Kiipeilyareena
+Ristikko, both `default_scale_boulder: 'font'`; and Tampereen Kiipeilykeskus Nekala and Tampereen
+Kiipeilykeskus Lielahti, both `default_scale_boulder: 'french'`. Every venue except Lielahti SHALL
+carry `default_scale_rope: 'french'`; **Lielahti is boulder-only and SHALL carry no rope scale.**
 
 That one discipline takes two different scales across the seed set is the point, not an inconsistency:
 a scale is a notation, not a discipline (D17).
@@ -157,18 +186,33 @@ a scale is a notation, not a discipline (D17).
 #### Scenario: Seeding an empty database inserts every venue
 
 - **WHEN** the seed routine runs against a fresh database
-- **THEN** all three venues are present
+- **THEN** all four venues are present
 
 #### Scenario: Boulder scale differs across the seed set
 
 - **WHEN** the seeded venues are read
-- **THEN** the Kiipeilyareena sites report `font` for boulders and Tampereen Kiipeilykeskus reports
-  `french`, while all three report `french` for rope
+- **THEN** the Kiipeilyareena sites report `font` for boulders and both Tampere sites report `french`
+
+#### Scenario: Rope is French wherever it exists
+
+- **WHEN** the seeded venues that offer rope are read
+- **THEN** each reports `french`
+
+#### Scenario: The boulder-only site is specifically the one without rope
+
+- **WHEN** the seeded venues are read
+- **THEN** Lielahti has no rope scale and every other venue does, so the absence is specific rather
+  than a seeding bug that dropped the field everywhere
 
 #### Scenario: Venues are locations, not brands
 
-- **WHEN** the two Kiipeilyareena sites are read
+- **WHEN** the sites of either brand are read
 - **THEN** they are separate venue rows sharing an optional brand value
+
+#### Scenario: Sites within a brand are not interchangeable
+
+- **WHEN** the two Tampereen Kiipeilykeskus sites are compared
+- **THEN** one offers rope and the other does not, which is why a venue is a location
 
 #### Scenario: Wall height is absent rather than guessed
 

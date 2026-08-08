@@ -178,9 +178,10 @@ Indoor only, rope *and* boulder. One grade-grid component with French and Font l
 with per-venue autocomplete. Instant undo. Manual JSON export *and* import buttons. **Plus
 flash-rate-by-grade.**
 
-Seed venues: **Tampereen Kiipeilykeskus**, **Kiipeilyareena Salmisaari** and **Kiipeilyareena
-Ristikko** — three locations, not two brands (§7.5). Wall heights are still needed for the
-vertical-metres metric and are seeded absent until known (§12).
+Seed venues: **Kiipeilyareena Salmisaari** and **Ristikko**, plus **Tampereen Kiipeilykeskus
+Nekala** and **Lielahti** — four locations across two brands, not two gyms (§7.5). Lielahti is
+boulder-only. Wall heights are still needed for the vertical-metres metric and are seeded absent
+until known (§12).
 
 Data is disposable: schema changes may wipe and restart, so **no Dexie migration work** (§7.6).
 
@@ -402,9 +403,20 @@ block anyone whose gym isn't listed, which is fatal for the "works at any gym" p
   `pending_review` for later merging.
 - `canonical_id` lives here and nowhere else. Volume is low enough to moderate by hand.
 
-**Locations, not brands.** Kiipeilyareena has several sites (Salmisaari, Konala, Kontula) with
-different walls and wall heights. `venue` is a location; an optional `brand` groups them for
-display. Wall height is per location, since it drives the vertical-metres metric.
+**Locations, not brands.** Kiipeilyareena has several sites (Salmisaari, Ristikko, Konala, Kontula)
+with different walls and wall heights, and Tampereen Kiipeilykeskus has two (Nekala, Lielahti).
+`venue` is a location; an optional `brand` groups them for display. Wall height is per location,
+since it drives the vertical-metres metric.
+
+**And a location need not offer every discipline.** Lielahti is boulder-only. So the default scales
+are optional, and **a missing scale means that discipline is not available there** — not that no
+default was chosen. That is the encoding rather than a separate list of disciplines, which would
+duplicate the same fact and let the two disagree. A venue with neither scale is unrepresentable: a
+gym you cannot log anything at is not a venue.
+
+This is also the strongest form of the locations-not-brands argument. Two sites of one brand differ
+not just in wall height but in what you can do there at all, so collapsing them would make the rope
+option appear at a gym with no ropes.
 
 In Phase 0 this is trivial — hardcode your gyms as seed rows. Curation and submission only become
 real in Phase 1.
@@ -460,9 +472,12 @@ Cloudflare R2 (§9.4). Disposable is fine for a month and unacceptable for a yea
 
 venue        id, type(indoor|outdoor), name, brand?, city, country, geo?,
              default_route_length_m?,        -- wall height, per location
-             default_scale_rope,             -- serves sport and trad; 'french' at both seed gyms
-             default_scale_boulder,          -- per venue: 'font' at Kiipeilyareena, 'french' at
+             default_scale_rope?,            -- serves sport and trad; 'french' wherever rope exists
+             default_scale_boulder?,         -- per venue: 'font' at Kiipeilyareena, 'french' at
                                              -- Tampere. A scale is a notation, not a discipline (D17)
+                                             -- Both optional: a MISSING scale means the venue does
+                                             -- not offer that discipline. Tampere's Lielahti site is
+                                             -- boulder-only. At least one is always present.
              pending_review, canonical_id?   -- §7.5
 
 session      id, venue_id, date_local, started_at, ended_at,
@@ -1015,12 +1030,12 @@ push notifications, and any native plugin bridge.
 
 ## 12. Open questions
 
-1. ~~**Which Kiipeilyareena site**~~, and **wall heights** at both gyms? **Sites answered:
-   Salmisaari and Ristikko**, both seeded as separate venue rows sharing the `Kiipeilyareena` brand,
-   alongside Tampereen Kiipeilykeskus. **Wall heights are still open**, so `default_route_length_m` is
-   seeded absent rather than guessed — a wrong height skews every vertical-metres figure silently
-   instead of erroring, and the field is optional precisely so the metric can have no data until the
-   real numbers are known.
+1. ~~**Which sites**~~, and **wall heights** at each? **Sites answered: four locations across two
+   brands** — Kiipeilyareena Salmisaari and Ristikko, Tampereen Kiipeilykeskus Nekala and Lielahti.
+   **Wall heights are still open**, so `default_route_length_m` is seeded absent rather than guessed —
+   a wrong height skews every vertical-metres figure silently instead of erroring, and the field is
+   optional precisely so the metric can have no data until the real numbers are known. Lielahti needs
+   no height at all: it is boulder-only.
 2. ~~**Does Tampereen Kiipeilykeskus also grade boulders in Font?**~~ **Answered: no — Tampere grades
    boulders in French.** So `default_scale_boulder` is `french` for Tampere and `font` for
    Kiipeilyareena. This is what established that a scale is a notation rather than a discipline, and
