@@ -73,14 +73,17 @@
 
 ## 6. The grade grid
 
-- [ ] 6.1 Render the full scale easiest-first, in storage order, from `@tickd/grade-spec`
-- [ ] 6.2 Compute the working range as `[min − 2 … max + 2]` over 90 days, per `(discipline, grade_scale)`,
+- [x] 6.1 Render the full scale easiest-first, in storage order, from `@tickd/grade-spec`
+- [x] 6.2 Compute the working range as `[min − 2 … max + 2]` over 90 days, per `(discipline, grade_scale)`,
       over all ticks rather than sends only
-- [ ] 6.3 Set the initial scroll position from the range — before paint, not animated
-- [ ] 6.4 Recompute on mount and on discipline change; **not** after each tick
-- [ ] 6.5 Day one: no range, no repositioning, grid starts at the easiest grade
-- [ ] 6.6 Never apply a case transform to a grade label anywhere in the grid
-- [ ] 6.7 Tests: range excludes the other scale's ticks, outliers behave as documented, day one is quiet
+- [x] 6.3 Set the initial scroll position from the range — before paint, not animated
+      — `useLayoutEffect` setting `scrollTop`, not `scrollIntoView`. The list begins at the range
+      rather than animating to it
+- [x] 6.4 Recompute on mount and on discipline change; **not** after each tick
+      — the effect is keyed on `scale` alone, so logging cannot retrigger it
+- [x] 6.5 Day one: no range, no repositioning, grid starts at the easiest grade
+- [x] 6.6 Never apply a case transform to a grade label anywhere in the grid
+- [x] 6.7 Tests: range excludes the other scale's ticks, outliers behave as documented, day one is quiet
 
 ## 7. Discipline and protection
 
