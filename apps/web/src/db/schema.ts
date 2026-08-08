@@ -11,7 +11,7 @@
  * migration logic.
  */
 
-import Dexie, { type EntityTable } from 'dexie';
+import Dexie, { type Table } from 'dexie';
 import type { Session, Tick, Venue } from './types.ts';
 
 /**
@@ -41,10 +41,30 @@ export function newId(): string {
   return crypto.randomUUID();
 }
 
+/**
+ * Tables are typed `Table<Row, string, Row>` — **not** `EntityTable<Row, 'id'>`.
+ *
+ * This is load-bearing and was found by review after the original typing shipped. `EntityTable`
+ * derives its insert type from the row with an `Omit` of the primary key, and `Omit` over a union
+ * keeps only the keys common to every member and merges their property types. That **flattens**
+ * `Tick` and `Venue`, so `db.ticks.add({ is_send: false, send_style: 'flash', ... })` typechecked
+ * cleanly even though the identical literal annotated `const t: Tick` did not.
+ *
+ * The consequence was that every invariant in `types.ts` held for the row types and evaporated at
+ * the only ingress that matters: `add`, `put`, `bulkPut` and `update` are how the logging screen
+ * writes. An attempt carrying a send style would have compiled, shipped, and permanently inflated
+ * the flash-rate numerator — exactly the corruption D14 exists to prevent.
+ *
+ * Naming the insert type explicitly as the full row keeps the union intact. Nothing is lost by it:
+ * ids are client-generated (`newId`), so a caller always supplies one anyway.
+ *
+ * `writes.assert.ts` pins this down by asserting through the tables rather than through the row
+ * types, which is the gap that let it through the first time.
+ */
 export type TickdDatabase = Dexie & {
-  venues: EntityTable<Venue, 'id'>;
-  sessions: EntityTable<Session, 'id'>;
-  ticks: EntityTable<Tick, 'id'>;
+  venues: Table<Venue, string, Venue>;
+  sessions: Table<Session, string, Session>;
+  ticks: Table<Tick, string, Tick>;
 };
 
 /**

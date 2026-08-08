@@ -152,6 +152,43 @@ describe('round trip', () => {
     expect(stored?.grade_scale).toBe('font');
   });
 
+  it('writes through the table without the union collapsing', async () => {
+    const db = freshDb('writepath');
+    // Regression guard with teeth at runtime as well as compile time. When the tables were typed
+    // `EntityTable<Row, 'id'>`, Dexie derived the insert type via `Omit`, which flattened the union
+    // and let `add` accept an attempt carrying a send style. `writes.assert.ts` pins the types; this
+    // pins the behaviour, so a future insert-type change cannot pass by silently coercing the row.
+    const flashed = tick(FLASHED, FRENCH_6A);
+    const attempted = tick(ATTEMPTED, FONT_6A, BOULDER);
+    await db.ticks.bulkPut([flashed, attempted]);
+
+    const storedFlash = await db.ticks.get(flashed.id);
+    expect(storedFlash?.is_send).toBe(true);
+    expect(storedFlash?.send_style).toBe('flash');
+    expect(storedFlash?.prior_experience).toBe('none');
+
+    const storedAttempt = await db.ticks.get(attempted.id);
+    expect(storedAttempt?.is_send).toBe(false);
+    expect('send_style' in (storedAttempt ?? {})).toBe(false);
+  });
+
+  it('round-trips a boulder-only venue with no rope scale', async () => {
+    const db = freshDb('venuewrite');
+    await db.venues.add({
+      id: newId(),
+      type: 'indoor',
+      name: 'Boulder only',
+      city: 'Tampere',
+      country: 'FI',
+      default_scale_boulder: 'french',
+      pending_review: false,
+    });
+
+    const stored = await db.venues.where('name').equals('Boulder only').first();
+    expect(stored?.default_scale_boulder).toBe('french');
+    expect('default_scale_rope' in (stored ?? {})).toBe(false);
+  });
+
   it('keeps send_style absent on an attempt rather than storing a null', async () => {
     const db = freshDb('attempt');
     const attempt = tick(ATTEMPTED, FRENCH_6A);

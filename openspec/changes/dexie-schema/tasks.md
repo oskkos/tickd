@@ -42,8 +42,13 @@
 - [x] 3.4 **Verify intersection narrowing actually works** — if `TickBase & TickGrade & TickOutcome`
       does not narrow on the discriminants, fall back to the explicit six-member union per design
       decision 2, and record which path was taken
-      — **narrowing works; no fallback needed.** `styleOf`, `rawOf` and `priorOf` narrow on
-      `is_send` and `grade_scale` through the intersection with no assertion, and typecheck is clean
+      — **narrowing works; no fallback needed.** `styleOf` narrows on `is_send` through the
+      intersection with no assertion, and typecheck is clean.
+      **Corrected in group 10:** `rawOf` and `priorOf` were also cited here and were *vacuous* — both
+      ternary branches returned the same expression and the widened return type accepted the
+      un-narrowed union, so they compiled either way. The conclusion stands, but it rested on one
+      genuine assertion rather than three. Replaced with narrowing checks that return the narrowed
+      literal type
 - [x] 3.5 Verify the assertions fail when a guard is removed, by deliberately widening the union and
       confirming `tsc` reports the expected violations
       — verified twice against real breakage. Widening `send_style?: never` to `send_style?: SendStyle`
@@ -131,6 +136,32 @@
 - [x] 9.5 Verify the new guard by planting the failure — widening `VenueScales` to two independent
       optionals made a scale-less venue representable and failed `VenueWithNoScalesIsRejected`
 - [x] 9.6 Update the delta spec, proposal, design, and `CONCEPT.md` §5, §7.5, §7.7 and §12
+
+## 10. Correction: the guards did not cover the write path
+
+Found by `/code-review`, not by the verification in group 8 — which is the point of recording it.
+
+- [x] 10.1 Type the tables `Table<Row, string, Row>` instead of `EntityTable<Row, 'id'>`
+      — `EntityTable` derives its insert type with an `Omit` of the primary key, and `Omit` over a
+      union keeps only the common keys with merged property types. That **flattened** `Tick` and
+      `Venue`, so `db.ticks.add({ is_send: false, send_style: 'flash', ... })` compiled cleanly while
+      the identical literal annotated `const t: Tick` did not. Probed: under `EntityTable`,
+      `send_style` on the insert type resolves to `string`
+- [x] 10.2 Add `writes.assert.ts`, asserting against the parameter types read off `add`/`put`/
+      `bulkPut` rather than against the row types
+      — verified by reverting to the `EntityTable` typing: **11 assertions fail**, 0 when restored
+- [x] 10.3 Add runtime write-path tests, so a future insert-type change cannot pass by coercing rows
+- [x] 10.4 Fix `DeclaresKey`, which resolved against `keyof Tick` and so could not see a key added to
+      one union member only
+      — verified by planting `grade_index` on the Font member alone: the old `keyof Tick` form
+      reported **no error at all**; the per-member form fails. Three controls added so the helper
+      cannot pass by never reporting anything
+- [x] 10.5 Replace the vacuous narrowing assertions
+      — `rawOf` returned `tick.grade_raw` in both ternary branches with a `string` return type, so it
+      compiled whether or not narrowing worked; `priorOf` had the same shape. **Both were cited in
+      task 3.4 as the evidence that the six-member-union fallback was unnecessary.** The replacements
+      return the narrowed literal type, so a regression is a compile error. `styleOf` was genuine, so
+      the 3.4 conclusion stands — but on one leg rather than three
 
 ## 8. Verify
 
