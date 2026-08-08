@@ -163,6 +163,30 @@ Found by `/code-review`, not by the verification in group 8 — which is the poi
       return the narrowed literal type, so a regression is a compile error. `styleOf` was genuine, so
       the 3.4 conclusion stands — but on one leg rather than three
 
+## 11. Correction: the remaining review findings
+
+- [x] 11.1 **Discipline and protection cannot contradict.** `protection: 'none'` *means* boulder
+      (§7.4), but the two were independent fields, so `(boulder, lead)` and `(sport, none)` were
+      representable. Now a fourth union member of `Tick`. Verified by decoupling them again: two
+      assertions fail
+- [x] 11.2 **`crypto.randomUUID` is secure-context only**, so it is absent over plain http — the
+      stated device-testing route. Added an exact fallback over `crypto.getRandomValues`, which has
+      no such restriction: same 122 random bits, same version and variant nibbles. Verified by
+      bypassing the guard, which reproduces the real `TypeError: crypto.randomUUID is not a function`
+- [x] 11.3 **Startup could hang forever.** A rejecting IndexedDB was handled; a hanging one was not,
+      and Dexie has no open timeout. Bounded at 5 s, after which the app renders anyway. The pending
+      seed is deliberately not cancelled — Dexie cannot cancel, and if the open completes later the
+      rows land regardless
+- [x] 11.4 **A storage failure was invisible.** `initialiseStorage` now returns a status instead of
+      swallowing it into `console.error`, and `StorageWarning` tells the user the logbook is not
+      saving. An empty venue list reads as data loss; §7.6 accepts losing data, not lying about it
+- [x] 11.5 **`SCHEMA_MARKER` was hand-maintained and its test compared it to itself.** Now derived
+      from `STORES` plus an exhaustive field list whose `satisfies Record<StoredField, true>` fails to
+      compile when a row gains a field. Verified both ways: changing an index moves the marker and
+      fails the pin; adding a field is a compile error until it is listed, which then moves the marker
+- [x] 11.6 **`ended_at` diverged from §7.7.** CONCEPT amended to `ended_at?` with the reason, and
+      §7.7 gained the discipline/protection pairing note from 11.1
+
 ## 8. Verify
 
 - [x] 8.1 Run `just check` and confirm it exits 0 — exit 0; 29 tests across 4 files

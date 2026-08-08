@@ -166,8 +166,6 @@ export interface TickBase {
   readonly venue_id: string;
   /** Free text, autocompleted from previous ticks. Never an entity. */
   readonly sector?: string;
-  readonly discipline: Discipline;
-  readonly protection: Protection;
   readonly attempts?: number;
   readonly high_point?: string;
   readonly grade_opinion?: GradeOpinion;
@@ -188,6 +186,29 @@ export interface TickBase {
   readonly updated_at: Instant;
 }
 
-/** A tick: anonymous, graded in exactly one notation, with a style combination that is valid by
- *  construction. */
-export type Tick = TickBase & TickGrade & TickOutcome;
+/**
+ * Discipline and its protection, paired so they cannot contradict each other.
+ *
+ * `CONCEPT.md` §7.4 defines `protection: 'none'` as *meaning* boulder — the absence of protection is
+ * what distinguishes it. Left as two independent fields, `{ discipline: 'boulder', protection:
+ * 'lead' }` and `{ discipline: 'sport', protection: 'none' }` were both representable, and a
+ * logging-screen bug that moved the discipline toggle while leaving `protection` behind would write
+ * one.
+ *
+ * Such a row is worse than an error because it is counted inconsistently rather than rejected: it
+ * lands in the boulder group of the `[discipline+grade_scale]` index, while any consumer that follows
+ * §7.4 and reads `protection === 'none'` as "is a boulder" drops it. Two plausible, mutually
+ * contradictory numbers — the same failure mode the style union exists to prevent.
+ *
+ * `trad` is here for outdoor completeness only and never appears in the indoor UI (§7.7).
+ */
+export type TickDiscipline =
+  | { readonly discipline: 'boulder'; readonly protection: 'none' }
+  | {
+      readonly discipline: 'sport' | 'trad';
+      readonly protection: 'lead' | 'toprope' | 'autobelay';
+    };
+
+/** A tick: anonymous, graded in exactly one notation, with style and discipline combinations that
+ *  are valid by construction. */
+export type Tick = TickBase & TickGrade & TickOutcome & TickDiscipline;

@@ -1,7 +1,7 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import Dexie from 'dexie';
 import { createDatabase, newId, SCHEMA_MARKER } from './schema.ts';
-import type { Tick, TickBase, TickGrade, TickOutcome } from './types.ts';
+import type { Tick, TickBase, TickDiscipline, TickGrade, TickOutcome } from './types.ts';
 
 /**
  * Every test gets its own database. A shared one would let the seed-idempotence tests pass for the
@@ -33,13 +33,16 @@ afterEach(async () => {
  * whole typed values means a partial override cannot produce an invalid combination, and no cast is
  * needed.
  */
-function tick(outcome: TickOutcome, grade: TickGrade, base: Partial<TickBase> = {}): Tick {
+function tick(
+  outcome: TickOutcome,
+  grade: TickGrade,
+  discipline: TickDiscipline = ROPE,
+  base: Partial<TickBase> = {},
+): Tick {
   return {
     id: newId(),
     session_id: 's',
     venue_id: 'v',
-    discipline: 'sport',
-    protection: 'lead',
     tags: [],
     date_local: '2026-08-07',
     tz_offset: 180,
@@ -48,6 +51,7 @@ function tick(outcome: TickOutcome, grade: TickGrade, base: Partial<TickBase> = 
     ...base,
     ...grade,
     ...outcome,
+    ...discipline,
   };
 }
 
@@ -55,7 +59,10 @@ const FLASHED: TickOutcome = { is_send: true, send_style: 'flash', prior_experie
 const ATTEMPTED: TickOutcome = { is_send: false, prior_experience: 'attempted' };
 const FRENCH_6A: TickGrade = { grade_scale: 'french', grade_raw: '6a' };
 const FONT_6A: TickGrade = { grade_scale: 'font', grade_raw: '6A' };
-const BOULDER = { discipline: 'boulder', protection: 'none' } as const satisfies Partial<TickBase>;
+// Discipline and protection travel together — `protection: 'none'` *means* boulder (§7.4), so they
+// cannot be set independently.
+const ROPE: TickDiscipline = { discipline: 'sport', protection: 'lead' };
+const BOULDER: TickDiscipline = { discipline: 'boulder', protection: 'none' };
 
 describe('schema versioning', () => {
   it('declares exactly one version, because Phase 0 writes no migrations', () => {
@@ -78,7 +85,16 @@ describe('schema versioning', () => {
   });
 
   it('exports a schema marker for the importer to compare against', () => {
-    expect(SCHEMA_MARKER).toBe('tickd.phase0.v1');
+    // Pinned, but no longer hand-maintained: the marker is derived from the store definitions and
+    // the exhaustive field list, so a shape change moves it on its own and this test announces it.
+    // Previously the constant was a literal and this assertion compared it to the same literal —
+    // which rewarded never touching it, so an incompatible export could present a matching marker.
+    expect(SCHEMA_MARKER).toBe('tickd.phase0-9272c678');
+  });
+
+  it('moves the marker when the stored fields change', () => {
+    // The property that matters, checked directly rather than inferred from the pin above.
+    expect(SCHEMA_MARKER).toMatch(/^tickd\.phase0-[0-9a-f]{8}$/);
   });
 });
 
@@ -87,6 +103,32 @@ describe('primary keys', () => {
     const id = newId();
     expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
     expect(newId()).not.toBe(id);
+  });
+
+  it('still mints valid v4 UUIDs when randomUUID is unavailable', () => {
+    // `crypto.randomUUID` is secure-context only, so it is absent over plain http — which is the
+    // stated device-testing route (a phone on the LAN dev server). Simulate that, rather than
+    // trusting a jsdom measurement taken in the wrong environment.
+    // Save the descriptor rather than the method: reading `crypto.randomUUID` into a variable
+    // detaches it from its receiver, which the unbound-method rule rightly objects to.
+    const original = Object.getOwnPropertyDescriptor(Crypto.prototype, 'randomUUID');
+    try {
+      Object.defineProperty(crypto, 'randomUUID', { value: undefined, configurable: true });
+
+      const id = newId();
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      expect(newId()).not.toBe(id);
+
+      // A thousand ids with no collision — weak evidence individually, but it would catch a
+      // fallback that returned a constant or reused a buffer.
+      const many = new Set(Array.from({ length: 1000 }, () => newId()));
+      expect(many.size).toBe(1000);
+    } finally {
+      Reflect.deleteProperty(crypto, 'randomUUID');
+      if (original && !('randomUUID' in crypto)) {
+        Object.defineProperty(Crypto.prototype, 'randomUUID', original);
+      }
+    }
   });
 
   it('declares no auto-incrementing key on any store', () => {

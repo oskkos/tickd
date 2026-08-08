@@ -28,3 +28,21 @@ describe('App shell', () => {
     expect(dialog.className).not.toMatch(/\bmodal-box\b/);
   });
 });
+
+describe('storage warning', () => {
+  it('says nothing when storage is ready', () => {
+    render(<App storageStatus="ready" />);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('tells the user the logbook cannot save when storage is unavailable', () => {
+    render(<App storageStatus="unavailable" />);
+    // An empty venue picker with no message reads as data loss. Saying so is the whole point.
+    expect(screen.getByRole('alert')).toHaveTextContent(/will not let tickd store anything/i);
+  });
+
+  it('names the likely cause on a timeout, since it is user-fixable', () => {
+    render(<App storageStatus="timeout" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/another tab/i);
+  });
+});
