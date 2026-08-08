@@ -38,11 +38,14 @@ import type {
  *
  * `date_local` is a `YYYY-MM-DD` string, which indexes correctly because lexicographic order is
  * chronological order.
+ *
+ * `venue_id` is **not** indexed on ticks, because the column no longer exists (D19). A venue-scoped
+ * query goes through that venue's sessions.
  */
 const STORES = {
   venues: 'id, name, brand, city',
   sessions: 'id, venue_id, date_local',
-  ticks: 'id, session_id, venue_id, date_local, [discipline+grade_scale]',
+  ticks: 'id, session_id, date_local, [discipline+grade_scale]',
 } as const;
 
 /**
@@ -66,17 +69,14 @@ type StoredField =
 const STORED_FIELDS = {
   id: true,
   session_id: true,
-  venue_id: true,
-  sector: true,
   discipline: true,
   protection: true,
-  attempts: true,
-  high_point: true,
   grade_opinion: true,
   rating: true,
   notes: true,
   length_m: true,
-  tags: true,
+  angle: true,
+  holds: true,
   date_local: true,
   tz_offset: true,
   created_at: true,
@@ -84,7 +84,6 @@ const STORED_FIELDS = {
   grade_scale: true,
   grade_raw: true,
   is_send: true,
-  send_style: true,
   prior_experience: true,
   type: true,
   name: true,
@@ -97,10 +96,9 @@ const STORED_FIELDS = {
   default_scale_boulder: true,
   pending_review: true,
   canonical_id: true,
+  venue_id: true,
   started_at: true,
   ended_at: true,
-  conditions: true,
-  felt: true,
 } satisfies Record<StoredField, true>;
 
 /** FNV-1a, 32-bit. Not cryptographic — it only has to change when its input does. */

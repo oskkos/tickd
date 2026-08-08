@@ -15,7 +15,7 @@
  */
 
 import { db } from './schema.ts';
-import type { Tick, TickBase, TickDiscipline, TickGrade, TickOutcome, Venue } from './types.ts';
+import type { Tick, TickBase, TickDiscipline, TickGrade, Venue } from './types.ts';
 
 type IsAssignable<Candidate, Target> = [Candidate] extends [Target] ? true : false;
 type AssertNotAssignable<T extends false> = T;
@@ -74,23 +74,43 @@ export type BoulderOnlyVenueIsInsertable = AssertAssignable<
 
 // ── The invariants must survive the write path ───────────────────────────────────────────────────
 
-/** An attempt carrying a send style: the write that silently inflates flash rate (§4.2, D14). */
-export type AttemptWithSendStyleIsNotInsertable = AssertNotAssignable<
-  IsAssignable<
-    BaseFields & FrenchGrade & { is_send: false; send_style: 'flash'; prior_experience: 'none' },
-    TickAdd
-  >
->;
+/**
+ * The style assertions that stood here are gone, and their absence is the point.
+ *
+ * They proved that `add` rejected an attempt carrying a send style and a flash after prior
+ * experience. D20 removed `send_style`, so neither shape can be expressed at the write path or
+ * anywhere else — asserting their rejection would assert something trivially true of any nonexistent
+ * field.
+ *
+ * What still needs proving is that **the write path did not quietly widen**: that every valid outcome
+ * reaches the table, and that the insert type is still the row type rather than a flattened
+ * derivative. The second is the regression this file was created for.
+ */
+// Explicit for the same reason as `types.assert.ts`: a generic helper defers the conditional and
+// resolves to `boolean`, which `AssertAssignable` can never satisfy and which would therefore fail
+// loudly rather than silently — but a helper that always fails is no more useful than one that never
+// does.
 
-export type FlashAfterSendingIsNotInsertable = AssertNotAssignable<
-  IsAssignable<
-    BaseFields & FrenchGrade & { is_send: true; send_style: 'flash'; prior_experience: 'sent' },
-    TickAdd
-  >
->;
-
-export type SendWithoutStyleIsNotInsertable = AssertNotAssignable<
+export type FirstEncounterSentIsInsertable = AssertAssignable<
   IsAssignable<BaseFields & FrenchGrade & { is_send: true; prior_experience: 'none' }, TickAdd>
+>;
+export type FirstEncounterNotSentIsInsertable = AssertAssignable<
+  IsAssignable<BaseFields & FrenchGrade & { is_send: false; prior_experience: 'none' }, TickAdd>
+>;
+export type AttemptedSentIsInsertable = AssertAssignable<
+  IsAssignable<BaseFields & FrenchGrade & { is_send: true; prior_experience: 'attempted' }, TickAdd>
+>;
+export type AttemptedNotSentIsInsertable = AssertAssignable<
+  IsAssignable<
+    BaseFields & FrenchGrade & { is_send: false; prior_experience: 'attempted' },
+    TickAdd
+  >
+>;
+export type RepeatSentIsInsertable = AssertAssignable<
+  IsAssignable<BaseFields & FrenchGrade & { is_send: true; prior_experience: 'sent' }, TickAdd>
+>;
+export type RepeatNotSentIsInsertable = AssertAssignable<
+  IsAssignable<BaseFields & FrenchGrade & { is_send: false; prior_experience: 'sent' }, TickAdd>
 >;
 
 /** Case is the only thing separating the notations, so this records a different climb. */
@@ -105,10 +125,13 @@ export type CrossScaleGradeIsNotInsertable = AssertNotAssignable<
   >
 >;
 
-/** `put` and `bulkPut` are not a way around it either. */
-export type InvalidTickIsNotPuttable = AssertNotAssignable<
+/** `put` and `bulkPut` are not a way around the invariants that remain. */
+export type CrossScaleIsNotPuttable = AssertNotAssignable<
   IsAssignable<
-    BaseFields & FrenchGrade & { is_send: false; send_style: 'flash'; prior_experience: 'none' },
+    BaseFields & { grade_scale: 'french'; grade_raw: '6A' } & {
+      is_send: true;
+      prior_experience: 'none';
+    },
     TickPut
   >
 >;
@@ -183,17 +206,13 @@ export type ScalelessVenueIsNotInsertable = AssertNotAssignable<
 // ── Narrowing through the intersection, non-vacuously ────────────────────────────────────────────
 
 /**
- * These replace the earlier `rawOf`/`priorOf`, which were vacuous: both ternary branches returned
- * the same expression and the `string` return type accepted the un-narrowed union, so they compiled
- * whether or not narrowing worked — while being cited as the evidence that it did.
+ * Narrowing must survive the intersection at the write path too.
  *
- * Each function below returns a type that only the *narrowed* value satisfies, so narrowing breaking
- * is a compile error rather than a silent widening.
+ * `sendStyleOf` used to live here, narrowing `is_send` to reach `send_style`. Both are gone: the
+ * outcome is a plain record and the style is computed in `style.ts`. What remains to prove is the
+ * grade union, and it is proved non-vacuously — each function returns a type only the *narrowed*
+ * value satisfies, so a regression is a compile error rather than a silent widening to `string`.
  */
-export function sendStyleOf(tick: Tick): TickOutcome['send_style'] {
-  return tick.is_send ? tick.send_style : undefined;
-}
-
 export function fontLabelOf(
   tick: Tick,
 ): Extract<TickGrade, { grade_scale: 'font' }>['grade_raw'] | null {

@@ -1,19 +1,21 @@
 /**
  * Row shapes for the Phase 0 local database (`CONCEPT.md` §7.7).
  *
- * Two invariants are enforced here by construction rather than by a validator, because both fail
- * *silently* rather than loudly:
+ * Invariants are enforced by construction rather than by a validator, because each fails *silently*
+ * rather than loudly — nothing throws at the point of the mistake, so the point of the mistake has to
+ * be a compile error:
  *
- * - **The style fields.** A tick with `is_send: false` carrying `send_style: 'flash'` does not throw
- *   when written; it inflates the flash-rate numerator permanently. Flash rate divides by first
- *   encounters precisely so it stays honest at the limit grade (§4.2, D14), and this is the one way
- *   to corrupt it without an error.
  * - **Grade and scale.** Font `6A` and French `6a` differ only by letter case. A mismatched pair is
  *   not a typo — it records a harder climb against a notation it was never graded with (§7.3, D5).
+ * - **Discipline and protection.** `protection: 'none'` *means* boulder, so a boulder on lead lands in
+ *   one group of the index while any consumer reading `protection === 'none'` drops it (§7.4).
+ * - **A venue offers at least one discipline**, or nothing can be logged there.
  *
- * `CLAUDE.md` requires the UI to make the invalid combinations unreachable. A UI can only make
- * unreachable what the model has already ruled out, which is why this file exists before the logging
- * screen rather than beside it. `types.assert.ts` proves the guards still bite.
+ * **The style invariant is gone, and that is a strengthening.** §7.4 named two invalid combinations of
+ * `is_send`, `send_style` and `prior_experience`, and `CLAUDE.md` required the UI to make them
+ * unreachable. D20 dropped `send_style` and derives it instead, so there is no longer a second field
+ * that could contradict the first: the combinations are **unrepresentable** rather than merely
+ * unreachable. A shorter `types.assert.ts` here means a stronger model, not a weaker one.
  */
 
 import type { FontLabel, FrenchLabel, ScaleId } from '@tickd/grade-spec';
@@ -41,15 +43,28 @@ export type SendStyle = 'onsight' | 'flash' | 'redpoint' | 'second_go';
  *  column (D6). */
 export type PriorExperience = 'none' | 'attempted' | 'sent';
 
-/**
- * Provisional fields.
- *
- * `CONCEPT.md` §7.7 lists these for Phase 0 but does not define their semantics, and no Phase 0 UI
- * writes them yet. The types below are the most conservative reading rather than a settled decision —
- * refine them when the logging screen actually defines what they mean.
- */
+/** The climber's view of the setter's grade. */
 export type GradeOpinion = 'soft' | 'fair' | 'hard';
+
+/**
+ * How good the climb was.
+ *
+ * Note what this cannot mean: with no route entity there is nothing to aggregate a rating *to*, so it
+ * records "this go was good" rather than "this route is good" (§7.2, D2).
+ */
 export type Rating = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Wall angle and hold type — typed rather than free text (D21).
+ *
+ * Two fields rather than one list, because they answer independent questions: a route is not
+ * overhanging *or* crimpy, it is both. Collapsing them would repeat D6's error at a smaller scale.
+ *
+ * Both vocabularies are deliberately short. A long list is an unfillable list, and an unfilled field
+ * is what four other columns were dropped for.
+ */
+export type WallAngle = 'slab' | 'vertical' | 'overhang' | 'roof';
+export type HoldType = 'crimp' | 'sloper' | 'pinch' | 'pocket' | 'jug';
 
 /**
  * A location, never a brand. Kiipeilyareena's sites have different walls and wall heights, and wall
@@ -105,8 +120,6 @@ export interface Session {
    * session that has not ended yet.
    */
   readonly ended_at?: Instant;
-  readonly conditions?: string;
-  readonly felt?: string;
 }
 
 /**
@@ -124,56 +137,46 @@ export type TickGrade =
   | { readonly grade_scale: 'font'; readonly grade_raw: FontLabel };
 
 /**
- * The two invalid style combinations from §7.4, made unrepresentable.
+ * How the go went.
  *
- * Member 1 — an attempt cannot carry a send style. Because the repo sets
- * `exactOptionalPropertyTypes`, `send_style?: never` also rejects an explicit `send_style: undefined`,
- * so the field must be genuinely absent rather than present-and-empty.
+ * **Not a union, and no `send_style`.** A tick records one go (D20), so a send with no prior
+ * experience *is* the first acquaintance and can only be a flash — the style is a function of these
+ * two fields, and `sendStyleOf` computes it. Storing it would store something computable from its own
+ * neighbours, which is exactly how a value becomes able to disagree with them.
  *
- * Member 2 — `flash` and `onsight` mean *no prior experience*, so they pin `prior_experience`.
+ * §7.4 named two invalid combinations and required the UI to make them unreachable. They are now
+ * **unrepresentable**: all six pairings below are valid, and there is no third field left to
+ * contradict either of these. That is strictly stronger than the union this replaced.
  *
- * Member 3 — `redpoint` and `second_go` accept **any** prior experience, `'none'` included. That is
- * deliberate: working a climb across several goes within one session leaves the experience *before
- * the first go* at none. Constraining it would forbid a real and common tick.
+ * `prior_experience` is read relative to *this go*. It cannot be defaulted — correct on the first go,
+ * wrong on every go after — so the screen forces the choice (D20).
  */
-export type TickOutcome =
-  | {
-      readonly is_send: false;
-      readonly send_style?: never;
-      readonly prior_experience: PriorExperience;
-    }
-  | {
-      readonly is_send: true;
-      readonly send_style: 'onsight' | 'flash';
-      readonly prior_experience: 'none';
-    }
-  | {
-      readonly is_send: true;
-      readonly send_style: 'redpoint' | 'second_go';
-      readonly prior_experience: PriorExperience;
-    };
+export interface TickOutcome {
+  readonly is_send: boolean;
+  readonly prior_experience: PriorExperience;
+}
 
 /**
  * Everything about a tick that carries no invariant.
  *
  * There is deliberately no route reference and no route-identifying key. Indoor routes cannot be
- * identified — a newly set 6c+ in sector 4 is indistinguishable from the one it replaced — so a tick
- * is anonymous and `sector` is free text rather than an entity (§7.2, D2, D3).
+ * identified — a newly set 6c+ in sector 4 is indistinguishable from the one it replaced (§7.2, D2,
+ * D3). Nothing links the goes of one climb either: the session-scoped grouping that would was
+ * designed and deferred (D21).
  */
 export interface TickBase {
   readonly id: string;
+  /** The only route to the venue: a tick carries none of its own (D19). */
   readonly session_id: string;
-  readonly venue_id: string;
-  /** Free text, autocompleted from previous ticks. Never an entity. */
-  readonly sector?: string;
-  readonly attempts?: number;
-  readonly high_point?: string;
   readonly grade_opinion?: GradeOpinion;
   readonly rating?: Rating;
   readonly notes?: string;
   /** Overrides `venue.default_route_length_m` for this tick. */
   readonly length_m?: number;
-  readonly tags: readonly string[];
+  /** At most one — wall angle is roughly exclusive, and it is the characteristic that groups. */
+  readonly angle?: WallAngle;
+  /** Any number — a route can be crimpy and slopey at once (D21). */
+  readonly holds?: readonly HoldType[];
   readonly date_local: LocalDate;
   /**
    * Minutes **east** of UTC — the ISO 8601 sign, so Helsinki in winter is `+120`.
