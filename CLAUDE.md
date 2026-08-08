@@ -31,7 +31,8 @@ Specs live in `openspec/` (`specs/` for current behaviour, `changes/` for in-fli
    delta specs, tasks). This is the review gate: the user approves the proposal before any code.
 3. **`/opsx:apply`** — implement the tasks from the approved change, ticking them off as they land.
 4. **`/opsx:archive`** — fold the delta specs into `openspec/specs/` and move the change to
-   `changes/archive/` once it is implemented and verified.
+   `changes/archive/` once it is implemented and verified. **On the feature branch, before the PR
+   merges** — see below.
 
 **During `/opsx:apply`, commit once per top-level task group** — after every task under a `## N.` heading
 is finished and its checkboxes are ticked, including the `tasks.md` update in that same commit. One
@@ -46,9 +47,26 @@ group, one commit.
   The message is the artifact: it records what was checked, against what broken state, and with what
   result. That is worth more than a tidy diff.
 - **Groups are not pushed automatically.** Push when the user asks, or when the whole change is done.
+- **The archive is its own commit**, after the last task group: `docs(openspec): archive <change> and
+  add the <capability> baseline`. It carries both the spec fold-in and the folder move, so the two
+  cannot drift apart.
+
+**Archive on the feature branch, and always sync as part of it.** Both halves are forced rather than
+preferred:
+
+- **`develop` is protected**, so nothing can be committed to it directly. An archive done "after the
+  merge" has nowhere to land — it would need its own branch and its own PR to fold in specs for work
+  that already shipped. So the archive commit belongs on the same feature branch as the
+  implementation, before the PR merges, and one merge ships the code and its baseline together.
+- **Never archive without syncing.** Archiving moves the change folder under `changes/archive/`,
+  which takes its delta specs out of the live tree with it. Skip the sync and the requirements exist
+  only inside an archived folder — `openspec/specs/` never learns about the capability, and the next
+  change reads a baseline that is missing whatever this one established. When `/opsx:archive` offers
+  "archive without syncing", that is the wrong answer here.
 
 `/opsx:sync` folds delta specs into the main specs *without* archiving — use it when a change is
-still in flight but its specs have settled.
+still in flight but its specs have settled. It is not a substitute for the sync inside archive; it
+is for the case where the specs land early and the tasks are still running.
 
 Small, obvious edits (a typo, a doc tweak, a one-line fix) don't need a change folder. Anything that
 adds behaviour, alters the data model, or touches an invariant below does.
@@ -56,7 +74,9 @@ adds behaviour, alters the data model, or touches an invariant below does.
 ## Git workflow
 
 **Never commit directly to `develop`. All work happens on a branch.** `develop` is the main branch and
-receives work through pull requests, not direct pushes — including documentation-only changes.
+receives work through pull requests, not direct pushes — including documentation-only changes. This is
+a **GitHub ruleset, not a convention**: a direct push is rejected by the server, which is why
+`/opsx:archive` runs on the feature branch rather than after the merge.
 
 Branch per OpenSpec change, named after it so the two are obvious together:
 
