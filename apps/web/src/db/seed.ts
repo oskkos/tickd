@@ -14,23 +14,29 @@ import type { Venue } from './types.ts';
 
 /**
  * Identifiers are hardcoded rather than generated, and that is what makes seeding idempotent: the
- * same three rows are written on every launch, so a `bulkPut` converges instead of appending a
- * fourth, fifth and sixth venue. Random ids would duplicate the list on every start.
+ * same rows are written on every launch, so a `bulkPut` converges instead of appending a fresh copy
+ * of the whole list. Random ids would duplicate every venue on every start.
  */
 const KIIPEILYAREENA_SALMISAARI = '2f8a1c40-0000-4000-8000-000000000001';
 const KIIPEILYAREENA_RISTIKKO = '2f8a1c40-0000-4000-8000-000000000002';
-const TAMPEREEN_KIIPEILYKESKUS = '2f8a1c40-0000-4000-8000-000000000003';
+const TAMPEREEN_KIIPEILYKESKUS_NEKALA = '2f8a1c40-0000-4000-8000-000000000003';
+const TAMPEREEN_KIIPEILYKESKUS_LIELAHTI = '2f8a1c40-0000-4000-8000-000000000004';
 
 /**
  * The seed set.
  *
- * Note what `default_scale_boulder` does across these three rows: **Font at the Kiipeilyareena
- * sites, French at Tampere.** That is not an inconsistency to be tidied away — it is the fact that
+ * Note what `default_scale_boulder` does across these four rows: **Font at the Kiipeilyareena sites,
+ * French at the Tampere ones.** That is not an inconsistency to be tidied away — it is the fact that
  * established a scale is a notation rather than a discipline (D17). One discipline spans two scales,
  * so boulders logged at Tampere and boulders logged at Salmisaari form two separate distributions,
  * and merging them needs a conversion table Phase 0 deliberately does not have.
  *
- * `default_route_length_m` is absent on all three. The real wall heights are not known
+ * Note also that **Lielahti carries no rope scale**. Both brands have two locations, and the sites
+ * within a brand are not interchangeable: they differ in wall height, and at Tampere they differ in
+ * which disciplines exist at all. That is exactly why §7.5 makes a venue a location rather than a
+ * brand.
+ *
+ * `default_route_length_m` is absent everywhere. The real wall heights are not known
  * (`CONCEPT.md` §12 Q1), and a guessed height would silently skew every vertical-metres figure
  * rather than erroring. Absent means the metric has no data, which is honest.
  */
@@ -58,13 +64,27 @@ export const SEED_VENUES: readonly Venue[] = [
     pending_review: false,
   },
   {
-    id: TAMPEREEN_KIIPEILYKESKUS,
+    id: TAMPEREEN_KIIPEILYKESKUS_NEKALA,
     type: 'indoor',
-    name: 'Tampereen Kiipeilykeskus',
+    name: 'Tampereen Kiipeilykeskus Nekala',
+    brand: 'Tampereen Kiipeilykeskus',
     city: 'Tampere',
     country: 'FI',
     default_scale_rope: 'french',
     // French, not Font. Tampere grades its boulders in French (§7.3, D17).
+    default_scale_boulder: 'french',
+    pending_review: false,
+  },
+  {
+    id: TAMPEREEN_KIIPEILYKESKUS_LIELAHTI,
+    type: 'indoor',
+    name: 'Tampereen Kiipeilykeskus Lielahti',
+    brand: 'Tampereen Kiipeilykeskus',
+    city: 'Tampere',
+    country: 'FI',
+    // Boulder only — no rope scale at all, rather than a rope scale nobody can use. This is the
+    // venue that forced `default_scale_rope` to become optional, and it is why a missing scale means
+    // "not offered here" rather than "no default chosen".
     default_scale_boulder: 'french',
     pending_review: false,
   },

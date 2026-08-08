@@ -31,7 +31,8 @@ describe('seeding', () => {
     expect(names).toEqual([
       'Kiipeilyareena Ristikko',
       'Kiipeilyareena Salmisaari',
-      'Tampereen Kiipeilykeskus',
+      'Tampereen Kiipeilykeskus Lielahti',
+      'Tampereen Kiipeilykeskus Nekala',
     ]);
   });
 
@@ -41,7 +42,7 @@ describe('seeding', () => {
     await seedVenues(db);
     await seedVenues(db);
 
-    // Hardcoded ids are what make this true. Generated ids would append three more rows per launch.
+    // Hardcoded ids are what make this true. Generated ids would append the whole list per launch.
     expect(await db.venues.count()).toBe(SEED_VENUES.length);
   });
 
@@ -58,6 +59,7 @@ describe('seeding', () => {
       '2f8a1c40-0000-4000-8000-000000000001',
       '2f8a1c40-0000-4000-8000-000000000002',
       '2f8a1c40-0000-4000-8000-000000000003',
+      '2f8a1c40-0000-4000-8000-000000000004',
     ]);
   });
 
@@ -81,15 +83,37 @@ describe('scales across the seed set', () => {
     // The point of the seed set, not an inconsistency: one discipline spans two scales (D17).
     expect(byName.get('Kiipeilyareena Salmisaari')?.default_scale_boulder).toBe('font');
     expect(byName.get('Kiipeilyareena Ristikko')?.default_scale_boulder).toBe('font');
-    expect(byName.get('Tampereen Kiipeilykeskus')?.default_scale_boulder).toBe('french');
+    expect(byName.get('Tampereen Kiipeilykeskus Nekala')?.default_scale_boulder).toBe('french');
+    expect(byName.get('Tampereen Kiipeilykeskus Lielahti')?.default_scale_boulder).toBe('french');
   });
 
-  it('grades rope in French everywhere', async () => {
+  it('grades rope in French wherever rope exists', async () => {
     const db = freshDb();
     await seedVenues(db);
 
-    const scales = (await db.venues.toArray()).map((v) => v.default_scale_rope);
+    const scales = (await db.venues.toArray())
+      .map((v) => v.default_scale_rope)
+      .filter((s) => s !== undefined);
     expect(new Set(scales)).toEqual(new Set(['french']));
+  });
+
+  it('gives a boulder-only venue no rope scale at all', async () => {
+    const db = freshDb();
+    await seedVenues(db);
+
+    // Lielahti has no ropes. Absent rather than a scale nobody can use — a missing scale means the
+    // discipline is not offered here, which is what the logging screen reads to hide rope entirely.
+    const lielahti = await db.venues
+      .where('name')
+      .equals('Tampereen Kiipeilykeskus Lielahti')
+      .first();
+    expect(lielahti?.default_scale_rope).toBeUndefined();
+    expect(lielahti?.default_scale_boulder).toBe('french');
+
+    // Every other seeded venue does offer rope, so the absence above is specific rather than a
+    // seeding bug that dropped the field everywhere.
+    const others = (await db.venues.toArray()).filter((v) => v.id !== lielahti?.id);
+    expect(others.every((v) => v.default_scale_rope === 'french')).toBe(true);
   });
 
   it('lets one scale serve both disciplines', async () => {
@@ -98,7 +122,7 @@ describe('scales across the seed set', () => {
 
     // Tampere grades rope AND boulder in French. A scale identifies a notation, never a discipline,
     // so nothing may treat 'font' as "the boulder scale".
-    const tampere = await db.venues.where('name').equals('Tampereen Kiipeilykeskus').first();
+    const tampere = await db.venues.where('name').equals('Tampereen Kiipeilykeskus Nekala').first();
     expect(tampere?.default_scale_rope).toBe('french');
     expect(tampere?.default_scale_boulder).toBe('french');
   });
@@ -113,6 +137,12 @@ describe('venue metadata', () => {
     // Two rows, not one — the sites have different walls and heights (§7.5).
     expect(areena).toHaveLength(2);
     expect(new Set(areena.map((v) => v.id)).size).toBe(2);
+
+    // Both brands have two locations, and at Tampere they are not even interchangeable: one has
+    // ropes and the other does not. That is the strongest case for venue-as-location.
+    const tampere = await db.venues.where('brand').equals('Tampereen Kiipeilykeskus').toArray();
+    expect(tampere).toHaveLength(2);
+    expect(tampere.filter((v) => v.default_scale_rope !== undefined)).toHaveLength(1);
   });
 
   it('leaves wall height absent rather than guessing it', async () => {

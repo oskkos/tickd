@@ -9,7 +9,7 @@
  * Nothing here runs. It exists to be typechecked.
  */
 
-import type { Tick, TickOutcome, PriorExperience } from './types.ts';
+import type { Tick, TickOutcome, PriorExperience, Venue, VenueBase } from './types.ts';
 
 /** Fields shared by every fixture below, so each case shows only what it is testing. */
 const base = {
@@ -264,3 +264,39 @@ export function isRepeat(tick: Tick): boolean {
 export function priorOf(outcome: TickOutcome): PriorExperience {
   return outcome.is_send ? outcome.prior_experience : outcome.prior_experience;
 }
+
+// ── A venue must offer at least one discipline ───────────────────────────────────────────────────
+
+/**
+ * A missing scale means the venue does not offer that discipline — Tampereen Kiipeilykeskus Lielahti
+ * is boulder-only and carries no rope scale. The corollary is that a venue with *neither* scale is a
+ * gym nothing can be logged at, which is not a venue.
+ */
+interface VenueFields {
+  id: string;
+  type: 'indoor';
+  name: string;
+  city: string;
+  country: string;
+  pending_review: false;
+}
+
+export type BothScalesIsValid = AssertAssignable<
+  IsAssignable<VenueFields & { default_scale_rope: 'french'; default_scale_boulder: 'font' }, Venue>
+>;
+
+export type RopeOnlyIsValid = AssertAssignable<
+  IsAssignable<VenueFields & { default_scale_rope: 'french' }, Venue>
+>;
+
+/** Lielahti. */
+export type BoulderOnlyIsValid = AssertAssignable<
+  IsAssignable<VenueFields & { default_scale_boulder: 'french' }, Venue>
+>;
+
+export type VenueWithNoScalesIsRejected = AssertNotAssignable<IsAssignable<VenueFields, Venue>>;
+
+/** The base carries no scales on its own, so the union is what supplies them. */
+export type VenueBaseDeclaresNoScales = AssertNotAssignable<
+  DeclaresKey<VenueBase, 'default_scale_rope'>
+>;

@@ -69,7 +69,10 @@
 
 ## 5. Seed venues
 
-- [x] 5.1 Write `apps/web/src/db/seed.ts` with the three venues and their hardcoded UUID literals
+- [x] 5.1 Write `apps/web/src/db/seed.ts` with the venues and their hardcoded UUID literals
+      — **corrected after review.** The seed set is four locations across two brands, not three:
+      Tampereen Kiipeilykeskus has two sites, Nekala and Lielahti. Ristikko was confirmed as a
+      Kiipeilyareena site, closing that open question
 - [x] 5.2 Set `default_scale_rope: 'french'` on all three; `default_scale_boulder: 'font'` for both
       Kiipeilyareena sites and `'french'` for Tampereen Kiipeilykeskus
 - [x] 5.3 Give both Kiipeilyareena rows `brand: 'Kiipeilyareena'` and leave
@@ -114,6 +117,20 @@
       submission flow exists in Phase 1
       — recorded in `CONCEPT.md` §7.5 as well as at the call site, since it is a product-level expiry
       date rather than an implementation note
+
+## 9. Correction: Lielahti is boulder-only
+
+- [x] 9.1 Make `default_scale_rope` and `default_scale_boulder` optional, since a boulder-only venue
+      has no rope scale — a required field would have forced a lie into the seed data
+- [x] 9.2 Encode the scales as a three-member union so a venue offering **neither** discipline is
+      unrepresentable, and document that a missing scale means "not offered here" rather than "no
+      default chosen"
+- [x] 9.3 Reject a `disciplines: Discipline[]` field: it duplicates the same fact and lets the two
+      disagree, with nothing to catch a venue claiming rope while having no rope scale
+- [x] 9.4 Add Nekala and Lielahti to the seed set; confirm Ristikko's brand
+- [x] 9.5 Verify the new guard by planting the failure — widening `VenueScales` to two independent
+      optionals made a scale-less venue representable and failed `VenueWithNoScalesIsRejected`
+- [x] 9.6 Update the delta spec, proposal, design, and `CONCEPT.md` §5, §7.5, §7.7 and §12
 
 ## 8. Verify
 

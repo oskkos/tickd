@@ -56,7 +56,7 @@ export type Rating = 1 | 2 | 3 | 4 | 5;
  * height drives the vertical-metres metric — so each site is its own row and `brand` only groups them
  * for display (§7.5).
  */
-export interface Venue {
+export interface VenueBase {
   readonly id: string;
   readonly type: VenueType;
   readonly name: string;
@@ -66,13 +66,33 @@ export interface Venue {
   readonly geo?: { readonly lat: number; readonly lng: number };
   /** Wall height, per location. Absent until the real numbers are known (`CONCEPT.md` §12 Q1). */
   readonly default_route_length_m?: number;
-  /** A scale is a notation, not a discipline — one discipline spans two scales across venues (D17). */
-  readonly default_scale_rope: ScaleId;
-  readonly default_scale_boulder: ScaleId;
   /** §7.5's "my gym isn't listed" path flags a user-created venue for later merging. Phase 1. */
   readonly pending_review: boolean;
   readonly canonical_id?: string;
 }
+
+/**
+ * Which disciplines a venue offers, and in which notation.
+ *
+ * **A missing scale means the venue does not offer that discipline** — Tampereen Kiipeilykeskus
+ * Lielahti is boulder-only, so it carries no rope scale at all. Presence is the encoding rather than
+ * a separate `disciplines` list, which would duplicate the information and let the two disagree.
+ *
+ * The union makes "a venue offering nothing" unrepresentable. A row with neither scale would be a
+ * gym you cannot log anything at, which is not a venue.
+ *
+ * A scale is still a notation, not a discipline (D17): these fields say *which notation this venue
+ * grades that discipline in*, and the two need not differ. Tampere grades both in French.
+ */
+export type VenueScales =
+  | { readonly default_scale_rope: ScaleId; readonly default_scale_boulder: ScaleId }
+  | { readonly default_scale_rope: ScaleId; readonly default_scale_boulder?: never }
+  | { readonly default_scale_rope?: never; readonly default_scale_boulder: ScaleId };
+
+/**
+ * A location, never a brand — and, since Lielahti exists, not necessarily a place with ropes.
+ */
+export type Venue = VenueBase & VenueScales;
 
 export interface Session {
   readonly id: string;
