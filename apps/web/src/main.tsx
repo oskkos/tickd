@@ -18,10 +18,10 @@ if (!root) {
 //
 // The status is passed down rather than logged: when storage is unusable the app must say so, or an
 // empty venue picker reads as data loss.
-const storageStatus = await initialiseStorage();
+const startup = await initialiseStorage();
 
 createRoot(root).render(
   <StrictMode>
-    <App storageStatus={storageStatus} />
+    <App startup={startup} />
   </StrictMode>,
 );

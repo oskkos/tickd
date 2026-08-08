@@ -13,6 +13,7 @@ afterEach(() => {
 
 async function loadStartup(seedImpl: () => Promise<void>) {
   vi.doMock('./schema.ts', () => ({ db: {} }));
+  vi.doMock('./sessions.ts', () => ({ closeIfIdle: () => Promise.resolve({ closed: false }) }));
   vi.doMock('./seed.ts', () => ({ seedVenues: vi.fn(seedImpl) }));
   vi.doMock('./persist.ts', () => ({ requestPersistence: () => Promise.resolve('persisted') }));
   return import('./startup.ts');
@@ -21,7 +22,7 @@ async function loadStartup(seedImpl: () => Promise<void>) {
 describe('initialiseStorage', () => {
   it('reports ready when seeding succeeds', async () => {
     const { initialiseStorage } = await loadStartup(() => Promise.resolve());
-    await expect(initialiseStorage()).resolves.toBe('ready');
+    await expect(initialiseStorage()).resolves.toEqual({ status: 'ready' });
   });
 
   it('reports unavailable rather than throwing when IndexedDB rejects', async () => {
@@ -29,7 +30,7 @@ describe('initialiseStorage', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { initialiseStorage } = await loadStartup(() => Promise.reject(new Error('denied')));
 
-    await expect(initialiseStorage()).resolves.toBe('unavailable');
+    await expect(initialiseStorage()).resolves.toEqual({ status: 'unavailable' });
   });
 
   it('reports timeout rather than hanging when the open never settles', async () => {
@@ -43,7 +44,7 @@ describe('initialiseStorage', () => {
     const pending = initialiseStorage();
     await vi.advanceTimersByTimeAsync(5_000);
 
-    await expect(pending).resolves.toBe('timeout');
+    await expect(pending).resolves.toEqual({ status: 'timeout' });
   });
 
   it('does not report timeout when seeding finishes inside the window', async () => {
@@ -58,6 +59,6 @@ describe('initialiseStorage', () => {
     const pending = initialiseStorage();
     await vi.advanceTimersByTimeAsync(200);
 
-    await expect(pending).resolves.toBe('ready');
+    await expect(pending).resolves.toEqual({ status: 'ready' });
   });
 });

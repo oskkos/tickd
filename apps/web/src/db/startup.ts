@@ -14,6 +14,7 @@
 import { db } from './schema.ts';
 import { seedVenues } from './seed.ts';
 import { requestPersistence } from './persist.ts';
+import { closeIfIdle, type LazyCloseResult } from './sessions.ts';
 
 /**
  * Whether the logbook can actually be used, and if not, why.
@@ -24,6 +25,13 @@ import { requestPersistence } from './persist.ts';
  * review. The caller now has something to render.
  */
 export type StorageStatus = 'ready' | 'unavailable' | 'timeout';
+
+/** What startup found and did, for the UI to report. */
+export interface StartupResult {
+  readonly status: StorageStatus;
+  /** A session left running and closed on this launch, if there was one. Announced, never silent. */
+  readonly lazyClose?: LazyCloseResult;
+}
 
 /**
  * How long to wait for IndexedDB before giving up and rendering anyway.
@@ -45,7 +53,7 @@ const OPEN_TIMEOUT_MS = 5_000;
  * Never rejects and never hangs. A logbook that cannot save is bad; a blank screen is worse, because
  * it gives the user nothing to act on and no reason to suspect their browser rather than the app.
  */
-export async function initialiseStorage(): Promise<StorageStatus> {
+export async function initialiseStorage(now: Date = new Date()): Promise<StartupResult> {
   // Fire-and-forget: the outcome is informational, and awaiting it would gate the UI on a dialog.
   void requestPersistence().then(
     (outcome) => {
@@ -74,12 +82,17 @@ export async function initialiseStorage(): Promise<StorageStatus> {
       // The seeding promise is deliberately not cancelled — Dexie has no cancellation, and if the
       // open eventually completes the rows land anyway. The user simply is not made to wait for it.
       console.error(`[tickd] storage did not open within ${String(OPEN_TIMEOUT_MS)}ms`);
+      return { status: 'timeout' };
     }
-    return result;
+
+    // Only once storage is known good. A session left running is the normal case, not an error —
+    // nobody does admin on the way out of a gym.
+    const lazyClose = await closeIfIdle(db, now);
+    return lazyClose.closed ? { status: 'ready', lazyClose } : { status: 'ready' };
   } catch (error) {
     // Firefox private browsing rejects on open, and quota exhaustion can too.
     console.error('[tickd] could not open or seed the database', error);
-    return 'unavailable';
+    return { status: 'unavailable' };
   } finally {
     clearTimeout(timer);
   }

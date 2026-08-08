@@ -58,14 +58,17 @@
 
 ## 5. Session lifecycle
 
-- [ ] 5.1 Session start: create a session at the chosen venue, with the last venue preselected
+- [x] 5.1 Session start: create a session at the chosen venue, with the last venue preselected
 - [ ] 5.2 Location as an ordering hint only — never blocking, never required, usable when denied
-- [ ] 5.3 Explicit end with `ended_at` at the moment of ending
-- [ ] 5.4 Lazy close on launch keyed on **idle since last tick**, not date change, with `ended_at` set to
+      — deferred to group 7's venue picker, where the UI that would use it lives
+- [x] 5.3 Explicit end with `ended_at` at the moment of ending
+- [x] 5.4 Lazy close on launch keyed on **idle since last tick**, not date change, with `ended_at` set to
       the last tick's timestamp
-- [ ] 5.5 Delete zero-tick sessions on close, both paths
-- [ ] 5.6 Announce a lazy close rather than closing silently
-- [ ] 5.7 Tests: idle close, midnight does **not** close, `ended_at` is never the reopen time, zero-tick
+      — verified by planting a date-change trigger: the midnight test failed, which is the false
+      positive that ruled that trigger out in the first place
+- [x] 5.5 Delete zero-tick sessions on close, both paths
+- [x] 5.6 Announce a lazy close rather than closing silently
+- [x] 5.7 Tests: idle close, midnight does **not** close, `ended_at` is never the reopen time, zero-tick
       deletion
 
 ## 6. The grade grid
