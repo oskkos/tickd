@@ -84,6 +84,26 @@ corruption D14 exists to prevent.
 - **WHEN** the outcome union is widened so an invalid combination becomes representable
 - **THEN** the type-level assertions fail rather than passing silently
 
+#### Scenario: The invariant holds at the write path, not only on the row type
+
+- **WHEN** an invalid tick is passed to the table's `add`, `put` or `bulkPut`
+- **THEN** typechecking fails
+
+Asserting only against the row type is insufficient and was insufficient in practice. A table typing
+that derives its insert type from the row can flatten the union — `Omit` over a union keeps only the
+common keys and merges their property types — leaving every row-type assertion passing while the
+tables accept the rows they forbid. The write path is the only ingress the logging screen uses, so
+the assertions SHALL read the parameter types off the table methods rather than restate them.
+
+#### Scenario: Absence of a field is checked per union member
+
+- **WHEN** a forbidden field such as a cached ordinal is added to a single member of the grade or
+  outcome union
+- **THEN** the assertion that the field is absent fails
+
+`keyof` a union yields only the keys common to every member, so a check against `keyof Tick` cannot
+see a field added to one member alone — which is how a per-scale cached ordinal would arrive.
+
 ### Requirement: A grade cannot disagree with its scale
 
 The tick row type SHALL pair `grade_raw` with `grade_scale` such that a label belonging to one scale

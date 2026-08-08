@@ -9,7 +9,15 @@
  * Nothing here runs. It exists to be typechecked.
  */
 
-import type { Tick, TickOutcome, PriorExperience, Venue, VenueBase } from './types.ts';
+import type {
+  Tick,
+  TickBase,
+  TickGrade,
+  TickOutcome,
+  PriorExperience,
+  Venue,
+  VenueBase,
+} from './types.ts';
 
 /** Fields shared by every fixture below, so each case shows only what it is testing. */
 const base = {
@@ -217,22 +225,64 @@ export type InventedGradeIsRejected = AssertNotAssignable<
  */
 type DeclaresKey<T, K extends string> = K extends keyof T ? true : false;
 
-export type NoStoredOrdinal = AssertNotAssignable<DeclaresKey<Tick, 'grade_index'>>;
-export type NoStoredOrdinalAlias = AssertNotAssignable<DeclaresKey<Tick, 'grade_ordinal'>>;
+/**
+ * Checked per union member, not against `keyof Tick`.
+ *
+ * **`keyof` a union yields only the keys common to every member**, so asking `keyof Tick` cannot see
+ * a field added to just one of them — and adding a cached ordinal to only the Font member of
+ * `TickGrade` is exactly how one would creep in. The original assertions used `keyof Tick` and would
+ * have passed straight through that. Found by review.
+ *
+ * `MemberDeclaresKey` distributes over the union, so a key present on any single member surfaces as
+ * `true` in the result; unioning the three constituents of `Tick` means a hit anywhere widens the
+ * result to `boolean`, which does not satisfy `extends false`.
+ */
+type MemberDeclaresKey<U, K extends string> = U extends unknown
+  ? K extends keyof U
+    ? true
+    : false
+  : never;
+
+type TickDeclaresKey<K extends string> =
+  DeclaresKey<TickBase, K> | MemberDeclaresKey<TickGrade, K> | MemberDeclaresKey<TickOutcome, K>;
+
+export type NoStoredOrdinal = AssertNotAssignable<TickDeclaresKey<'grade_index'>>;
+export type NoStoredOrdinalAlias = AssertNotAssignable<TickDeclaresKey<'grade_ordinal'>>;
 
 /** `is_repeat` is derived from `prior_experience = 'sent'`, never stored (D6). */
-export type NoRepeatColumn = AssertNotAssignable<DeclaresKey<Tick, 'is_repeat'>>;
+export type NoRepeatColumn = AssertNotAssignable<TickDeclaresKey<'is_repeat'>>;
 
 /** Phase 1 and Phase 2 columns must be absent — a disposable single-device store needs none of
  *  them, and there is nothing to backfill (§7.7). */
-export type NoUserId = AssertNotAssignable<DeclaresKey<Tick, 'user_id'>>;
-export type NoDeviceId = AssertNotAssignable<DeclaresKey<Tick, 'device_id'>>;
-export type NoSchemaVersion = AssertNotAssignable<DeclaresKey<Tick, 'schema_version'>>;
-export type NoVisibility = AssertNotAssignable<DeclaresKey<Tick, 'visibility'>>;
-export type NoProjectId = AssertNotAssignable<DeclaresKey<Tick, 'project_id'>>;
+export type NoUserId = AssertNotAssignable<TickDeclaresKey<'user_id'>>;
+export type NoDeviceId = AssertNotAssignable<TickDeclaresKey<'device_id'>>;
+export type NoSchemaVersion = AssertNotAssignable<TickDeclaresKey<'schema_version'>>;
+export type NoVisibility = AssertNotAssignable<TickDeclaresKey<'visibility'>>;
+export type NoProjectId = AssertNotAssignable<TickDeclaresKey<'project_id'>>;
 
 /** There is no route entity — a tick is anonymous (§7.2, D2, D3). */
-export type NoRouteId = AssertNotAssignable<DeclaresKey<Tick, 'route_id'>>;
+export type NoRouteId = AssertNotAssignable<TickDeclaresKey<'route_id'>>;
+
+/**
+ * Controls: the helper must actually report a key that *is* present, or every assertion above passes
+ * vacuously for the trivial reason that it never returns `true`.
+ *
+ * Phrased as "is `true` among the results" rather than "is the result `true`", because a key on some
+ * constituents and not others correctly yields `boolean` — `grade_raw` lives on the `TickGrade`
+ * members but not on `TickBase`.
+ */
+type Reports<U, M> = M extends U ? true : false;
+
+export type ControlDetectsAKeyOnAUnionMember = AssertAssignable<
+  Reports<TickDeclaresKey<'grade_raw'>, true>
+>;
+export type ControlDetectsAKeyOnTheBase = AssertAssignable<
+  Reports<TickDeclaresKey<'session_id'>, true>
+>;
+/** And must *not* report one that is genuinely absent, or the controls above prove nothing. */
+export type ControlIgnoresAnAbsentKey = AssertNotAssignable<
+  Reports<TickDeclaresKey<'not_a_field_anywhere'>, true>
+>;
 
 // ── Narrowing must work through the intersection ─────────────────────────────────────────────────
 
@@ -250,9 +300,21 @@ export function styleOf(tick: Tick): SendStyleOrNull {
 }
 type SendStyleOrNull = 'onsight' | 'flash' | 'redpoint' | 'second_go' | null;
 
-/** Narrowing on the *other* union must survive the intersection too. */
-export function rawOf(tick: Tick): string {
-  return tick.grade_scale === 'font' ? tick.grade_raw : tick.grade_raw;
+/**
+ * Narrowing on the *other* union must survive the intersection too.
+ *
+ * The previous version of this — `tick.grade_scale === 'font' ? tick.grade_raw : tick.grade_raw`
+ * returning `string` — was **vacuous**: both branches were the same expression and `string` accepts
+ * the un-narrowed union, so it compiled whether or not narrowing worked. It was cited as evidence
+ * that the six-member-union fallback was unnecessary. Found by review.
+ *
+ * The return type here is the Font label union specifically, so a widened `string` does not satisfy
+ * it and a narrowing regression is a compile error. `writes.assert.ts` carries the French twin.
+ */
+export function fontRawOf(
+  tick: Tick,
+): Extract<TickGrade, { grade_scale: 'font' }>['grade_raw'] | null {
+  return tick.grade_scale === 'font' ? tick.grade_raw : null;
 }
 
 /** `is_repeat` is derived, never stored (D6). */
@@ -260,9 +322,23 @@ export function isRepeat(tick: Tick): boolean {
   return tick.prior_experience === 'sent';
 }
 
-/** Narrowing the standalone outcome union, independent of the intersection. */
+/**
+ * Narrowing the standalone outcome union, independent of the intersection.
+ *
+ * Also previously vacuous — both branches returned the same expression and `PriorExperience` accepts
+ * the un-narrowed value. This version returns the *narrowed* literal type on the flash branch, which
+ * only compiles because member 2 of `TickOutcome` pins `prior_experience` to `'none'`.
+ */
 export function priorOf(outcome: TickOutcome): PriorExperience {
-  return outcome.is_send ? outcome.prior_experience : outcome.prior_experience;
+  return outcome.prior_experience;
+}
+
+/** A flash is a first encounter by definition, and narrowing must prove it without an assertion. */
+export function priorOfFlash(outcome: TickOutcome): 'none' | null {
+  if (outcome.is_send && (outcome.send_style === 'flash' || outcome.send_style === 'onsight')) {
+    return outcome.prior_experience;
+  }
+  return null;
 }
 
 // ── A venue must offer at least one discipline ───────────────────────────────────────────────────
