@@ -104,6 +104,35 @@ the assertions SHALL read the parameter types off the table methods rather than 
 `keyof` a union yields only the keys common to every member, so a check against `keyof Tick` cannot
 see a field added to one member alone — which is how a per-scale cached ordinal would arrive.
 
+### Requirement: Discipline and protection cannot contradict each other
+
+The tick row type SHALL pair `discipline` with `protection` such that `protection: 'none'` occurs
+exactly on a boulder, and a roped discipline carries one of the roped protections. Constructing a
+contradictory pair SHALL be a compile-time error.
+
+`CONCEPT.md` §7.4 defines `protection: 'none'` as *meaning* boulder. Left independent, a
+logging-screen bug that moves the discipline toggle while leaving `protection` behind writes a row
+that is counted inconsistently rather than rejected: it lands in the boulder group of the
+`(discipline, grade_scale)` index, while any consumer reading `protection === 'none'` as "is a
+boulder" drops it. Two plausible contradictory numbers, which is the failure mode this capability
+exists to prevent.
+
+#### Scenario: A boulder with rope protection does not compile
+
+- **WHEN** a tick pairs `discipline: 'boulder'` with `protection: 'lead'`
+- **THEN** typechecking fails
+
+#### Scenario: A roped climb without protection does not compile
+
+- **WHEN** a tick pairs `discipline: 'sport'` with `protection: 'none'`
+- **THEN** typechecking fails
+
+#### Scenario: Valid pairings compile
+
+- **WHEN** a tick pairs `boulder` with `none`, or `sport`/`trad` with `lead`, `toprope` or
+  `autobelay`
+- **THEN** it typechecks
+
 ### Requirement: A grade cannot disagree with its scale
 
 The tick row type SHALL pair `grade_raw` with `grade_scale` such that a label belonging to one scale
@@ -273,10 +302,16 @@ an error (§4.2, D17).
 - **WHEN** ticks are queried for one discipline and one scale
 - **THEN** only ticks matching both are returned
 
-### Requirement: A schema marker is exported for the importer
+### Requirement: A schema marker is exported and derived from the shape
 
 The module SHALL export a schema marker identifying the Phase 0 shape, so that the JSON importer can
 refuse a mismatched file rather than upgrading it (§7.6).
+
+The marker SHALL be **derived from the schema rather than hand-maintained**: from the store and index
+definitions, and from an exhaustive list of stored fields that the type system requires to be updated
+when a row gains a field. A marker a developer must remember to bump is one they can forget, and
+forgetting it lets an export of the old shape import cleanly into the new one — defeating the refusal
+that D7 relies on in place of migrations.
 
 The marker exists here rather than in the importer because it identifies the schema, and the schema is
 defined here. Refusal logic belongs to the import change.
@@ -286,10 +321,15 @@ defined here. Refusal logic belongs to the import change.
 - **WHEN** the database module is imported
 - **THEN** it exposes a schema marker value
 
-#### Scenario: The marker changes with the shape
+#### Scenario: An index change moves the marker
 
-- **WHEN** the table shape changes
-- **THEN** the marker is expected to change with it, so an older export is recognisably incompatible
+- **WHEN** a store or index definition changes
+- **THEN** the marker changes without anyone editing it
+
+#### Scenario: A new row field cannot be added silently
+
+- **WHEN** a field is added to a row type but not to the stored-field list
+- **THEN** typechecking fails, and adding it to the list moves the marker
 
 ### Requirement: Storage persistence is requested best-effort
 
@@ -313,6 +353,52 @@ implement it — so absence is an expected outcome rather than an error (§7.6).
 
 - **WHEN** the browser declines the persistence request
 - **THEN** the app continues, because Phase 0 accepts evictable storage
+
+### Requirement: Startup never blocks or fails silently
+
+Startup SHALL be bounded in time and SHALL report whether storage is usable, rather than resolving
+normally on failure.
+
+Handling a *rejecting* IndexedDB is not sufficient: a **hanging** open — the `blocked` event when
+another tab holds the connection, or a browser that fires no event at all — leaves an awaited promise
+unsettled and the first render never happens, producing a blank page with nothing to act on.
+
+When storage is unusable the app SHALL say so. An empty venue list is indistinguishable from a first
+launch, and the natural reading of an empty logbook is that the data is gone. §7.6 accepts losing data
+to eviction; it does not accept failing to say that nothing is being saved.
+
+#### Scenario: A hanging open does not block first render
+
+- **WHEN** the database open neither succeeds nor fails
+- **THEN** startup completes within a bounded time and the app renders
+
+#### Scenario: A rejected open does not throw
+
+- **WHEN** IndexedDB rejects, as in private browsing
+- **THEN** startup completes and reports that storage is unavailable
+
+#### Scenario: The user is told the logbook cannot save
+
+- **WHEN** storage is unavailable or timed out
+- **THEN** the UI shows a message saying so, rather than an empty list with no explanation
+
+#### Scenario: A healthy start shows no warning
+
+- **WHEN** storage opens normally
+- **THEN** no warning is shown
+
+### Requirement: Identifier generation does not depend on a secure context
+
+Identifier generation SHALL work outside a secure context, because the stated device-testing route is
+a phone reaching the development server over plain http.
+
+`crypto.randomUUID` is secure-context only. Calling it unguarded throws on the first identifier
+minted, so a tap that is supposed to persist immediately silently does nothing.
+
+#### Scenario: Identifiers are still generated without randomUUID
+
+- **WHEN** `crypto.randomUUID` is unavailable
+- **THEN** a valid version 4 UUID is still produced, and distinct on each call
 
 ### Requirement: The storage layer is testable without a browser
 

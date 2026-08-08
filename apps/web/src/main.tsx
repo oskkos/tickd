@@ -12,12 +12,16 @@ if (!root) {
 
 // Seeding is awaited before the first render so no screen can observe an empty venue list, which is
 // the one state that looks like data loss rather than a cold start. `initialiseStorage` never
-// rejects — if IndexedDB is unavailable the app still renders, because a white screen tells the user
-// nothing. Persistence is requested inside without being awaited.
-await initialiseStorage();
+// rejects and never hangs — it is bounded by a timeout, so a blocked or stuck IndexedDB open costs a
+// few seconds and a warning rather than a permanently blank page. Persistence is requested inside
+// without being awaited.
+//
+// The status is passed down rather than logged: when storage is unusable the app must say so, or an
+// empty venue picker reads as data loss.
+const storageStatus = await initialiseStorage();
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    <App storageStatus={storageStatus} />
   </StrictMode>,
 );

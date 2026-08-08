@@ -24,6 +24,7 @@ const base = {
   id: 'a',
   session_id: 'b',
   venue_id: 'c',
+  // Discipline and protection are one unit: `protection: 'none'` means boulder (§7.4).
   discipline: 'sport',
   protection: 'lead',
   tags: [],

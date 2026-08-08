@@ -480,9 +480,11 @@ venue        id, type(indoor|outdoor), name, brand?, city, country, geo?,
                                              -- boulder-only. At least one is always present.
              pending_review, canonical_id?   -- §7.5
 
-session      id, venue_id, date_local, started_at, ended_at,
+session      id, venue_id, date_local, started_at, ended_at?,
              conditions?, felt?
              -- mutable; LWW per field
+             -- ended_at is absent while the session is open: a session must be creatable before it
+             -- is finished, since ticks are written into one that has not ended yet
 
 tick         id, session_id, venue_id,
              sector?,                                   -- free text, autocompleted
@@ -535,6 +537,11 @@ tick         ... project_id?
   there's nothing to backfill.
 - **`trad` is in the discipline enum for outdoor completeness only.** It never appears in the
   indoor UI.
+- **`discipline` and `protection` are one unit, not two independent fields.** `protection = 'none'`
+  *means* boulder, so `(boulder, lead)` and `(sport, none)` are both nonsense. A row like that is
+  worse than an error: it lands in the boulder group of the `(discipline, grade_scale)` index while
+  any consumer reading `protection = 'none'` as "is a boulder" drops it, giving two plausible
+  contradictory numbers. Phase 0 makes the pair unrepresentable in the type system.
 
 ---
 

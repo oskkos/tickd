@@ -16,13 +16,36 @@ import { seedVenues } from './seed.ts';
 import { requestPersistence } from './persist.ts';
 
 /**
+ * Whether the logbook can actually be used, and if not, why.
+ *
+ * Returned rather than logged. An earlier version swallowed every failure into `console.error` and
+ * resolved normally, so the app rendered an empty venue picker with no explanation — the exact state
+ * its own comment called "the one state that looks like data loss rather than a cold start". Found by
+ * review. The caller now has something to render.
+ */
+export type StorageStatus = 'ready' | 'unavailable' | 'timeout';
+
+/**
+ * How long to wait for IndexedDB before giving up and rendering anyway.
+ *
+ * A rejecting IndexedDB was already handled; a **hanging** one was not. Dexie waits indefinitely when
+ * the open request neither succeeds nor errors, which happens on the `blocked` event — another tab
+ * holding a connection — and on the WebKit bug where `indexedDB.open` fires no event at all on a
+ * fresh page load. Without a bound, the awaited promise never settles and the user gets a permanently
+ * blank page.
+ *
+ * Five seconds is far longer than a real open (single-digit milliseconds, even cold) and short enough
+ * that a stuck launch still produces a usable screen rather than a white one.
+ */
+const OPEN_TIMEOUT_MS = 5_000;
+
+/**
  * Prepares storage for reading.
  *
- * Never rejects. If IndexedDB is unavailable — Firefox private browsing throws on open, and quota
- * exhaustion can too — the app still has to render. A logbook that cannot save is bad; a white
- * screen is worse, and gives the user nothing to act on.
+ * Never rejects and never hangs. A logbook that cannot save is bad; a blank screen is worse, because
+ * it gives the user nothing to act on and no reason to suspect their browser rather than the app.
  */
-export async function initialiseStorage(): Promise<void> {
+export async function initialiseStorage(): Promise<StorageStatus> {
   // Fire-and-forget: the outcome is informational, and awaiting it would gate the UI on a dialog.
   void requestPersistence().then(
     (outcome) => {
@@ -37,9 +60,27 @@ export async function initialiseStorage(): Promise<void> {
     },
   );
 
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => {
+      resolve('timeout');
+    }, OPEN_TIMEOUT_MS);
+  });
+
   try {
-    await seedVenues(db);
+    const result = await Promise.race([seedVenues(db).then(() => 'ready' as const), timeout]);
+
+    if (result === 'timeout') {
+      // The seeding promise is deliberately not cancelled — Dexie has no cancellation, and if the
+      // open eventually completes the rows land anyway. The user simply is not made to wait for it.
+      console.error(`[tickd] storage did not open within ${String(OPEN_TIMEOUT_MS)}ms`);
+    }
+    return result;
   } catch (error) {
+    // Firefox private browsing rejects on open, and quota exhaustion can too.
     console.error('[tickd] could not open or seed the database', error);
+    return 'unavailable';
+  } finally {
+    clearTimeout(timer);
   }
 }

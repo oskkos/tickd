@@ -15,7 +15,7 @@
  */
 
 import { db } from './schema.ts';
-import type { Tick, TickBase, TickGrade, TickOutcome, Venue } from './types.ts';
+import type { Tick, TickBase, TickDiscipline, TickGrade, TickOutcome, Venue } from './types.ts';
 
 type IsAssignable<Candidate, Target> = [Candidate] extends [Target] ? true : false;
 type AssertNotAssignable<T extends false> = T;
@@ -36,7 +36,7 @@ export type TickPutIsTheRowType = AssertAssignable<IsAssignable<TickPut, Tick>>;
 export type TickBulkPutIsTheRowType = AssertAssignable<IsAssignable<TickBulkPut, Tick>>;
 export type VenueInsertIsTheRowType = AssertAssignable<IsAssignable<VenueAdd, Venue>>;
 
-type BaseFields = Omit<TickBase, 'id'> & { id: string };
+type BaseFields = TickBase & { discipline: 'sport'; protection: 'lead' };
 interface FrenchGrade {
   grade_scale: 'french';
   grade_raw: '6a';
@@ -121,6 +121,57 @@ export type InvalidTickIsNotBulkPuttable = AssertNotAssignable<
       prior_experience: 'none';
     },
     TickBulkPut
+  >
+>;
+
+/**
+ * Discipline and protection cannot contradict each other at the write path either.
+ *
+ * `protection: 'none'` *means* boulder (§7.4). A row pairing it with `sport`, or pairing `boulder`
+ * with a rope protection, is counted inconsistently rather than rejected — it lands in one group of
+ * the `[discipline+grade_scale]` index while any consumer reading `protection === 'none'` as
+ * "is a boulder" disagrees.
+ */
+type RopeFields = TickBase & { discipline: 'sport'; protection: 'lead' };
+type BoulderFields = TickBase & Extract<TickDiscipline, { discipline: 'boulder' }>;
+
+export type BoulderWithRopeProtectionIsNotInsertable = AssertNotAssignable<
+  IsAssignable<
+    TickBase & { discipline: 'boulder'; protection: 'lead' } & FrenchGrade & {
+        is_send: true;
+        send_style: 'flash';
+        prior_experience: 'none';
+      },
+    TickAdd
+  >
+>;
+
+export type RopeWithoutProtectionIsNotInsertable = AssertNotAssignable<
+  IsAssignable<
+    TickBase & { discipline: 'sport'; protection: 'none' } & FrenchGrade & {
+        is_send: true;
+        send_style: 'flash';
+        prior_experience: 'none';
+      },
+    TickAdd
+  >
+>;
+
+/** Controls, so the two assertions above are not passing because nothing is ever insertable. */
+export type RopeTickIsInsertable = AssertAssignable<
+  IsAssignable<
+    RopeFields & FrenchGrade & { is_send: true; send_style: 'flash'; prior_experience: 'none' },
+    TickAdd
+  >
+>;
+
+export type BoulderTickIsInsertable = AssertAssignable<
+  IsAssignable<
+    BoulderFields & { grade_scale: 'font'; grade_raw: '6A' } & {
+      is_send: false;
+      prior_experience: 'attempted';
+    },
+    TickAdd
   >
 >;
 
