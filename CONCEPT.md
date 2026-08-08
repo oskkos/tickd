@@ -4,7 +4,7 @@
 secondary.
 
 Status: shaping. Nothing built yet.
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 The main body describes the current design only. Reasoning that was argued through and changed
 along the way is in the **[Decision log](#decision-log)** at the end, so the design reads cleanly
@@ -1480,6 +1480,253 @@ is what the version field has been waiting for, having had nothing to version si
 §12's second question, `CLAUDE.md`'s invariant, and the `scales.yaml` comments. No code:
 `packages/grade-spec` never modelled discipline, so a falsified premise left its API and tests
 untouched.
+
+### D18 — `second_go` and `attempts` dropped; a send is flashed or it is not
+
+**Considered:** keeping `second_go` as a fourth `send_style` because it is the near-miss signal; keeping
+it in the model but hiding it from the indoor UI, as §6 does for `onsight`; adding a `resend` value for
+sends of something already sent; keeping `attempts` as a coarse record of goes within one tick.
+
+**Decided:** `send_style` for indoor use is `flash` or `redpoint`. A send is either clean on first
+acquaintance or it is not. `second_go` and the `attempts` column are both removed.
+
+**The taxonomy is the argument.** `second_go` records a distinction that is not made when logging, so
+every value it took would be an accident of which button was nearer. A field filled inconsistently is
+worse than an absent one: it produces a plausible wrong number rather than a visible gap. That is the
+same reasoning D14 used to make flash rate divide by first encounters, and the same reasoning that
+leaves `default_route_length_m` unseeded rather than guessed (§12).
+
+**`send_style` still earns its place.** With only two values it carries exactly one bit that
+`prior_experience` cannot: *within a first encounter, was it clean?* That bit is flash rate's numerator
+(§4.2, D14), so the field cannot be folded away even though it is now effectively a boolean.
+
+**The two fields stop overlapping entirely:**
+
+| `prior_experience` | `send_style` | reads as |
+|---|---|---|
+| `none` | `flash` | clean on first acquaintance |
+| `none` | `redpoint` | never touched, took more than one go |
+| `attempted` | `redpoint` | had tried it before |
+| `sent` | `redpoint` | a repeat |
+
+**`resend` was considered and rejected on D6's own grounds.** `repeat` was a value in the flat 8a.nu
+enum that §7.4 decomposed, and pulling it out into `prior_experience` was the point of that
+decomposition. Re-adding it as a `send_style` would put one fact in two places, which means they can
+disagree — `resend` with `prior_experience = none` is nonsense — and would create a *third* invalid
+combination to police for no new information. A resend is `prior_experience = sent` with
+`send_style = redpoint`, and `is_repeat` derives from the first exactly as D6 intended.
+
+**`attempts` had no consumer, which is what distinguishes it from its neighbours.** §4.3's project view
+counts attempts as `is_send = false` **rows** — that is what §7.7 means by "Phase 0 captures attempts
+for free", and it is why D12 dropped the separate `attempt` table. The `attempts` integer was a second,
+unused way to say the same thing. Contrast `high_point`, which is named by §4.3's high-point
+progression and stays.
+
+**Two things become unrecordable, and both are accepted.** The near-miss — fell once, got it next go —
+is now an ordinary `redpoint`. And on a repeat, a clean lap is indistinguishable from a four-go grind,
+because `flash` is correctly blocked once you have touched the climb. Neither is visible to Phase 0's
+single analytic: a repeat is not a first encounter, so it sits in neither flash rate's numerator nor
+its denominator.
+
+**The `onsight` precedent does not transfer.** `onsight` stays in the model while absent from the
+indoor UI because it is genuinely needed outdoors one day — a deferred requirement. `second_go` has no
+such future; keeping it would mean carrying a value nobody writes, that every consumer must still
+branch on, on the grounds that a Phase 3 user might want it. Re-adding an enum value is the cheap
+direction, and D7 makes it free during Phase 0: data is disposable, so a schema change is a
+wipe-and-restart already accepted.
+
+**What would reverse it:** wanting the near-miss signal for real, at which point `attempts` returns as
+a number rather than `second_go` as a bucket — a count beats a coarse label, and it also recovers the
+clean-lap case on repeats.
+
+**What this changes:** §7.4's `send_style` enum and its invalid-combination note, §7.7's `tick` block,
+`CLAUDE.md`'s style invariant, the `local-database` capability, and `apps/web/src/db/types.ts`. Unlike
+D17 this one **does** change code — `TickOutcome` loses a member and the tick row loses a column — so
+it lands as its own change rather than a documentation edit.
+
+### D19 — `tick.venue_id` dropped; a tick reaches its venue through its session
+
+**Considered:** keeping the column because IndexedDB has no joins, so "all ticks at this venue" is one
+indexed query with it and two round trips without; keeping it in case a tick can ever exist without a
+session.
+
+**Decided:** dropped, along with its index. A tick reaches its venue through `session_id`.
+
+**The test that decided it is the one `date_local` passes and `venue_id` fails.** Both are duplicated
+from the session, so both look like the same redundancy — but a tick's local date genuinely can differ
+from its session's. Start at 22:40, log at 00:15, and the tick belongs to Saturday while the session
+began on Friday; §7.7 already requires that a climb belong to the local day it was climbed. There is no
+equivalent case for venue: a tick cannot be at a different gym from the session containing it. One
+duplication carries information, the other only carries risk.
+
+**The risk is specific, not theoretical.** §8.3 specifies plain `UPDATE` with last-write-wins **per
+field** and no tombstones. Two rows holding the same fact are exactly what that pulls apart — correct
+the venue on one device and on another, and `session.venue_id` and `tick.venue_id` can disagree with
+nothing able to detect it. §7.5's `canonical_id` merging has the same shape: repointing a merged venue
+would have to touch both tables and could half-succeed.
+
+**Phase 0 never reads it.** Flash rate groups by `(discipline, grade_scale)` and does not touch venue.
+The metric that would — vertical metres via `venue.default_route_length_m` — is a later phase and needs
+a venue lookup regardless. Until then the column was written, indexed, and read by nothing.
+
+**The precondition is that a tick always has a session**, which the venue-selection flow guarantees:
+the venue has to be chosen before the first tick, and that choice is what opens the session. If ticks
+ever become session-less, `session_id` stops being a total function to venue and this reverses.
+
+**The cost is accepted:** a venue-scoped query becomes `sessions.where('venue_id')` then
+`ticks.where('session_id').anyOf(...)` — two steps, hand-written, because Dexie has no joins. No Phase 0
+query needs it, and Phase 1's Postgres joins for free.
+
+**D7 is why this is cheap now.** Phase 0 data is disposable and there are no migrations, so removing a
+column is the wipe-and-restart already accepted. That argues for dropping a field whose only current job
+is staying in sync with another field, rather than carrying it until a query justifies it.
+
+**What would reverse it:** ticks that can exist without a session, or a venue-scoped query hot enough
+that two round trips matter.
+
+**What this changes:** §7.7's `tick` block, the `local-database` capability's index requirement,
+`apps/web/src/db/types.ts` and the `ticks` store definition. The schema marker moves on its own —
+deriving it from the store definitions and the field list is exactly what makes a dropped column
+announce itself.
+
+### D20 — A tick is one go, so `send_style` is derived rather than stored
+
+**Considered:** keeping a tick as one climb-within-a-session, which is what §7.4's example assumed;
+keeping `send_style` as a stored field because D6 decomposed style into three; keeping it for `onsight`,
+which is the one value that is genuinely not derivable.
+
+**Decided:** a tick records **one go**. `send_style` is dropped from the schema and computed at read
+time. The style enum, including `onsight`, goes with it.
+
+**These are one decision, not two.** `send_style` only became derivable because of what came before it:
+D18 reduced it to `flash | redpoint`, and one-go-per-tick removes the case that made the pair
+ambiguous. Under one-climb-per-tick, `prior_experience = none` with a send could be either a flash or a
+four-go grind, and the field carried a real bit. Under one-go-per-tick it cannot:
+
+```
+is_send && prior_experience = none        →  flash     — this go IS the first acquaintance
+is_send && prior_experience = attempted   →  redpoint
+is_send && prior_experience = sent        →  redpoint
+!is_send                                  →  no style
+```
+
+**§7.3's rule applies to more than ordinals.** *Store what was entered; derive the interpretation at
+read time.* A stored value computable from two fields beside it is a value that can **disagree** with
+its own source — which is the entire reason `TickOutcome` needed a union and the UI needed to make two
+combinations unreachable. Removing the field removes the disagreement:
+
+| `prior_experience` | `is_send` | means |
+|---|---|---|
+| `none` | false | first encounter, walked away |
+| `none` | true | **flash** |
+| `attempted` | false | another failed go |
+| `attempted` | true | redpoint |
+| `sent` | false | failed a repeat |
+| `sent` | true | a repeat |
+
+All six are valid. **There is no invalid combination left to police** — the two that §7.4 required the UI
+to make unreachable are now unrepresentable, in the schema and on the screen alike, because neither has a
+control for style.
+
+**D6 is validated, not reversed.** Its finding was that a *flat* enum conflates protection, style and
+history. Protection and history remain separate fields, so nothing is re-conflated; one of the three
+pieces simply turned out to be a function of another. The decomposition is what made that visible.
+
+**D14 is unchanged in substance.** Flash rate is still flashes ÷ first encounters, still counting ticks
+with `prior_experience = none` including ones never sent. Only the numerator's expression changes, from
+`send_style = 'flash'` to `is_send AND prior_experience = 'none'` — the same set of rows.
+
+**The cost is real and falls on input, not storage.** With a tick as one go, `prior_experience` stops
+being a rare deviation and becomes required on every log: correct on the first go, wrong on every go
+after. So it takes no default and must be chosen explicitly. Getting it wrong manufactures first
+encounters and inflates flash rate's denominator, which is why the screen forces the choice rather than
+guessing it. The app cannot infer it — there is no route entity, so it cannot know your next tick is the
+same climb (§7.2, D2).
+
+**`onsight` is the one thing genuinely given up.** Outdoors, onsight versus flash turns on whether you
+had beta — a bit `prior_experience` does not carry and nothing else in the schema does either. Indoors
+it was already absent from the UI (§6), so nothing observable is lost now.
+
+**What would reverse it:** outdoor logging, which needs `onsight` and therefore a stored style plus a
+beta bit; or returning to one-climb-per-tick, which restores the ambiguity that made the field carry
+information. D7 makes both cheap during Phase 0 — data is disposable and re-adding a column is the
+wipe-and-restart already accepted.
+
+**What this changes:** §7.4 loses the `send_style` row, its invalid-combination rules and the four-goes
+example that assumed one tick could span several; §6's note that onsight stays in the model for outdoor
+use; §7.7's `tick` block; `CLAUDE.md`'s style invariant; the `local-database` capability's
+"invalid style combinations do not compile" requirement; and `apps/web/src/db/types.ts`, where
+`TickOutcome` stops being a union.
+
+### D21 — The provisional fields resolved; `tags` becomes `angle` and `holds`
+
+**Considered:** keeping §7.7's optional fields as listed; dropping every field with no named consumer;
+`tags` as free text; `tags` as one flat enum of route characteristics.
+
+**Decided:** four fields dropped — `sector`, `high_point`, `conditions`, `felt`. Four kept —
+`length_m`, `grade_opinion`, `rating`, `notes`. `tags` replaced by two typed fields:
+
+```
+angle   slab | vertical | overhang | roof          -- one value
+holds   crimp | sloper | pinch | pocket | jug      -- several
+```
+
+**Each field was put to three questions:** does anything read it, are its semantics defined, and would
+you fill it consistently? The third is D18's test — a field filled by accident produces a plausible
+wrong number rather than a visible gap.
+
+**What the drops have in common is that `notes` already carries them.** Indoor `conditions` vary between
+busy and not busy; `felt` is a sentence; a `high_point` has no defined format — a clip number, a metre
+mark, "the crux"? — and under D20 it would want recording on every failed go. `sector` was the closest
+call, since §7.2 names it in the tick's identity tuple, but a free-text location on an anonymous climb
+is a note by another name.
+
+**`sector` leaves a mark on §7.2.** With it and `send_style` gone, and `venue` now reached through the
+session (D19), the identity tuple `(venue, sector?, grade, protection, send_style, prior_experience,
+is_send, date)` needs rewriting rather than patching. What identifies a tick is now
+`(grade, protection, prior_experience, is_send, date)` plus the session it belongs to.
+
+**A flat `tags` enum would have repeated D6's error at a smaller scale.** D6's finding was that one enum
+conflating independent questions cannot express their combinations — you could not distinguish a toprope
+flash from a toprope redpoint. A single list mixing `overhang` with `crimp` has the same defect: a route
+is not overhanging *or* crimpy, it is both. Wall angle and hold type are independent questions and get
+independent fields.
+
+**`angle` is a single value because it is the one that groups.** It is roughly exclusive, close to
+objective, and slots into the existing key as `(discipline, grade_scale, angle)` with no array handling
+and no multi-entry index. Hold type is genuinely plural and stays an array. If only one survives
+contact with real sessions, it should be `angle`.
+
+**Both vocabularies are deliberately short.** A long list is an unfillable list, and an unfilled field is
+the thing three of these were just dropped for.
+
+**A session-scoped climb entity was designed and deferred.** Because a tick is one go (D20), the
+annotations above describe a *climb* while living on a *go*, so a route worked over four goes carries
+them on whichever go you bothered with — and that is systematically the send, since nobody annotates the
+fall they walked away from. Grouping the goes of one climb would fix it, and would also make
+`prior_experience` derivable for every go after the first, repaying D20's stated cost.
+
+It was rejected for Phase 0 on complexity, not principle. Linking cannot be inferred from grade — five
+different 6b's in an evening are five climbs — and cannot be auto-attached to an open climb at the same
+grade either, since a retry of something tried last week matches nothing on screen. Making it work needs
+two distinct logging gestures, a grouped list as the only continuation path, and a disambiguation step;
+that is a screen's worth of design for a field set that is descriptive rather than analytical.
+
+**The accepted consequence:** `angle`, `holds`, `rating` and `grade_opinion` are descriptive metadata, not
+analytic inputs. A "flash rate by angle" built on them would be biased toward sends, which is precisely
+the kind of plausible wrong number D14 exists to prevent. If that analytic is ever wanted, the climb
+entity has to come first.
+
+**Note this does not reopen D2.** A session-scoped grouping has no identity beyond the session, is
+asserted by tapping rather than matched, has no lifecycle fields, and supports no "currently up" view.
+D2's unfixable problem — that a newly set 6c+ is indistinguishable from the one it replaced — is about
+identity *across* time, and does not arise within a session you are standing in.
+
+**What would reverse it:** wanting an analytic keyed on angle, which requires per-climb annotation and
+therefore the deferred entity.
+
+**What this changes:** §7.7's `tick` block, §7.2's identity tuple, the `local-database` capability, and
+`apps/web/src/db/types.ts`.
 
 ### A note on cost estimates in this document
 
