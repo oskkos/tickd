@@ -1,6 +1,7 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import Dexie from 'dexie';
 import { createDatabase, newId, SCHEMA_MARKER } from './schema.ts';
+import { sendStyleOf } from './style.ts';
 import type { Tick, TickBase, TickDiscipline, TickGrade, TickOutcome } from './types.ts';
 
 /**
@@ -42,8 +43,6 @@ function tick(
   return {
     id: newId(),
     session_id: 's',
-    venue_id: 'v',
-    tags: [],
     date_local: '2026-08-07',
     tz_offset: 180,
     created_at: 0,
@@ -55,7 +54,8 @@ function tick(
   };
 }
 
-const FLASHED: TickOutcome = { is_send: true, send_style: 'flash', prior_experience: 'none' };
+// Derived as a flash — sent, with nothing before it. No style is stored (D20).
+const FLASHED: TickOutcome = { is_send: true, prior_experience: 'none' };
 const ATTEMPTED: TickOutcome = { is_send: false, prior_experience: 'attempted' };
 const FRENCH_6A: TickGrade = { grade_scale: 'french', grade_raw: '6a' };
 const FONT_6A: TickGrade = { grade_scale: 'font', grade_raw: '6A' };
@@ -89,7 +89,9 @@ describe('schema versioning', () => {
     // the exhaustive field list, so a shape change moves it on its own and this test announces it.
     // Previously the constant was a literal and this assertion compared it to the same literal —
     // which rewarded never touching it, so an incompatible export could present a matching marker.
-    expect(SCHEMA_MARKER).toBe('tickd.phase0-9272c678');
+    // Moved from tickd.phase0-9272c678 when D18-D21 dropped five tick columns and added two. Nobody
+    // edited the marker; the derivation did, and this pin is how it announced itself.
+    expect(SCHEMA_MARKER).toBe('tickd.phase0-4ecf3c85');
   });
 
   it('moves the marker when the stored fields change', () => {
@@ -205,13 +207,34 @@ describe('round trip', () => {
     await db.ticks.bulkPut([flashed, attempted]);
 
     const storedFlash = await db.ticks.get(flashed.id);
+    expect(storedFlash).toBeDefined();
     expect(storedFlash?.is_send).toBe(true);
-    expect(storedFlash?.send_style).toBe('flash');
     expect(storedFlash?.prior_experience).toBe('none');
+    expect(storedFlash && sendStyleOf(storedFlash)).toBe('flash');
 
     const storedAttempt = await db.ticks.get(attempted.id);
+    expect(storedAttempt).toBeDefined();
     expect(storedAttempt?.is_send).toBe(false);
-    expect('send_style' in (storedAttempt ?? {})).toBe(false);
+    expect(storedAttempt && sendStyleOf(storedAttempt)).toBeUndefined();
+  });
+
+  it('round-trips angle and holds, and tolerates their absence', async () => {
+    const db = freshDb('characteristics');
+    const described = tick(FLASHED, FONT_6A, BOULDER, {
+      angle: 'overhang',
+      holds: ['crimp', 'sloper'],
+    });
+    const bare = tick(ATTEMPTED, FONT_6A, BOULDER);
+    await db.ticks.bulkPut([described, bare]);
+
+    const storedDescribed = await db.ticks.get(described.id);
+    expect(storedDescribed?.angle).toBe('overhang');
+    expect(storedDescribed?.holds).toEqual(['crimp', 'sloper']);
+
+    // Both are descriptive and optional — no Phase 0 metric reads them (D21).
+    const storedBare = await db.ticks.get(bare.id);
+    expect(storedBare?.angle).toBeUndefined();
+    expect('holds' in (storedBare ?? {})).toBe(false);
   });
 
   it('round-trips a boulder-only venue with no rope scale', async () => {
@@ -231,15 +254,16 @@ describe('round trip', () => {
     expect('default_scale_rope' in (stored ?? {})).toBe(false);
   });
 
-  it('keeps send_style absent on an attempt rather than storing a null', async () => {
+  it('stores no style column at all', async () => {
     const db = freshDb('attempt');
     const attempt = tick(ATTEMPTED, FRENCH_6A);
     await db.ticks.add(attempt);
 
     const stored = await db.ticks.get(attempt.id);
     expect(stored).toBeDefined();
-    // Absent, not null. Flash rate counts first encounters, so a stray send_style on an attempt
-    // would inflate the numerator with a climb that was never sent (§4.2, D14).
+    // Not absent-on-attempts — absent everywhere. The style is computed from is_send and
+    // prior_experience, so there is no column that could disagree with them (D20).
     expect('send_style' in (stored ?? {})).toBe(false);
+    expect(stored && sendStyleOf(stored)).toBeUndefined();
   });
 });

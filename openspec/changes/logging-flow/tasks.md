@@ -1,37 +1,46 @@
 ## 1. Apply the model corrections (D18–D21)
 
-- [ ] 1.1 Drop `send_style` from `types.ts`; `TickOutcome` stops being a union and becomes
+- [x] 1.1 Drop `send_style` from `types.ts`; `TickOutcome` stops being a union and becomes
       `{ is_send: boolean; prior_experience: PriorExperience }`
-- [ ] 1.2 Drop `attempts`, `sector`, `high_point` and `venue_id` from the tick; drop `conditions` and
+- [x] 1.2 Drop `attempts`, `sector`, `high_point` and `venue_id` from the tick; drop `conditions` and
       `felt` from the session
-- [ ] 1.3 Add `angle` as a single-valued enum and `holds` as an array; remove `tags`
-- [ ] 1.4 Remove the `venue_id` index from the `ticks` store definition
-- [ ] 1.5 Add `sendStyleOf(tick)` deriving `flash` / `redpoint` / none from `is_send` and
+- [x] 1.3 Add `angle` as a single-valued enum and `holds` as an array; remove `tags`
+- [x] 1.4 Remove the `venue_id` index from the `ticks` store definition
+- [x] 1.5 Add `sendStyleOf(tick)` deriving `flash` / `redpoint` / none from `is_send` and
       `prior_experience`, with the reasoning at the definition
-- [ ] 1.6 Update `STORED_FIELDS` so the exhaustive check passes, and record the new `SCHEMA_MARKER`
+      — lives in `src/db/style.ts` alongside `isFlash`, `isFirstEncounter` and `isRepeat`, so flash
+      rate's numerator and denominator are named where the derivation is explained
+- [x] 1.6 Update `STORED_FIELDS` so the exhaustive check passes, and record the new `SCHEMA_MARKER`
 
 ## 2. Rewrite the assertions for a model with nothing left to contradict
 
-- [ ] 2.1 Delete the style assertions from `types.assert.ts` — the combinations they forbid are no longer
+- [x] 2.1 Delete the style assertions from `types.assert.ts` — the combinations they forbid are no longer
       representable, so the directives would report as unused
-- [ ] 2.2 Assert all six `(prior_experience, is_send)` combinations are valid, so a future narrowing is a
+- [x] 2.2 Assert all six `(prior_experience, is_send)` combinations are valid, so a future narrowing is a
       build failure
-- [ ] 2.3 Keep and re-verify the grade/scale, discipline/protection and venue-scale assertions, which are
+      — **written out explicitly rather than from a generic helper.** A conditional type over an
+      unresolved type parameter stays deferred and resolves to `boolean`, so a
+      `OutcomeIsValid<P, S>` helper could never see a literal `true` and would fail on every case
+- [x] 2.3 Keep and re-verify the grade/scale, discipline/protection and venue-scale assertions, which are
       unaffected
-- [ ] 2.4 Update `TickDeclaresKey` assertions to cover the newly dropped columns
-- [ ] 2.5 Rewrite `writes.assert.ts` the same way, keeping the insert-type assertions that prove the table
+- [x] 2.4 Update `TickDeclaresKey` assertions to cover the newly dropped columns
+- [x] 2.5 Rewrite `writes.assert.ts` the same way, keeping the insert-type assertions that prove the table
       typing has not regressed
-- [ ] 2.6 Verify by planting: widening the outcome type must fail 2.2, and reverting the table typing to
+- [x] 2.6 Verify by planting: widening the outcome type must fail 2.2, and reverting the table typing to
       `EntityTable` must still fail the insert-type assertions
+      — narrowing `TickOutcome` back into a union failed 6 checks including two of the six-state
+      assertions; reverting to `EntityTable` failed 10. Restored clean both times
 
 ## 3. Tests for the reduced model
 
-- [ ] 3.1 Test `sendStyleOf` across all six combinations
-- [ ] 3.2 Test that flash rate's numerator and denominator can be computed from `is_send` and
+- [x] 3.1 Test `sendStyleOf` across all six combinations
+- [x] 3.2 Test that flash rate's numerator and denominator can be computed from `is_send` and
       `prior_experience` alone, including a first encounter that was never sent
-- [ ] 3.3 Test the round trip of `angle` and `holds`, including absent
-- [ ] 3.4 Update the existing schema and seed tests for the new tick shape
-- [ ] 3.5 Confirm `SCHEMA_MARKER` moved, and that the derived-marker test caught it rather than a human
+- [x] 3.3 Test the round trip of `angle` and `holds`, including absent
+- [x] 3.4 Update the existing schema and seed tests for the new tick shape
+- [x] 3.5 Confirm `SCHEMA_MARKER` moved, and that the derived-marker test caught it rather than a human
+      — moved `tickd.phase0-9272c678` → `tickd.phase0-4ecf3c85` on its own, and the test failed before
+      anyone thought about it. Exactly what deriving it from the store and field list was for
 
 ## 4. Documentation catches up with the model
 
