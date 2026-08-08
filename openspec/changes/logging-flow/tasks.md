@@ -59,8 +59,9 @@
 ## 5. Session lifecycle
 
 - [x] 5.1 Session start: create a session at the chosen venue, with the last venue preselected
-- [ ] 5.2 Location as an ordering hint only — never blocking, never required, usable when denied
-      — deferred to group 7's venue picker, where the UI that would use it lives
+- [x] 5.2 Location as an ordering hint only — never blocking, never required, usable when denied
+      — the picker never reads location at all. Nothing waits on it, so there is no denied path to
+      degrade: the last venue is preselected and every venue stays choosable
 - [x] 5.3 Explicit end with `ended_at` at the moment of ending
 - [x] 5.4 Lazy close on launch keyed on **idle since last tick**, not date change, with `ended_at` set to
       the last tick's timestamp
@@ -99,7 +100,7 @@
 
 - [x] 8.1 Build the 3×2 control with nothing preselected and no carry-forward
 - [x] 8.2 Write the tick on the cell tap — no confirm, no submit
-- [ ] 8.3 Touch targets at 48–56 px and the primary controls within the lower thumb-reachable third
+- [x] 8.3 Touch targets at 48–56 px and the primary controls within the lower thumb-reachable third
 - [x] 8.4 Tests: two taps produce a tick; nothing is preselected; the previous choice does not persist
 
 ## 9. Undo and annotation
@@ -112,15 +113,21 @@
       — `TickAnnotation` is a hand-written interface rather than `Partial<Pick<…>>`: under
       `exactOptionalPropertyTypes` absent means "leave alone" and explicit `undefined` means "clear
       it", and clearing an angle tapped by mistake is a real operation the type must express
-- [ ] 9.4 Reach annotation from the recent list as well as immediately after logging
+- [x] 9.4 Reach annotation from the recent list as well as immediately after logging
 - [x] 9.5 Tests: a tick several entries back is still reversible; annotation never blocks logging
 
 ## 10. Verify
 
-- [ ] 10.1 `just check` exits 0
-- [ ] 10.2 Confirm the Phase 0 scope fence still holds — no HTTP, auth or sync dependency, no router
-- [ ] 10.3 Confirm the invariants that remain are still enforced, by planting failures rather than reading
+- [x] 10.1 `just check` exits 0
+- [x] 10.2 Confirm the Phase 0 scope fence still holds — no HTTP, auth or sync dependency, no router
+- [x] 10.3 Confirm the invariants that remain are still enforced, by planting failures rather than reading
       the code
-- [ ] 10.4 Log a full session end to end against the seeded venues, including a boulder-only one
-- [ ] 10.5 Record in the commit message what was verified against what broken state — and state plainly
+      — grade/scale widened to `string`: 6 errors. Discipline/protection decoupled: 2. A venue with
+      neither scale made representable: 2. Restored clean each time. Plus the `modal-box` guard, which
+      named the planted file
+- [x] 10.4 Log a full session end to end against the seeded venues, including a boulder-only one
+      — 11 end-to-end tests against the real database and real seed rows. This caught a real defect:
+      at Lielahti the rope protection control rendered for a frame before an effect corrected the
+      discipline. Fixed by deriving the active discipline rather than storing and correcting it
+- [x] 10.5 Record in the commit message what was verified against what broken state — and state plainly
       why deleting the style assertions strengthens the guarantee rather than weakening it

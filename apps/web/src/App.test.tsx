@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import { App } from './App.tsx';
 
@@ -15,17 +14,40 @@ describe('App shell', () => {
     expect(screen.getByRole('button', { name: /switch to light theme/i })).toBeInTheDocument();
   });
 
-  it('renders portalled dialog content, without daisyUI classes that ship invisible', async () => {
+  it('shows the logging flow rather than a placeholder', async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole('button', { name: /open a portalled dialog/i }));
+    expect(await screen.findByRole('heading', { name: /where are we/i })).toBeInTheDocument();
+  });
+});
 
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toBeInTheDocument();
-    expect(screen.getByText(/portalled content/i)).toBeInTheDocument();
+describe('daisyUI traps', () => {
+  it('uses the invisible daisyUI popup class nowhere in the source', async () => {
+    // The guard CLAUDE.md points at, widened. daisyUI 5 ships this class at opacity:0 / scale:.95 and
+    // only reveals it through a `.modal` parent's open state, which Base UI deliberately does not
+    // provide — the result is an invisible dialog with a working backdrop, reading as a rendering bug
+    // rather than a CSS one. Scanning the source beats asserting it on one component, since the trap
+    // applies to every popup anyone adds later.
+    //
+    // The needle is assembled at runtime so this file does not match itself, which lets the scan
+    // cover test files too.
+    const needle = ['modal', 'box'].join('-');
+    const { readdirSync, readFileSync, statSync } = await import('node:fs');
+    const { join } = await import('node:path');
 
-    // `modal-box` sets opacity:0 and only becomes visible through a `.modal` parent's open state,
-    // which Base UI does not provide. jsdom cannot see stylesheet opacity, so guard the class name.
-    expect(dialog.className).not.toMatch(/\bmodal-box\b/);
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const full = join(dir, entry);
+        if (statSync(full).isDirectory()) {
+          walk(full);
+        } else if (/\.tsx?$/.test(entry) && readFileSync(full, 'utf8').includes(needle)) {
+          offenders.push(full);
+        }
+      }
+    };
+    walk('src');
+
+    expect(offenders).toEqual([]);
   });
 });
 
