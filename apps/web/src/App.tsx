@@ -1,16 +1,17 @@
 import { Dialog } from '@base-ui/react/dialog';
 
+import { ClosedSessionNote } from './components/ClosedSessionNote.tsx';
 import { StorageWarning } from './components/StorageWarning.tsx';
 import { ThemeSwitch } from './components/ThemeSwitch.tsx';
 import { UpdatePrompt } from './components/UpdatePrompt.tsx';
-import type { StorageStatus } from './db/startup.ts';
+import type { StartupResult } from './db/startup.ts';
 
 /**
  * Placeholder shell. It exists to prove the stack end to end — install, offline, theming,
  * typography, portals, touch geometry — and deliberately contains no logging flow, no grade grid and
  * no data layer. Those arrive in their own changes.
  */
-export function App({ storageStatus = 'ready' }: { storageStatus?: StorageStatus }) {
+export function App({ startup = { status: 'ready' } }: { startup?: StartupResult }) {
   return (
     <div className="flex min-h-dvh flex-col bg-base-100 text-base-content">
       <header className="flex items-center justify-between px-4 py-3">
@@ -19,7 +20,8 @@ export function App({ storageStatus = 'ready' }: { storageStatus?: StorageStatus
       </header>
 
       <main className="flex flex-1 flex-col gap-6 px-4 pb-4">
-        <StorageWarning status={storageStatus} />
+        <StorageWarning status={startup.status} />
+        <ClosedSessionNote result={startup.lazyClose} />
 
         <p className="text-sm opacity-70">
           Scaffold only. Logging, grades and analytics land in later changes.
