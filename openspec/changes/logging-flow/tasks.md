@@ -44,14 +44,17 @@
 
 ## 4. Documentation catches up with the model
 
-- [ ] 4.1 `CONCEPT.md` §7.4 — the style block becomes two fields; remove the invalid-combination rules and
+- [x] 4.1 `CONCEPT.md` §7.4 — the style block becomes two fields; remove the invalid-combination rules and
       the four-goes example that assumed a tick spans several goes
-- [ ] 4.2 `CONCEPT.md` §7.2 — rewrite the identity tuple: no `sector`, no `send_style`, venue via session
-- [ ] 4.3 `CONCEPT.md` §7.7 — update the `tick` and `session` blocks
-- [ ] 4.4 `CONCEPT.md` §6 — `onsight` no longer stays in the model for outdoor use, because the enum is gone
-- [ ] 4.5 `CLAUDE.md` — rewrite the style invariant: it is no longer three orthogonal fields with two
+      — retitled "Style needs two fields, not one — and the third is derived". The D6 paragraph about
+      the flat enum stays: its argument is still why protection and history are separate
+- [x] 4.2 `CONCEPT.md` §7.2 — rewrite the identity tuple: no `sector`, no `send_style`, venue via session
+- [x] 4.3 `CONCEPT.md` §7.7 — update the `tick` and `session` blocks
+- [x] 4.4 `CONCEPT.md` §6 — `onsight` no longer stays in the model for outdoor use, because the enum is gone
+      — also §5's Phase 0 summary, which still promised a free-text `sector`
+- [x] 4.5 `CLAUDE.md` — rewrite the style invariant: it is no longer three orthogonal fields with two
       invalid combinations, and the UI no longer *makes* anything unreachable
-- [ ] 4.6 Update the `Last updated:` lines
+- [x] 4.6 Update the `Last updated:` lines
 
 ## 5. Session lifecycle
 

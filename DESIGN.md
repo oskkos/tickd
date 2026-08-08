@@ -8,7 +8,7 @@ the two don't drift apart.
 
 Status: first draft. Logo, icon set and fonts are production assets; UI stack chosen; screen-level
 visual details open.
-Last updated: 2026-08-07
+Last updated: 2026-08-08
 
 ---
 

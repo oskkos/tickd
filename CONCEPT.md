@@ -174,8 +174,8 @@ Local-only PWA. No accounts, no backend, no sync, no backup, **no user concept a
 Dexie/IndexedDB, three tables: `venue`, `session`, `tick`.
 
 Indoor only, rope *and* boulder. One grade-grid component with French and Font label sets.
-`protection` of lead / toprope / auto-belay / none. No onsight option. Optional free-text `sector`
-with per-venue autocomplete. Instant undo. Manual JSON export *and* import buttons. **Plus
+`protection` of lead / toprope / auto-belay / none. No onsight — the value is gone from the model
+entirely, not merely hidden (D20). Instant undo. Manual JSON export *and* import buttons. **Plus
 flash-rate-by-grade.**
 
 Seed venues: **Kiipeilyareena Salmisaari** and **Ristikko**, plus **Tampereen Kiipeilykeskus
@@ -233,9 +233,11 @@ Things deliberately absent, so they don't get reinvented:
   pink holds and a 7B yellow ones.
 - **No logbook import.** No 8a.nu CSV, no The Topo migration.
 - **No global leaderboard or points system.**
-- **No onsight in the indoor UI.** You can see the whole route from the ground and have probably
-  watched someone on it; recording indoor ascents as onsight would inflate your numbers and make
-  flash rate meaningless. The value stays in the model for outdoor use.
+- **No onsight, and no longer even as a value.** You can see the whole route from the ground and have
+  probably watched someone on it; recording indoor ascents as onsight would inflate your numbers and
+  make flash rate meaningless. It used to stay in the model for outdoor use — D20 removed the whole
+  `send_style` enum, so it is gone entirely. Onsight is the one thing that decision genuinely gives
+  up, because it turns on whether you had beta and nothing in the schema records that.
 
 ---
 
@@ -264,13 +266,20 @@ separating them, and the gyms in question don't use hold colours as identifiers.
 So `route` and `ascent` collapse into a single `tick` table:
 
 ```
-tick { venue_id: <gym>, sector: '4',
+tick { session_id: <this visit>,
        discipline: 'sport', grade_raw: '6c+', grade_scale: 'french',
-       protection: 'lead', prior_experience: 'none', send_style: 'flash',
+       protection: 'lead', prior_experience: 'none',
        is_send: true, date_local: today }
 ```
 
 Two taps. Nothing created, nothing matched, nothing to get wrong.
+
+**What identifies a tick is shorter than it first appeared.** `sector` was dropped as a note by
+another name (D21), `send_style` is derived rather than stored (D20), and the venue is reached through
+the session rather than duplicated onto the row (D19). So a tick is
+`(grade, protection, prior_experience, is_send, date)` plus the session it belongs to — and that is
+the whole of it. The style above is a flash because it was sent with no prior experience, not because
+anything says so.
 
 **Why this is right, not merely easier:**
 
@@ -360,7 +369,7 @@ appearance is a UI convenience, never a data-model one.
 Deferred: Finnish sport/trad, Scandinavian and UIAA matter only for outdoor. V-scale and YDS stay
 display-only conversions. The model supports them all; the UI ships French and Font.
 
-### 7.4 Style needs three fields, not one
+### 7.4 Style needs two fields, not one — and the third is derived
 
 A flat 8a.nu-style enum (`onsight | flash | redpoint | second_go | toprope | repeat`) conflates three
 independent questions — how you were protected, how the send went, and what you had climbed before —
@@ -370,11 +379,18 @@ most interesting signal in the data.
 
 ```
 protection        lead | toprope | autobelay | none       -- none = boulder
-send_style        onsight | flash | redpoint | second_go  -- null when is_send = false
-prior_experience  none | attempted | sent                 -- history before this tick's first go
+prior_experience  none | attempted | sent                 -- history before THIS GO
+is_send           true | false
+
+send_style        derived, never stored: is_send && prior_experience = none -> flash
+                                         is_send otherwise                  -> redpoint
 ```
 
-`protection = none` cleanly separates bouldering from rope without a second discipline check.
+**`protection` and `discipline` are one unit, not two fields.** `protection = none` *means* boulder,
+so `(boulder, lead)` and `(sport, none)` are nonsense — and worse than nonsense, because such a row is
+counted inconsistently rather than rejected: it lands in the boulder group of the
+`(discipline, grade_scale)` index while any consumer reading `protection = none` as "is a boulder"
+drops it. Phase 0 makes the pair unrepresentable in the type system.
 
 **`prior_experience` replaces an `is_repeat` boolean, and the third value is the point of it.** A
 boolean can say "I had sent this before" but not "I had tried this before and never sent it" — which
@@ -382,13 +398,20 @@ is simultaneously the project case (§4.3) and the denominator of flash rate (§
 field also makes the contradictory state unrepresentable rather than merely discouraged: a repeat you
 have never touched cannot be expressed. `is_repeat` is derived as `prior_experience = sent`.
 
-It is read relative to **the first go this tick records**. A route you had never touched, that took
-four goes this afternoon and that you logged as one redpoint row, is `prior_experience = none`.
+**A tick records one go** (D20), and `prior_experience` is read relative to that go — the history
+before *this* go began. Four goes on one route are four rows: the first carries `none` and the rest
+carry `attempted`, so exactly one first encounter is recorded and flash rate counts the climb once.
+Nothing links those rows to each other; the grouping that would was designed and deferred (D21).
 
-Two combinations are invalid and the UI must make them unreachable: `send_style` of `flash` or
-`onsight` requires `prior_experience = none` — you cannot flash something you have already touched —
-and `send_style` is null exactly when `is_send = false`. The first is what stops flash rate's
-numerator exceeding its denominator.
+**`send_style` is not stored, and there is nothing left to invalidate.** Because a tick is one go, a
+send with no prior experience *is* the first acquaintance and can only be a flash. The two
+combinations this section previously called invalid — a style on a non-send, and a flash after prior
+experience — are now **unrepresentable rather than unreachable**: no second field exists to contradict
+the first. That is what stops flash rate's numerator exceeding its denominator, and it no longer
+depends on the UI to enforce it.
+
+The cost is that `prior_experience` becomes required input on every go and cannot be defaulted —
+correct on the first go, wrong on every go after — so the logging screen forces the choice (D20).
 
 ### 7.5 Venues: curated list plus user submissions
 
@@ -480,24 +503,25 @@ venue        id, type(indoor|outdoor), name, brand?, city, country, geo?,
                                              -- boulder-only. At least one is always present.
              pending_review, canonical_id?   -- §7.5
 
-session      id, venue_id, date_local, started_at, ended_at?,
-             conditions?, felt?
+session      id, venue_id, date_local, started_at, ended_at?
              -- mutable; LWW per field
              -- ended_at is absent while the session is open: a session must be creatable before it
              -- is finished, since ticks are written into one that has not ended yet
+             -- conditions/felt dropped (D21) -- indoor conditions barely vary and notes carries the rest
 
-tick         id, session_id, venue_id,
-             sector?,                                   -- free text, autocompleted
-             discipline(boulder|sport|trad),
+tick         id, session_id,                            -- venue is reached through the session (D19)
+             discipline(boulder|sport|trad),            -- paired with protection: none MEANS boulder
              grade_raw, grade_scale,
              protection(lead|toprope|autobelay|none),
-             send_style(onsight|flash|redpoint|second_go)?,  -- null when is_send = false
-             prior_experience(none|attempted|sent),
+             prior_experience(none|attempted|sent),     -- history before THIS GO (D20)
              is_send,                                   -- false = attempt only
-             attempts?, high_point?, grade_opinion?, rating?, notes?,
+             grade_opinion?, rating?, notes?,
              length_m?,                                 -- else venue default
-             tags[],
+             angle?(slab|vertical|overhang|roof),       -- at most one
+             holds?[](crimp|sloper|pinch|pocket|jug),   -- any number (D21)
              date_local, tz_offset, created_at, updated_at
+             -- send_style is DERIVED, never stored (D20). attempts, sector, high_point and tags
+             -- dropped (D18, D21). A tick is one go, so four goes are four rows.
 
 -- ── Phase 1 adds ───────────────────────────────────────────────────
 
@@ -525,7 +549,9 @@ tick         ... project_id?
   duration. Store all three.
 - **`is_send` replaces a separate `attempt` table.** An attempt is a tick you didn't send: same
   shape, one boolean. Pyramids filter `is_send = true`; projecting reads the rest. Phase 0 therefore
-  captures attempts for free, even though the projecting *views* are Phase 2.
+  captures attempts for free, even though the projecting *views* are Phase 2. "For free" means the
+  **rows** — there is no `attempts` column, and D18 removed the one there was as a second, unused way
+  to say the same thing.
 - **Flash rate deliberately does *not* filter `is_send = true`.** Its denominator is every first
   encounter (`prior_experience = none`), and the ones you walked away from are precisely what make
   the number honest (§4.2, D14). This is the one metric where attempt rows carry weight — which is

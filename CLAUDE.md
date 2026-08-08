@@ -159,29 +159,52 @@ conversion table. Never bake a canonical ordinal at write time — conversion is
 so a correction would otherwise rewrite history. The scale spec is one versioned YAML file that
 generates both the Kotlin and TypeScript implementations. (CONCEPT §7.3, §8.4)
 
-**Style is three orthogonal fields, not one enum:**
+**Style is two stored fields plus a derived one:**
 
 ```
-protection        lead | toprope | autobelay | none       -- none = boulder
-send_style        onsight | flash | redpoint | second_go  -- null exactly when is_send = false
-prior_experience  none | attempted | sent                 -- before this tick's first go
+protection        lead | toprope | autobelay | none       -- none = boulder, paired with discipline
+prior_experience  none | attempted | sent                 -- history before THIS GO
+is_send           true | false
+
+send_style        DERIVED: is_send && prior_experience = none -> flash, else redpoint
 ```
 
-Two combinations are invalid and the UI must make them unreachable: `flash`/`onsight` requires
-`prior_experience = none`, and `send_style` is null exactly when `is_send = false`. `is_repeat` is
-derived from `prior_experience = sent`. (CONCEPT §7.4, D6, D14)
+**A tick records one go** (D20). Four goes on one route are four rows — the first `none`, the rest
+`attempted` — so exactly one first encounter is recorded. Nothing links those rows; the session-scoped
+grouping that would was designed and deferred (D21).
+
+**There are no invalid style combinations left to police.** §7.4 named two, and `CLAUDE.md` used to
+require the UI to make them unreachable. Dropping `send_style` made them **unrepresentable**: all six
+pairings of `prior_experience` and `is_send` are valid, and no second field exists to contradict the
+first. Do not reintroduce a stored style — it is computable from its own neighbours, which is how a
+value becomes able to disagree with them (§7.3's rule, applied beyond ordinals).
+
+`prior_experience` **cannot be defaulted.** It is correct on the first go and wrong on every go after,
+and being wrong manufactures first encounters that inflate flash rate's denominator. The UI forces
+the choice. `is_repeat` is derived from `prior_experience = sent`. (CONCEPT §7.4, D6, D14, D20)
+
+**`discipline` and `protection` are one unit.** `protection = 'none'` *means* boulder, so
+`(boulder, lead)` and `(sport, none)` are unrepresentable too — such a row would be counted in one
+view and dropped in another rather than rejected.
 
 **Flash rate = flashes ÷ first encounters**, where a first encounter is any tick with
 `prior_experience = none` — *including* ones never sent. Dividing by sends is biased upward at
 exactly the limit grade the metric exists to find. This is the one metric that deliberately does
 *not* filter `is_send = true`. (CONCEPT §4.2, D14)
 
-**Segment, never exclude.** Every metric breaks down by `protection` and `send_style` rather than
-dropping auto-belay laps or toprope. No global ranking, no points system — comparison is against
-your own past self. (CONCEPT §4.2, D6)
+**Segment, never exclude.** Every metric breaks down by `protection` and by whether it was a flash,
+rather than dropping auto-belay laps or toprope. No global ranking, no points system — comparison is
+against your own past self. (CONCEPT §4.2, D6)
 
-**No onsight option in the indoor UI.** The value stays in the model for outdoor use only.
-(CONCEPT §6)
+**No onsight anywhere.** Not hidden from the indoor UI — removed from the model with the rest of the
+enum, because it turns on whether you had beta and nothing records that. Outdoor use is what would
+bring it back, along with a stored `send_style`. (CONCEPT §6, D20)
+
+**The tick carries no `venue_id`, `sector`, `attempts`, `high_point` or free-text `tags`.** Venue comes
+through the session; the rest are `notes`, or gone. Route characteristics are typed: `angle` (one of
+slab/vertical/overhang/roof) and `holds` (any of crimp/sloper/pinch/pocket/jug). They are descriptive,
+not analytic — annotations live on a go while describing a climb, so any metric keyed on them would
+skew toward sends. (D18, D19, D21)
 
 ## Phasing
 
