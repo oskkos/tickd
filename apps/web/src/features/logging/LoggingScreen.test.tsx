@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { db } from '../../db/schema.ts';
 import { seedVenues } from '../../db/seed.ts';
@@ -105,6 +105,33 @@ describe('a full session', () => {
     expect(screen.queryByRole('button', { name: 'Grade 9c' })).toBeNull();
   });
 
+  it('stands the discipline toggle down while a grade is pending', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+
+    // Salmisaari grades rope in French and boulder in Font. Tapping Boulder here used to commit the
+    // pending French `6a` under `grade_scale: 'font'` — a grade Font does not have, unrepairable in
+    // a phase with no migrations, and enough to make every later read of that discipline throw.
+    expect(screen.queryByRole('group', { name: 'Discipline' })).toBeNull();
+
+    await userEvent.click(screen.getByRole('button', { name: /change grade/i }));
+
+    // Back once the transaction is over, not gone for the session.
+    expect(screen.getByRole('group', { name: 'Discipline' })).toBeInTheDocument();
+  });
+
+  it('commits a grade against the scale it was picked on', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    const [stored] = await db.ticks.toArray();
+    expect(stored?.grade_raw).toBe('6a');
+    expect(stored?.grade_scale).toBe('french');
+  });
+
   it('hides protection on boulder, because none means boulder', async () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     expect(screen.getByRole('group', { name: 'Protection' })).toBeInTheDocument();
@@ -186,5 +213,25 @@ describe('the venue picker', () => {
 
     const list = screen.getByRole('list', { name: 'Venues' });
     expect(within(list).getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('preselects the venue of the last session', async () => {
+    await startAt(/Tampereen Kiipeilykeskus Lielahti/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: /end session/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^end session$/i }));
+    cleanup();
+
+    render(<LoggingScreen />);
+    const lielahti = await screen.findByRole('button', {
+      name: /Tampereen Kiipeilykeskus Lielahti/,
+    });
+
+    // Seeded only from a currently *open* session, this left the normal path — launched after
+    // ending the last session — with nothing selected, Start disabled, and the picker's own "the
+    // one that's selected" pointing at nothing.
+    expect(lielahti).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /start session/i })).toBeEnabled();
   });
 });

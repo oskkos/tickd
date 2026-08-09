@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SEED_VENUES } from '../../db/seed.ts';
-import { disciplinesAt, protectionOnSwitch, protectionsFor } from './disciplines.ts';
-import type { Venue } from '../../db/types.ts';
+import { climbOn, disciplinesAt, protectionsFor } from './disciplines.ts';
+import type { TickDiscipline, Venue } from '../../db/types.ts';
 
 function seeded(name: string): Venue {
   const venue = SEED_VENUES.find((v) => v.name === name);
@@ -65,16 +65,24 @@ describe('protection', () => {
   });
 
   it('forces none when switching to boulder', () => {
-    expect(protectionOnSwitch('boulder', 'toprope')).toBe('none');
+    expect(climbOn('boulder', 'toprope')).toEqual({ discipline: 'boulder', protection: 'none' });
   });
 
   it('restores the previous roped protection after a bouldering detour', () => {
     // A toprope session stays a toprope session; resetting to lead would silently change what gets
     // recorded, and protection is sticky precisely because it stays visible.
-    expect(protectionOnSwitch('sport', 'toprope')).toBe('toprope');
+    expect(climbOn('sport', 'toprope')).toEqual({ discipline: 'sport', protection: 'toprope' });
   });
 
   it('defaults to lead when there is no previous value', () => {
-    expect(protectionOnSwitch('sport')).toBe('lead');
+    expect(climbOn('sport')).toEqual({ discipline: 'sport', protection: 'lead' });
+  });
+
+  it('hands back both halves at once, so neither can be dropped', () => {
+    // The reason this returns a pair rather than a bare protection: a caller holding only the
+    // protection has to re-pair it with a discipline, and re-pairing is where `{ boulder, lead }`
+    // came from. `TickDiscipline` is not satisfiable one field at a time.
+    const climb: TickDiscipline = climbOn('boulder');
+    expect(Object.keys(climb).sort()).toEqual(['discipline', 'protection']);
   });
 });

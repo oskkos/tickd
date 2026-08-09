@@ -15,6 +15,7 @@
  */
 
 import { db } from './schema.ts';
+import type { TickDraft } from './ticks.ts';
 import type { Tick, TickBase, TickDiscipline, TickGrade, Venue } from './types.ts';
 
 type IsAssignable<Candidate, Target> = [Candidate] extends [Target] ? true : false;
@@ -196,6 +197,56 @@ export type BoulderTickIsInsertable = AssertAssignable<
     },
     TickAdd
   >
+>;
+
+// ── The draft is part of the write path ──────────────────────────────────────────────────────────
+
+/**
+ * `logTick` is the only way a tick is written, so `TickDraft` is where the invariants have to hold.
+ *
+ * Everything above asserts against `db.ticks.add`. That was necessary and not sufficient: `logTick`
+ * built its row from four independent fields and cast the result with `as Tick`, so the assertions
+ * held while the one function that used them walked past every one. `logTick(db, { discipline:
+ * 'boulder', protection: 'lead', … })` compiled and persisted. These assert the draft directly, so
+ * re-decoupling either pair is a compile error here rather than a corrupt row in a phase that
+ * cannot migrate.
+ */
+interface DraftFields {
+  session_id: string;
+  outcome: { is_send: true; prior_experience: 'none' };
+}
+
+export type ValidDraftIsLoggable = AssertAssignable<
+  IsAssignable<DraftFields & FrenchGrade & { discipline: 'sport'; protection: 'lead' }, TickDraft>
+>;
+
+export type BoulderDraftIsLoggable = AssertAssignable<
+  IsAssignable<
+    DraftFields & { grade_scale: 'font'; grade_raw: '6A' } & {
+      discipline: 'boulder';
+      protection: 'none';
+    },
+    TickDraft
+  >
+>;
+
+/** The row the discipline toggle used to write when it was tapped between the two taps. */
+export type CrossScaleDraftIsNotLoggable = AssertNotAssignable<
+  IsAssignable<
+    DraftFields & { grade_scale: 'font'; grade_raw: '6a' } & {
+      discipline: 'boulder';
+      protection: 'none';
+    },
+    TickDraft
+  >
+>;
+
+export type BoulderOnLeadIsNotLoggable = AssertNotAssignable<
+  IsAssignable<DraftFields & FrenchGrade & { discipline: 'boulder'; protection: 'lead' }, TickDraft>
+>;
+
+export type RopeWithoutProtectionIsNotLoggable = AssertNotAssignable<
+  IsAssignable<DraftFields & FrenchGrade & { discipline: 'sport'; protection: 'none' }, TickDraft>
 >;
 
 /** A venue offering neither discipline is not a venue. */

@@ -38,11 +38,37 @@ describe('GradeGrid', () => {
     expect(inRange[0]).toHaveTextContent(labels('french')[4] ?? '');
   });
 
-  it('marks nothing on day one, when there is no range', () => {
+  it('dims nothing on day one, rather than dimming everything', () => {
     render(<GradeGrid scale="french" onPick={vi.fn()} />);
 
-    const inRange = screen.getAllByRole('button').filter((b) => b.dataset.inRange === 'true');
-    expect(inRange).toHaveLength(0);
+    // This asserted the opposite until review caught it: `?? Infinity` put every cell out of range
+    // with no history, so a first-ever launch rendered all 27 buttons at half opacity. On a phone
+    // that reads as "disabled", not "no history yet" — at the one moment the app has to look like it
+    // works. No range means no opinion about which grades are yours, not an empty set of them.
+    const dimmed = screen.getAllByRole('button').filter((b) => b.dataset.inRange === 'false');
+    expect(dimmed).toHaveLength(0);
+  });
+
+  it('positions at the working range once it arrives, not only when the scale changes', () => {
+    // The range is read from Dexie, so it lands a render *after* the grid mounts. Keyed on `scale`
+    // alone, the effect ran once with no anchor to measure and never again — the scroll was dead
+    // code for every launch. Rerendering with the same scale is exactly that sequence.
+    const { rerender } = render(<GradeGrid scale="french" onPick={vi.fn()} />);
+    const container = screen.getByTestId('grade-grid');
+
+    // jsdom reports every offset as 0, so stub the geometry the effect reads.
+    const anchorTop = 240;
+    vi.spyOn(container, 'offsetTop', 'get').mockReturnValue(0);
+    const scrolls: number[] = [];
+    vi.spyOn(container, 'scrollTop', 'set').mockImplementation((value: number) => {
+      scrolls.push(value);
+    });
+    vi.spyOn(HTMLButtonElement.prototype, 'offsetTop', 'get').mockReturnValue(anchorTop);
+
+    rerender(<GradeGrid scale="french" range={{ from: 10, to: 14 }} onPick={vi.fn()} />);
+
+    expect(scrolls).toEqual([anchorTop]);
+    vi.restoreAllMocks();
   });
 
   it('reports the grade that was tapped', async () => {

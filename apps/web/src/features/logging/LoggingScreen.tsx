@@ -2,17 +2,26 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ScaleId } from '@tickd/grade-spec';
 import { db } from '../../db/schema.ts';
 import { workingRange, type WorkingRange } from '../../db/range.ts';
-import { endSession, openSession, startSession } from '../../db/sessions.ts';
+import { endSession, lastVenueId, openSession, startSession } from '../../db/sessions.ts';
 import {
   annotateTick,
+  gradeOf,
   logTick,
   recentTicks,
   removeTick,
   type TickAnnotation,
 } from '../../db/ticks.ts';
-import type { Discipline, Protection, Session, Tick, TickOutcome, Venue } from '../../db/types.ts';
+import type {
+  Discipline,
+  RopedProtection,
+  Session,
+  Tick,
+  TickGrade,
+  TickOutcome,
+  Venue,
+} from '../../db/types.ts';
 import { AnnotationSheet } from './AnnotationSheet.tsx';
-import { disciplinesAt, protectionOnSwitch, protectionsFor } from './disciplines.ts';
+import { climbOn, disciplinesAt, ROPED_PROTECTIONS } from './disciplines.ts';
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
 import { RecentTicks } from './RecentTicks.tsx';
@@ -36,12 +45,22 @@ export function LoggingScreen() {
   const [ticks, setTicks] = useState<readonly Tick[]>([]);
 
   const [preferred, setPreferred] = useState<Discipline>('sport');
-  const [ropedProtection, setRopedProtection] = useState<Protection>('lead');
+  const [ropedProtection, setRopedProtection] = useState<RopedProtection>('lead');
   const [range, setRange] = useState<WorkingRange | undefined>();
+  /** In-flight guard for Start: two taps used to open two sessions. */
+  const [starting, setStarting] = useState(false);
 
   /** Set when End session is tapped: the summary is the confirmation, not a separate dialog. */
   const [ending, setEnding] = useState<Date | undefined>();
-  const [pendingGrade, setPendingGrade] = useState<string | undefined>();
+  /**
+   * The first tap, **carrying the scale it was read off** rather than a bare label.
+   *
+   * A `string` here meant the commit paired the label with whatever scale was current at the *second*
+   * tap. Switching discipline in between therefore wrote a French `6a` under `grade_scale: 'font'` —
+   * a notation Font has no such grade in, unrepairable in a phase with no migrations, and enough to
+   * make every later `workingRange` read of that discipline throw. Found by review.
+   */
+  const [pendingGrade, setPendingGrade] = useState<TickGrade | undefined>();
   /** The tick whose detail sheet is open, if any. Set by logging, and by tapping a row. */
   const [annotating, setAnnotating] = useState<Tick | undefined>();
   const [annotation, setAnnotation] = useState<TickAnnotation>({});
@@ -51,7 +70,11 @@ export function LoggingScreen() {
       setVenues(await db.venues.toArray());
       const open = await openSession(db);
       setSession(open);
-      setSelectedVenueId((current) => open?.venue_id ?? current);
+      // The last venue, not merely the open one. Seeding this from `open` alone left the normal path
+      // — launched to start a new session, previous one ended — with nothing selected, Start
+      // disabled, and the picker's own "the one that's selected" pointing at nothing.
+      const last = open?.venue_id ?? (await lastVenueId(db));
+      setSelectedVenueId((current) => current ?? last);
       if (open) {
         setTicks(await recentTicks(db, open.id));
       }
@@ -75,7 +98,8 @@ export function LoggingScreen() {
   const active = options.find((o) => o.discipline === preferred) ?? options[0];
   const discipline: Discipline = active?.discipline ?? 'sport';
   const scale: ScaleId | undefined = active?.scale;
-  const protection: Protection = protectionOnSwitch(discipline, ropedProtection);
+  /** Discipline and protection as one value — the pair the row type requires, never two fields. */
+  const climb = climbOn(discipline, ropedProtection);
 
   /**
    * Recomputed on mount and when the discipline changes — **not** after each tick. Repositioning
@@ -85,7 +109,13 @@ export function LoggingScreen() {
     if (!scale) {
       return;
     }
-    void workingRange(db, discipline, scale).then(setRange);
+    void workingRange(db, discipline, scale).then(setRange, (error: unknown) => {
+      // No range is a state the grid already handles — day one looks exactly like this. Left
+      // unhandled it was an unhandled rejection in the console and a grid that silently stopped
+      // positioning for that discipline.
+      console.error('[tickd] could not compute the working range', error);
+      setRange(undefined);
+    });
   }, [discipline, scale]);
 
   const refreshTicks = useCallback(async (sessionId: string) => {
@@ -93,12 +123,17 @@ export function LoggingScreen() {
   }, []);
 
   async function handleStart() {
-    if (!selectedVenueId) {
+    if (!selectedVenueId || starting) {
       return;
     }
-    const started = await startSession(db, selectedVenueId, new Date());
-    setSession(started);
-    setTicks([]);
+    setStarting(true);
+    try {
+      const started = await startSession(db, selectedVenueId, new Date());
+      setSession(started);
+      setTicks(await recentTicks(db, started.id));
+    } finally {
+      setStarting(false);
+    }
   }
 
   async function handleEnd() {
@@ -117,15 +152,16 @@ export function LoggingScreen() {
 
   /** The second tap. The tick is written here — there is no confirm between this and the database. */
   async function handleCommit(outcome: TickOutcome) {
-    if (!session || !pendingGrade || !scale) {
+    if (!session || !pendingGrade) {
       return;
     }
+    // Both halves of the row arrive already paired — `pendingGrade` carries the scale it was picked
+    // on, `climb` carries the protection its discipline implies. Nothing here can put the wrong two
+    // together, because neither pair is ever apart.
     const tick = await logTick(db, {
       session_id: session.id,
-      discipline,
-      protection,
-      grade_scale: scale,
-      grade_raw: pendingGrade,
+      ...climb,
+      ...pendingGrade,
       outcome,
     });
     setPendingGrade(undefined);
@@ -214,7 +250,14 @@ export function LoggingScreen() {
         </button>
       </header>
 
-      {options.length > 1 && (
+      {/*
+        Absent while a grade is pending, not merely inert. The two taps are one transaction and the
+        discipline is not part of it — leaving the toggle live let a tap between them commit the
+        pending grade against the *other* discipline's scale. The grid is already swapped for the
+        outcome cells at this point, so the screen visibly changes mode either way, and "Change
+        grade" is the way back out.
+      */}
+      {options.length > 1 && pendingGrade === undefined && (
         <div role="group" aria-label="Discipline" className="flex gap-2">
           {options.map((option) => (
             <button
@@ -232,14 +275,16 @@ export function LoggingScreen() {
         </div>
       )}
 
-      {/* Sticky, and visible — visibility is the condition DESIGN.md attaches to allowing it. */}
-      {discipline !== 'boulder' && (
+      {/* Sticky, and visible — visibility is the condition DESIGN.md attaches to allowing it. Still
+          live mid-pending, unlike the discipline: realising it was toprope is a correction to the go
+          you are logging, and `protection` travels with the discipline it is paired to regardless. */}
+      {climb.discipline !== 'boulder' && (
         <div role="group" aria-label="Protection" className="flex gap-2">
-          {protectionsFor(discipline).map((p) => (
+          {ROPED_PROTECTIONS.map((p) => (
             <button
               key={p}
               type="button"
-              aria-pressed={p === protection}
+              aria-pressed={p === climb.protection}
               onClick={() => {
                 setRopedProtection(p);
               }}
@@ -256,8 +301,16 @@ export function LoggingScreen() {
           <GradeGrid
             scale={scale}
             range={range}
-            onPick={(grade) => {
-              setPendingGrade(grade);
+            onPick={(label) => {
+              // Paired here, at the tap, against the scale the grid was rendered from. `undefined`
+              // is unreachable — the grid renders this scale's own labels — so it is a guard rather
+              // than a case: silently dropping the tap beats writing a grade in a notation it was
+              // never graded with.
+              const picked = gradeOf(label, scale);
+              if (!picked) {
+                return;
+              }
+              setPendingGrade(picked);
               // Picking the next grade dismisses the sheet — the whole point of it not being modal.
               setAnnotating(undefined);
             }}
@@ -265,7 +318,7 @@ export function LoggingScreen() {
         )
       ) : (
         <OutcomeGrid
-          grade={pendingGrade}
+          grade={pendingGrade.grade_raw}
           onCommit={(outcome) => void handleCommit(outcome)}
           onCancel={() => {
             setPendingGrade(undefined);

@@ -76,19 +76,25 @@ export async function initialiseStorage(now: Date = new Date()): Promise<Startup
   });
 
   try {
-    const result = await Promise.race([seedVenues(db).then(() => 'ready' as const), timeout]);
+    // **Everything awaited before first paint goes inside the race.** The lazy close used to sit
+    // after it, which quietly gave the boot an unbounded tail: the timeout had already settled, so a
+    // stall on that second transaction — a `versionchange` from another tab, or the same WebKit bug
+    // landing one operation later — left the promise unsettled and the page permanently blank, which
+    // is the exact outcome the bound exists to prevent. Found by review.
+    //
+    // The lazy close runs only once seeding has succeeded, so storage is known good by the time it
+    // reads. A session left running is the normal case, not an error — nobody does admin on the way
+    // out of a gym.
+    const result = await Promise.race([seedVenues(db).then(() => closeIfIdle(db, now)), timeout]);
 
     if (result === 'timeout') {
-      // The seeding promise is deliberately not cancelled — Dexie has no cancellation, and if the
-      // open eventually completes the rows land anyway. The user simply is not made to wait for it.
+      // The pending work is deliberately not cancelled — Dexie has no cancellation, and if the open
+      // eventually completes the rows land anyway. The user simply is not made to wait for it.
       console.error(`[tickd] storage did not open within ${String(OPEN_TIMEOUT_MS)}ms`);
       return { status: 'timeout' };
     }
 
-    // Only once storage is known good. A session left running is the normal case, not an error —
-    // nobody does admin on the way out of a gym.
-    const lazyClose = await closeIfIdle(db, now);
-    return lazyClose.closed ? { status: 'ready', lazyClose } : { status: 'ready' };
+    return result.closed ? { status: 'ready', lazyClose: result } : { status: 'ready' };
   } catch (error) {
     // Firefox private browsing rejects on open, and quota exhaustion can too.
     console.error('[tickd] could not open or seed the database', error);

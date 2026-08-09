@@ -56,19 +56,51 @@ export async function openSession(db: TickdDatabase): Promise<Session | undefine
   return sessions.find((s) => s.ended_at === undefined);
 }
 
+/**
+ * The venue of the most recent session, open or ended — what the picker preselects.
+ *
+ * Sorted here rather than read off an index: Phase 0 has one climber and a handful of sessions, and
+ * an index that exists only to order this would be a schema change for nothing.
+ */
+export async function lastVenueId(db: TickdDatabase): Promise<string | undefined> {
+  const sessions = await db.sessions.toArray();
+  return sessions.reduce<Session | undefined>(
+    (latest, s) => (latest === undefined || s.started_at > latest.started_at ? s : latest),
+    undefined,
+  )?.venue_id;
+}
+
+/**
+ * Opens a session, or hands back the one already running.
+ *
+ * **Transactional, because a double tap is not hypothetical.** Two synchronous clicks on Start used
+ * to produce two rows with no `ended_at`, breaking the "at most one" that `openSession` states and
+ * silently relies on — `find` then picks between them in primary-key order, so the app could resume
+ * the *empty* one and show "Nothing logged yet" for a session the climber had filled. Two `readwrite`
+ * transactions over the same store cannot interleave, so the second call sees the first one's row.
+ *
+ * Returning the open session rather than throwing: at the only call site the venue is the same one,
+ * a mis-tap deserves a no-op, and a throw inside a click handler has nowhere useful to go.
+ */
 export async function startSession(
   db: TickdDatabase,
   venueId: string,
   now: Date,
 ): Promise<Session> {
-  const session: Session = {
-    id: newId(),
-    venue_id: venueId,
-    date_local: localDateOf(now),
-    started_at: now.getTime(),
-  };
-  await db.sessions.add(session);
-  return session;
+  return db.transaction('rw', db.sessions, async () => {
+    const existing = await openSession(db);
+    if (existing) {
+      return existing;
+    }
+    const session: Session = {
+      id: newId(),
+      venue_id: venueId,
+      date_local: localDateOf(now),
+      started_at: now.getTime(),
+    };
+    await db.sessions.add(session);
+    return session;
+  });
 }
 
 /** What happened to a session that was closed. */

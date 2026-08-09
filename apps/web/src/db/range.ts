@@ -6,7 +6,7 @@
  * decides where it starts.
  */
 
-import { maxIndex, ordinalOf, type ScaleId } from '@tickd/grade-spec';
+import { maxIndex, parseOrdinal, type ScaleId } from '@tickd/grade-spec';
 import type { TickdDatabase } from './schema.ts';
 import type { Discipline } from './types.ts';
 
@@ -65,9 +65,19 @@ export async function workingRange(
     return undefined;
   }
 
-  // No cast needed: `grade_raw` and `grade_scale` are paired by the row type, so the label is already
-  // known to belong to its scale. That pairing is what `TickGrade` exists for.
-  const indices = ticks.map((t) => ordinalOf(t.grade_raw, t.grade_scale).index);
+  // `parseOrdinal`, not `ordinalOf`. The pairing `TickGrade` guarantees holds for rows this build
+  // wrote; it does not hold for rows already on disk, which is the only kind of row that matters
+  // here — Phase 0 has no migrations, so a label the current grade-spec no longer recognises is
+  // permanent. `ordinalOf` throws, and inside this `map` one such row rejected the whole promise:
+  // no range for that discipline for the next ninety days, from one bad tick. Found by review.
+  const indices = ticks
+    .map((t) => parseOrdinal(t.grade_raw, t.grade_scale)?.index)
+    .filter((index): index is number => index !== undefined);
+
+  if (indices.length === 0) {
+    // Every recent tick unreadable — rare, but it is the day-one answer rather than a crash.
+    return undefined;
+  }
 
   return {
     from: Math.max(0, Math.min(...indices) - RANGE_PADDING),

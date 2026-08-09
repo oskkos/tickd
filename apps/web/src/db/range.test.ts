@@ -60,6 +60,8 @@ function fontBoulder(grade: string, dateLocal = '2026-08-01'): Tick {
 
 const french = labels('french');
 const at = (label: string) => french.indexOf(label as (typeof french)[number]);
+const font = labels('font');
+const fontAt = (label: string) => font.indexOf(label as (typeof font)[number]);
 
 describe('workingRange', () => {
   it('pads two either side of the observed grades', async () => {
@@ -129,6 +131,29 @@ describe('workingRange', () => {
   it('returns nothing on day one', async () => {
     const db = freshDb();
     await expect(workingRange(db, 'sport', 'french', NOW)).resolves.toBeUndefined();
+  });
+
+  it('reads around a row whose label its scale does not know', async () => {
+    const db = freshDb();
+    // A French label stored under `grade_scale: 'font'` — the row the discipline toggle used to
+    // write when tapped between the two taps. `TickGrade` forbids it, but Phase 0 has no migrations,
+    // so a row already on disk stays there and this is the only layer that can cope.
+    await db.ticks.bulkAdd([fontBoulder('6A'), fontBoulder('7A'), fontBoulder('6a')]);
+
+    const range = await workingRange(db, 'boulder', 'font', NOW);
+
+    // Skipped, not thrown on. `ordinalOf` threw inside the map, rejecting the whole promise: one bad
+    // tick cost that discipline its range for the next ninety days, with an unhandled rejection in
+    // the console and nothing in the UI.
+    expect(range).toEqual({ from: fontAt('6A') - 2, to: fontAt('7A') + 2 });
+  });
+
+  it('returns nothing when no recent row is readable at all', async () => {
+    const db = freshDb();
+    await db.ticks.add(fontBoulder('6a'));
+
+    // Day one's answer, which the grid already handles — a crash is not an improvement on it.
+    await expect(workingRange(db, 'boulder', 'font', NOW)).resolves.toBeUndefined();
   });
 
   it('is dragged by a single outlier, which is the documented weakness', async () => {
