@@ -23,6 +23,15 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+/** Touch the sheet the way a thumb does, which is what retires the countdown. */
+function touchInside() {
+  act(() => {
+    screen
+      .getByRole('button', { name: 'overhang' })
+      .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+  });
+}
+
 describe('AnnotationSheet', () => {
   it('names the tick it is for', () => {
     render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
@@ -45,27 +54,56 @@ describe('AnnotationSheet', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
-  it('does not close while it is being used', () => {
+  it('stops the countdown for good once it is touched', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
     render(
       <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
     );
 
+    touchInside();
+    // Ten times the window, deliberately. An earlier version of this test advanced less than one
+    // full window after the touch, so it passed whether the timer stopped or merely restarted —
+    // it could not tell the two apart and proved nothing.
     act(() => {
-      vi.advanceTimersByTime(SHEET_IDLE_MS - 500);
-    });
-    act(() => {
-      screen
-        .getByRole('button', { name: 'overhang' })
-        .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
-    });
-    act(() => {
-      vi.advanceTimersByTime(SHEET_IDLE_MS - 500);
+      vi.advanceTimersByTime(SHEET_IDLE_MS * 10);
     });
 
-    // It must never vanish under someone mid-tap. The timer restarts on any interaction inside.
+    // Retired, not restarted. A clock that keeps chasing someone mid-form is worse than none.
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('counts down again for the next tick', () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    // Keyed on the tick id, exactly as the screen renders it — that key is what makes a new tick a
+    // new sheet with a fresh countdown.
+    const { rerender } = render(
+      <AnnotationSheet
+        key={tick.id}
+        tick={tick}
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
+    );
+
+    touchInside();
+    rerender(
+      <AnnotationSheet
+        key="b"
+        tick={{ ...tick, id: 'b', grade_raw: '7a' } as Tick}
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
+    );
+    act(() => {
+      vi.advanceTimersByTime(SHEET_IDLE_MS);
+    });
+
+    // Touching retires the countdown for *that* tick, not for the rest of the session.
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it('shows a countdown matching the timeout it depicts', () => {
@@ -75,19 +113,18 @@ describe('AnnotationSheet', () => {
     // One source of truth: the bar reads its duration from the same constant as the timer, so it
     // cannot drift from the behaviour it depicts.
     expect(bar.style.animationDuration).toBe(`${String(SHEET_IDLE_MS)}ms`);
-    // It conveys nothing a screen reader can act on; Done and interaction-resets cover that ground.
+    // It conveys nothing a screen reader can act on; "Done" covers that ground without sight.
     expect(bar).toHaveAttribute('aria-hidden', 'true');
   });
 
-  it('restarts the countdown when the timer restarts', async () => {
+  it('removes the countdown once touched, rather than freezing it', async () => {
     render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
-    const before = screen.getByTestId('sheet-countdown');
+    expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'overhang' }));
 
-    // Remounted rather than restyled — a CSS animation only replays from the start on a fresh node,
-    // so the bar and the timeout stay in step.
-    expect(screen.getByTestId('sheet-countdown')).not.toBe(before);
+    // A stalled bar would suggest a timer merely paused, which is a different promise from gone.
+    expect(screen.queryByTestId('sheet-countdown')).toBeNull();
   });
 
   it('can be dismissed deliberately', async () => {

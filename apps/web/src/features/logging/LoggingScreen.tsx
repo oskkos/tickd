@@ -179,7 +179,13 @@ export function LoggingScreen() {
           <h2 className="text-xl">{venue?.name ?? 'Session'}</h2>
           <p className="text-sm opacity-70">{ticks.length} ticks · saved locally</p>
         </div>
-        <button type="button" onClick={() => void handleEnd()} className="min-h-touch text-sm">
+        {/* A real target rather than a line of text: it is rare, but it is destructive of the
+            current context and should look like something you press deliberately. */}
+        <button
+          type="button"
+          onClick={() => void handleEnd()}
+          className="btn btn-sm btn-outline min-h-touch shrink-0 px-4"
+        >
           End session
         </button>
       </header>
@@ -252,6 +258,9 @@ export function LoggingScreen() {
       {/* Last, and fixed — it overlays rather than sitting below the fold where nobody saw it. */}
       {annotating && (
         <AnnotationSheet
+          // Keyed on the tick, so a new one gets a fresh sheet and a fresh countdown without the
+          // sheet resetting its own state in an effect.
+          key={annotating.id}
           tick={annotating}
           annotation={annotation}
           onChange={(next) => void handleAnnotate(next)}

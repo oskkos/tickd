@@ -38,18 +38,29 @@ function Chip({
       type="button"
       aria-pressed={pressed}
       onClick={onClick}
-      className="min-h-touch rounded-box bg-base-200 px-3 text-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+      className="min-h-touch rounded-box bg-base-200 px-2.5 text-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
     >
       {label}
     </button>
   );
 }
 
+/**
+ * A labelled row of controls.
+ *
+ * The label sits **inline on the left** rather than above. Six stacked groups with headings did not
+ * fit a phone without an internal scroll, and a scroll inside a sheet that closes itself is a poor
+ * combination — you would be scrolling to reach something while the clock runs. Inline labels remove
+ * roughly a third of the height for no loss of clarity at this size.
+ */
 function Group({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <fieldset>
-      <legend className="text-xs uppercase tracking-wide opacity-60">{label}</legend>
-      <div className="mt-1 flex flex-wrap gap-2">{children}</div>
+    <fieldset className="flex items-center gap-2">
+      <legend className="sr-only">{label}</legend>
+      <span aria-hidden="true" className="w-14 shrink-0 text-xs uppercase tracking-wide opacity-60">
+        {label}
+      </span>
+      <div className="flex flex-1 flex-wrap gap-1.5">{children}</div>
     </fieldset>
   );
 }
@@ -64,7 +75,7 @@ export function AnnotationPanel({
   const holds = annotation.holds ?? [];
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-2">
       <Group label="Angle">
         {ANGLES.map((angle) => (
           <Chip
@@ -136,7 +147,7 @@ export function AnnotationPanel({
                 });
               }}
               className={[
-                'min-h-touch w-10 text-2xl leading-none',
+                'min-h-touch w-9 text-2xl leading-none',
                 lit ? 'text-warning' : 'text-base-content/25',
               ].join(' ')}
             >
@@ -151,7 +162,7 @@ export function AnnotationPanel({
       {/* Overrides the venue's wall height for this climb. Rarely needed, and currently overriding
           nothing — §12 Q1 is open, so no seeded venue carries a height yet. */}
       <label className="flex items-center gap-2">
-        <span className="text-xs uppercase tracking-wide opacity-60">Length</span>
+        <span className="w-14 shrink-0 text-xs uppercase tracking-wide opacity-60">Length</span>
         <input
           type="number"
           inputMode="numeric"
@@ -170,15 +181,17 @@ export function AnnotationPanel({
         <span className="text-sm opacity-60">m</span>
       </label>
 
-      <label className="flex flex-col gap-1">
-        <span className="text-xs uppercase tracking-wide opacity-60">Notes</span>
+      <label className="flex items-start gap-2">
+        <span className="w-14 shrink-0 pt-2 text-xs uppercase tracking-wide opacity-60">Notes</span>
+        {/* One row, growing with its content — two rows of empty box cost height that the other five
+            groups need more. */}
         <textarea
           value={annotation.notes ?? ''}
           onChange={(e) => {
             onChange({ ...annotation, notes: e.target.value || undefined });
           }}
-          rows={2}
-          className="rounded-box bg-base-200 p-2 text-sm"
+          rows={1}
+          className="rounded-box field-sizing-content flex-1 bg-base-200 p-2 text-sm"
           placeholder="Anything worth remembering"
         />
       </label>

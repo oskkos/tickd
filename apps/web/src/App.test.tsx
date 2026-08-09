@@ -85,3 +85,28 @@ describe('storage warning', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/another tab/i);
   });
 });
+
+describe('the wordmark', () => {
+  it('is the heading, so the visible name and the accessible one are one string', () => {
+    render(<App />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'tickd' })).toBeInTheDocument();
+  });
+
+  it('ships both theme variants, since the fills are hardcoded rather than currentColor', () => {
+    render(<App />);
+
+    // The climber and the k are two different colours, so one paintable path was never an option —
+    // switching themes means switching files (ICONS.md).
+    expect(screen.getByTestId('logo-dark')).toBeInTheDocument();
+    expect(screen.getByTestId('logo-light')).toBeInTheDocument();
+  });
+
+  it('exposes only one of them to assistive tech', () => {
+    render(<App />);
+
+    // Both are in the DOM because the swap is CSS; only one should be announced.
+    expect(screen.getByTestId('logo-light')).toHaveAttribute('aria-hidden', 'true');
+    expect(screen.getByTestId('logo-dark')).not.toHaveAttribute('aria-hidden');
+  });
+});

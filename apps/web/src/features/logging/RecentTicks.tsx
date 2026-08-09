@@ -76,7 +76,7 @@ export function RecentTicks({
               onRemove(tick.id);
             }}
             aria-label={`Undo ${tick.grade_raw}`}
-            className="min-h-touch text-error"
+            className="btn btn-xs btn-ghost min-h-touch text-error shrink-0"
           >
             Undo
           </button>
