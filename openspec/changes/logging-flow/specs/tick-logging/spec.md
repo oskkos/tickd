@@ -116,6 +116,19 @@ considers safe for fields outside the outcome fields.
 - **WHEN** a tick is logged and no optional field is filled
 - **THEN** it is complete and valid
 
+#### Scenario: Every optional field is fillable
+
+- **WHEN** the detail controls are shown
+- **THEN** each of `notes`, `angle`, `holds`, `rating`, `grade_opinion` and `length_m` can be set
+
+A field kept in the schema with no way to write it is a field that will always be empty. Whichever
+optional fields survive, the UI offers all of them or the model should not carry them.
+
+#### Scenario: Clearing a value stores absence, not a placeholder
+
+- **WHEN** a set value is cleared
+- **THEN** the field becomes absent rather than zero or an empty string
+
 #### Scenario: Annotation is reachable from the recent list
 
 - **WHEN** a tick logged earlier in the session needs a note

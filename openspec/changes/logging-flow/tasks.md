@@ -152,3 +152,10 @@
       `SHEET_IDLE_MS` so the bar cannot drift from the timeout. Keyed on the activity counter, since a
       CSS animation only replays from the start on a fresh node. Verified by planting both: hardcoding
       the bar's duration fails the drift test, dropping the key fails the restart test
+- [x] 11.8 Build the three kept fields that had no control at all — `rating`, `grade_opinion` and
+      `length_m`. Task 9.3 named all six and was marked done when the panel offered three; the write
+      function accepted them, so nothing failed, and they would simply have stayed empty forever
+- [x] 11.9 Rating as cumulative stars — tapping the third lights one, two and three; filled versus
+      outlined so it does not rely on colour (`DESIGN.md` §3). Each star stays its own button, so the
+      row is reachable by keyboard and screen reader
+- [x] 11.10 Cap the sheet's height and scroll inside it, since six groups do not fit a phone at once

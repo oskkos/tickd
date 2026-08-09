@@ -96,7 +96,7 @@ export function AnnotationSheet({
         data-testid="sheet-countdown"
       />
 
-      <div className="p-4">
+      <div className="max-h-[55vh] overflow-y-auto p-4">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <p className="text-sm">
             {/* Verbatim — case separates Font from French. */}
