@@ -173,3 +173,20 @@
       less than one full window after the touch, so it passed whether the timer stopped or restarted.
       Found only by planting the failure *with an assertion that the plant applied* — three earlier
       plants had silently not matched after `just fmt` reformatted the file, and proved nothing
+- [x] 11.16 **Build the end-of-session summary and confirmation.** The `tick-logging` spec required it
+      from the start and the code ended the session on a single tap — the fourth thing in this change
+      specified or ticked ahead of the work, after 9.3, 9.4 and the sheet timer tests
+- [x] 11.17 Summary carries statistics only. `conditions` and `felt` were dropped by D21 and
+      `session_note` is Phase 2, so a locker-room note has nowhere to live in Phase 0. Adding a field
+      here would have reversed D21 through the back door; the gap is left visible instead
+- [x] 11.18 No flash rate on the summary. Over one session it is a sample of a handful, and Phase 0
+      ships exactly one analytic on its own screen (§5)
+- [x] 11.19 `ended_at` is the moment End was tapped, not the moment it was confirmed — reading a
+      summary should not pad the session's duration
+- [x] 11.20 One entry per go on the summary rather than a tally per grade. Two goes on one grade may
+      be a flash and a fall; rolling them into `6a ×2` throws away the difference the model exists to
+      record — and it made `gradeTally`'s scale-keying problem disappear rather than need solving
+- [x] 11.21 Three outcome marks: lightning for a flash, thumb up for a send, thumb down for a fall.
+      A flash gets its own because it is flash rate's numerator — flattening it into "sent" would have
+      the summary disagree with the one metric Phase 0 ships. Shape carries it, colour reinforces
+      (`DESIGN.md` §3), and the icons are hidden from assistive tech with the word on the row instead

@@ -114,20 +114,40 @@ describe('a full session', () => {
     expect(screen.queryByRole('group', { name: 'Protection' })).toBeNull();
   });
 
-  it('ends the session and returns to the venue picker', async () => {
+  it('shows a summary before ending, and ends on confirmation', async () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
 
     await userEvent.click(screen.getByRole('button', { name: /end session/i }));
 
+    // The summary is the confirmation. Nothing has closed yet.
+    expect(await screen.findByRole('list', { name: 'Grades climbed' })).toBeInTheDocument();
+    expect((await db.sessions.toArray())[0]?.ended_at).toBeUndefined();
+
+    await userEvent.click(screen.getByRole('button', { name: /^end session$/i }));
+
     expect(await screen.findByRole('heading', { name: /where are we/i })).toBeInTheDocument();
     expect((await db.sessions.toArray())[0]?.ended_at).toBeDefined();
+  });
+
+  it('returns to logging when the summary is backed out of', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /end session/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /keep climbing/i }));
+
+    // Still open, still logging — the guard did its job.
+    expect(await screen.findByRole('button', { name: 'Grade 6b' })).toBeInTheDocument();
+    expect((await db.sessions.toArray())[0]?.ended_at).toBeUndefined();
   });
 
   it('discards a session that logged nothing', async () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     await userEvent.click(screen.getByRole('button', { name: /end session/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /discard session/i }));
 
     expect(await db.sessions.count()).toBe(0);
   });
