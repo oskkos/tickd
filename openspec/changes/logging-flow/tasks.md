@@ -159,3 +159,17 @@
       outlined so it does not rely on colour (`DESIGN.md` §3). Each star stays its own button, so the
       row is reachable by keyboard and screen reader
 - [x] 11.10 Cap the sheet's height and scroll inside it, since six groups do not fit a phone at once
+- [x] 11.11 Fit every detail control on screen at once — inline labels instead of headings above,
+      which removed roughly a third of the height. The cap and internal scroll survive only as a floor
+      for very short viewports
+- [x] 11.12 Stop the countdown on first touch rather than restarting it. A clock that keeps chasing
+      someone mid-form is worse than none
+- [x] 11.13 Give `End session`, `Done`, `Change grade` and `Undo` real button affordance — they read as
+      prose, and chalky hands need to see a target rather than infer one
+- [x] 11.14 Theme-aware wordmark in the header. The brand SVGs carry hardcoded fills rather than
+      `currentColor` — two colours, so one paintable path was never an option — and the swap is a CSS
+      descendant selector rather than lifted theme state
+- [x] 11.15 **Three tests were rewritten because they could not fail.** The sheet timer test advanced
+      less than one full window after the touch, so it passed whether the timer stopped or restarted.
+      Found only by planting the failure *with an assertion that the plant applied* — three earlier
+      plants had silently not matched after `just fmt` reformatted the file, and proved nothing

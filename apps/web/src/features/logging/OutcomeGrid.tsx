@@ -54,7 +54,11 @@ export function OutcomeGrid({
           out was to commit a tick you did not want and then undo it — two operations and a spurious
           row to fix a slip, on a screen whose whole premise is that mis-taps are common (§3).
         */}
-        <button type="button" onClick={onCancel} className="min-h-touch text-sm underline">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn btn-sm btn-outline min-h-touch shrink-0 px-4"
+        >
           Change grade
         </button>
       </div>
