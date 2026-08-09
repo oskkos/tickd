@@ -4,6 +4,7 @@ import { createDatabase, newId, type TickdDatabase } from './schema.ts';
 import {
   closeIfIdle,
   endSession,
+  lastVenueId,
   localDateOf,
   openSession,
   startSession,
@@ -78,6 +79,40 @@ describe('starting and ending', () => {
 
     expect(outcome).toBe('discarded');
     expect(await db.sessions.count()).toBe(0);
+  });
+
+  it('survives a double tap on Start', async () => {
+    const db = freshDb();
+
+    // Two clicks land before the first `await` resolves — a mis-tap on a 56px target, not an edge
+    // case. This used to write two rows with no `ended_at`, so `openSession`'s "at most one" became
+    // a lie and the next launch resumed whichever the primary-key order happened to yield: the
+    // empty one reads "Nothing logged yet" for a session the climber had filled.
+    const [first, second] = await Promise.all([
+      startSession(db, 'venue-1', new Date(1_000_000)),
+      startSession(db, 'venue-1', new Date(1_000_050)),
+    ]);
+
+    expect(await db.sessions.count()).toBe(1);
+    expect(second.id).toBe(first.id);
+  });
+
+  it('reports the venue of the last session, ended or not', async () => {
+    const db = freshDb();
+    const older = await startSession(db, 'venue-1', new Date(1_000));
+    await db.ticks.add(tickAt(older.id, 1_100));
+    await endSession(db, older, new Date(2_000));
+    const newer = await startSession(db, 'venue-2', new Date(3_000));
+    await db.ticks.add(tickAt(newer.id, 3_100));
+    await endSession(db, newer, new Date(4_000));
+
+    // The picker preselects this. Reading only the *open* session left the normal path — launched
+    // after ending the last one — with nothing selected and Start disabled.
+    expect(await lastVenueId(db)).toBe('venue-2');
+  });
+
+  it('reports no venue before the first session', async () => {
+    expect(await lastVenueId(freshDb())).toBeUndefined();
   });
 });
 

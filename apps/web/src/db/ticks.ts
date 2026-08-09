@@ -11,19 +11,46 @@
  * `grade_opinion` and `length_m` are all outside the union, so `update` is correct for them.
  */
 
-import type { LabelOf, ScaleId } from '@tickd/grade-spec';
+import { isLabel, type ScaleId } from '@tickd/grade-spec';
 import { newId, type TickdDatabase } from './schema.ts';
 import { localDateOf, tzOffsetOf } from './sessions.ts';
-import type { Discipline, Protection, Tick, TickOutcome } from './types.ts';
+import type { Tick, TickDiscipline, TickGrade, TickOutcome } from './types.ts';
 
-/** What the screen knows when a cell is tapped. */
-export interface TickDraft {
+/**
+ * What the screen knows when a cell is tapped.
+ *
+ * **The draft carries the row's unions, not loose fields.** It used to declare `grade_scale: ScaleId`
+ * beside `grade_raw: string` and `discipline` beside `protection`, which decoupled exactly the pairs
+ * `types.ts` exists to keep together — and `logTick` then cast the result back with `as Tick`. Every
+ * assertion in `writes.assert.ts` is written against `db.ticks.add`, so the cast walked straight past
+ * all of them: `logTick(db, { discipline: 'boulder', protection: 'lead', … })` typechecked and
+ * persisted. The invariant was advertised on the row type and absent from the only path that writes
+ * one. Found by review; `writes.assert.ts` now asserts against this type too.
+ */
+export type TickDraft = {
   readonly session_id: string;
-  readonly discipline: Discipline;
-  readonly protection: Protection;
-  readonly grade_scale: ScaleId;
-  readonly grade_raw: string;
   readonly outcome: TickOutcome;
+} & TickGrade &
+  TickDiscipline;
+
+/**
+ * Pairs a label with the scale it was read off, or `undefined` if the two do not belong together.
+ *
+ * The boundary where a `string` from the DOM becomes a `TickGrade`. It has to be checked rather than
+ * asserted: the grid renders one scale's labels, but nothing in the type of a click handler proves
+ * the label came from the grid that is currently mounted, and the discipline toggle used to be able
+ * to swap the scale out from under a pending pick.
+ *
+ * The `switch` is what does the narrowing — `isLabel(raw, scale)` on a union-typed `scale` proves
+ * nothing about which member of `TickGrade` results.
+ */
+export function gradeOf(raw: string, scale: ScaleId): TickGrade | undefined {
+  switch (scale) {
+    case 'french':
+      return isLabel(raw, 'french') ? { grade_scale: 'french', grade_raw: raw } : undefined;
+    case 'font':
+      return isLabel(raw, 'font') ? { grade_scale: 'font', grade_raw: raw } : undefined;
+  }
 }
 
 /**
@@ -56,20 +83,21 @@ export async function logTick(
   now: Date = new Date(),
 ): Promise<Tick> {
   const at = now.getTime();
+  // Destructured rather than spread whole, so `outcome` is not carried into the row as a stray
+  // column. `climb` keeps both paired halves intact — no cast anywhere in here, which is the change
+  // that makes the assertions in `writes.assert.ts` apply to this function at all.
+  const { session_id, outcome, ...climb } = draft;
 
-  const tick = {
+  const tick: Tick = {
+    ...climb,
+    ...outcome,
     id: newId(),
-    session_id: draft.session_id,
-    discipline: draft.discipline,
-    protection: draft.protection,
-    grade_scale: draft.grade_scale,
-    grade_raw: draft.grade_raw as LabelOf<ScaleId>,
-    ...draft.outcome,
+    session_id,
     date_local: localDateOf(now),
     tz_offset: tzOffsetOf(now),
     created_at: at,
     updated_at: at,
-  } as Tick;
+  };
 
   await db.ticks.add(tick);
   return tick;

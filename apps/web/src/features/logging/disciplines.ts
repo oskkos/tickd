@@ -11,7 +11,13 @@
  */
 
 import type { ScaleId } from '@tickd/grade-spec';
-import type { Discipline, Protection, Venue } from '../../db/types.ts';
+import type {
+  Discipline,
+  Protection,
+  RopedProtection,
+  TickDiscipline,
+  Venue,
+} from '../../db/types.ts';
 
 /** A discipline this venue offers, with the notation it grades that discipline in. */
 export interface DisciplineOption {
@@ -48,20 +54,30 @@ export function disciplinesAt(venue: Venue): readonly DisciplineOption[] {
  * the two travel together and the control is hidden rather than shown with a single option.
  */
 export function protectionsFor(discipline: Discipline): readonly Protection[] {
-  return discipline === 'boulder' ? ['none'] : ['lead', 'toprope', 'autobelay'];
+  return discipline === 'boulder' ? ['none'] : ROPED_PROTECTIONS;
 }
 
+/** The roped protections, typed so the control cannot offer `none` — which would mean boulder. */
+export const ROPED_PROTECTIONS: readonly RopedProtection[] = ['lead', 'toprope', 'autobelay'];
+
 /**
- * The protection to use when switching discipline, preserving stickiness where it makes sense.
+ * Discipline and protection as one value, preserving stickiness where it makes sense.
+ *
+ * **Returns the pair, not a bare `protection`.** It used to return just the protection, leaving the
+ * caller to put the two back together as separate fields — which is the shape `TickDiscipline` exists
+ * to forbid, since `protection: 'none'` *means* boulder (§7.4). Returning the union member is the
+ * same computation with the pairing carried along, so no caller can drop half of it.
  *
  * `DESIGN.md` permits a sticky `protection` **because a wrong one is visible on screen** — that
  * visibility is the condition, not a nicety. Switching to boulder forces `none`; switching back
  * restores the previous roped value rather than resetting to lead, since a toprope session stays a
  * toprope session across a bouldering detour.
  */
-export function protectionOnSwitch(
+export function climbOn(
   discipline: Discipline,
-  lastRoped: Protection = 'lead',
-): Protection {
-  return discipline === 'boulder' ? 'none' : lastRoped;
+  lastRoped: RopedProtection = 'lead',
+): TickDiscipline {
+  return discipline === 'boulder'
+    ? { discipline: 'boulder', protection: 'none' }
+    : { discipline, protection: lastRoped };
 }

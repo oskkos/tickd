@@ -36,8 +36,20 @@ export type Discipline = 'boulder' | 'sport' | 'trad';
 /** `none` means boulder — the absence of protection is what distinguishes it (§7.4). */
 export type Protection = 'lead' | 'toprope' | 'autobelay' | 'none';
 
-/** `onsight` stays in the model for outdoor use; there is no onsight option in the indoor UI (§6). */
-export type SendStyle = 'onsight' | 'flash' | 'redpoint' | 'second_go';
+/** The protections that are a *choice*. Boulder's `none` is not one — it is what boulder means. */
+export type RopedProtection = Exclude<Protection, 'none'>;
+
+/**
+ * There is deliberately no `SendStyle` here.
+ *
+ * A four-member `'onsight' | 'flash' | 'redpoint' | 'second_go'` survived D20's removal in this file
+ * for a while, complete with a comment claiming `onsight` stayed "for outdoor use" — contradicting
+ * both `style.ts` and `CLAUDE.md`'s "No onsight anywhere", and shadowing the live two-member
+ * `SendStyle` that `style.ts` exports. Since this module holds every other tick type, it is the
+ * import an author would reach for first, and they would have got the dead enum. Found by review.
+ *
+ * The style is derived, never stored: see `sendStyleOf` in `style.ts`.
+ */
 
 /** Experience *before this tick's first go*. `is_repeat` is derived from `'sent'` and is not a
  *  column (D6). */

@@ -11,9 +11,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-async function loadStartup(seedImpl: () => Promise<void>) {
+async function loadStartup(
+  seedImpl: () => Promise<void>,
+  closeImpl: () => Promise<{ closed: boolean }> = () => Promise.resolve({ closed: false }),
+) {
   vi.doMock('./schema.ts', () => ({ db: {} }));
-  vi.doMock('./sessions.ts', () => ({ closeIfIdle: () => Promise.resolve({ closed: false }) }));
+  vi.doMock('./sessions.ts', () => ({ closeIfIdle: vi.fn(closeImpl) }));
   vi.doMock('./seed.ts', () => ({ seedVenues: vi.fn(seedImpl) }));
   vi.doMock('./persist.ts', () => ({ requestPersistence: () => Promise.resolve('persisted') }));
   return import('./startup.ts');
@@ -40,6 +43,24 @@ describe('initialiseStorage', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.useFakeTimers();
     const { initialiseStorage } = await loadStartup(() => new Promise<void>(() => undefined));
+
+    const pending = initialiseStorage();
+    await vi.advanceTimersByTimeAsync(5_000);
+
+    await expect(pending).resolves.toEqual({ status: 'timeout' });
+  });
+
+  it('reports timeout when the stall lands after seeding rather than during it', async () => {
+    // The bound used to cover only `seedVenues`, with the lazy close awaited after the race had
+    // already settled — an unbounded tail on the one promise `main.tsx` top-level-awaits. A
+    // `versionchange` from another tab, or the same WebKit stall arriving one operation later, and
+    // the page stays blank forever with nothing to act on. Found by review.
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    const { initialiseStorage } = await loadStartup(
+      () => Promise.resolve(),
+      () => new Promise<{ closed: boolean }>(() => undefined),
+    );
 
     const pending = initialiseStorage();
     await vi.advanceTimersByTimeAsync(5_000);
