@@ -32,9 +32,11 @@ function outcomeLabel(tick: Tick): string {
 export function RecentTicks({
   ticks,
   onRemove,
+  onAnnotate,
 }: {
   ticks: readonly Tick[];
   onRemove: (id: string) => void;
+  onAnnotate: (tick: Tick) => void;
 }) {
   if (ticks.length === 0) {
     return (
@@ -49,11 +51,25 @@ export function RecentTicks({
           key={tick.id}
           className="rounded-box flex items-center gap-3 bg-base-200 px-3 py-2 text-sm"
         >
-          {/* Verbatim — case separates Font from French (DESIGN.md §2). */}
-          <span className="tabular text-lg">{tick.grade_raw}</span>
-          <span className="flex-1 opacity-70">
-            {tick.protection} · {outcomeLabel(tick)} · {priorLabel(tick)}
-          </span>
+          {/*
+            The row itself reopens the detail sheet. This is what makes the sheet safe to auto-close:
+            nothing is lost when it fades, because the tick is written and its detail is one tap away
+            for the rest of the session.
+          */}
+          <button
+            type="button"
+            onClick={() => {
+              onAnnotate(tick);
+            }}
+            aria-label={`Detail for ${tick.grade_raw}`}
+            className="min-h-touch flex flex-1 items-center gap-3 text-left"
+          >
+            {/* Verbatim — case separates Font from French (DESIGN.md §2). */}
+            <span className="tabular text-lg">{tick.grade_raw}</span>
+            <span className="flex-1 opacity-70">
+              {tick.protection} · {outcomeLabel(tick)} · {priorLabel(tick)}
+            </span>
+          </button>
           <button
             type="button"
             onClick={() => {

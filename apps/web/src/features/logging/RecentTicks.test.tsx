@@ -24,7 +24,7 @@ function tick(overrides: Partial<Tick> = {}): Tick {
 
 describe('RecentTicks', () => {
   it('shows what was recorded, not just the grade', () => {
-    render(<RecentTicks ticks={[tick()]} onRemove={vi.fn()} />);
+    render(<RecentTicks ticks={[tick()]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
 
     // Protection is sticky, so this list is the only place a wrong default becomes visible while
     // still standing at the wall.
@@ -40,6 +40,7 @@ describe('RecentTicks', () => {
       <RecentTicks
         ticks={[tick({ is_send: false, prior_experience: 'attempted' })]}
         onRemove={vi.fn()}
+        onAnnotate={vi.fn()}
       />,
     );
 
@@ -49,7 +50,13 @@ describe('RecentTicks', () => {
   });
 
   it('describes a repeat in plain words rather than in enum terms', () => {
-    render(<RecentTicks ticks={[tick({ prior_experience: 'sent' })]} onRemove={vi.fn()} />);
+    render(
+      <RecentTicks
+        ticks={[tick({ prior_experience: 'sent' })]}
+        onRemove={vi.fn()}
+        onAnnotate={vi.fn()}
+      />,
+    );
 
     // The data says redpoint; the row says what happened. Both are true.
     expect(screen.getByRole('listitem')).toHaveTextContent(/done before/);
@@ -57,7 +64,11 @@ describe('RecentTicks', () => {
 
   it('renders grade labels verbatim', () => {
     render(
-      <RecentTicks ticks={[tick({ grade_scale: 'font', grade_raw: '6A' })]} onRemove={vi.fn()} />,
+      <RecentTicks
+        ticks={[tick({ grade_scale: 'font', grade_raw: '6A' })]}
+        onRemove={vi.fn()}
+        onAnnotate={vi.fn()}
+      />,
     );
 
     expect(screen.getByRole('listitem')).toHaveTextContent('6A');
@@ -69,6 +80,7 @@ describe('RecentTicks', () => {
       <RecentTicks
         ticks={[tick({ id: 'new', grade_raw: '7a' }), tick({ id: 'old', grade_raw: '6a' })]}
         onRemove={onRemove}
+        onAnnotate={vi.fn()}
       />,
     );
 
@@ -79,8 +91,19 @@ describe('RecentTicks', () => {
     expect(onRemove).toHaveBeenCalledWith('old');
   });
 
+  it('reopens the detail sheet from a row', async () => {
+    const onAnnotate = vi.fn();
+    const row = tick({ id: 'old', grade_raw: '6a' });
+    render(<RecentTicks ticks={[row]} onRemove={vi.fn()} onAnnotate={onAnnotate} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a' }));
+
+    // This is what lets the detail sheet close itself: nothing is lost, because it comes back.
+    expect(onAnnotate).toHaveBeenCalledWith(row);
+  });
+
   it('explains itself when the session is empty', () => {
-    render(<RecentTicks ticks={[]} onRemove={vi.fn()} />);
+    render(<RecentTicks ticks={[]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
 
     expect(screen.queryByRole('list')).toBeNull();
     expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();

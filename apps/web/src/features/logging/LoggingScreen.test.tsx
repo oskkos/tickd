@@ -58,6 +58,17 @@ describe('a full session', () => {
     expect(stored.filter((t) => sendStyleOf(t) === 'flash')).toHaveLength(0);
   });
 
+  it('lets a mis-tapped grade be abandoned without writing anything', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 8c' }));
+    await userEvent.click(screen.getByRole('button', { name: /change grade/i }));
+
+    // Back at the grid with nothing written — not committed-then-undone.
+    expect(await screen.findByRole('button', { name: 'Grade 6a' })).toBeInTheDocument();
+    expect(await db.ticks.count()).toBe(0);
+  });
+
   it('undoes a tick logged two climbs ago', async () => {
     await startAt(/Kiipeilyareena Salmisaari/);
 

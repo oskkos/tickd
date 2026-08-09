@@ -83,6 +83,20 @@ first-class for this reason; a confirm step would solve the same problem twice a
 - **WHEN** the outcome control is shown
 - **THEN** it presents no confirm, submit or "tick it" button
 
+### Requirement: A chosen grade can be abandoned without writing
+
+Having chosen a grade, the climber SHALL be able to return to the grid without a tick being written.
+
+The screen commits on the outcome tap and has no confirm step, so without an explicit way back the
+only escape from a mis-tapped grade is to log a tick you did not want and then undo it — two
+operations and a spurious row to correct a slip, on a screen whose stated premise is that mis-taps are
+common (§3).
+
+#### Scenario: Backing out writes nothing
+
+- **WHEN** a grade is chosen and then abandoned
+- **THEN** the grid is shown again and no tick exists
+
 ### Requirement: Optional detail annotates an existing tick
 
 `notes`, `angle`, `holds`, `rating`, `grade_opinion` and `length_m` SHALL be editable after the tick is
@@ -106,6 +120,40 @@ considers safe for fields outside the outcome fields.
 
 - **WHEN** a tick logged earlier in the session needs a note
 - **THEN** it can be reached from the list of recent ticks
+
+### Requirement: Optional detail is presented where it can be seen
+
+The detail controls SHALL be presented over the screen rather than in flow beneath it, SHALL NOT trap
+interaction, and MAY close themselves after a period of inactivity.
+
+Rendered in flow after the grade grid they fall below the fold on a phone — present in the DOM and
+invisible in the hand, which is the same as absent. A modal would be worse: it would block the next
+grade tap and turn every log into three interactions on a screen whose premise is two.
+
+**Closing on inactivity does not contradict undo being persistent.** That rule exists because a
+four-second undo window is useless when the mistake is noticed after the next climb. Detail is
+different: the tick is already written, every change is saved as it is made, and the same controls
+reopen from the recent list — so nothing is lost when they close.
+
+#### Scenario: Detail is visible without scrolling
+
+- **WHEN** a tick is logged
+- **THEN** the detail controls appear over the screen rather than below the content
+
+#### Scenario: Logging continues with the detail controls open
+
+- **WHEN** another grade is chosen while they are open
+- **THEN** they close and logging proceeds, because they never blocked it
+
+#### Scenario: They do not close under someone using them
+
+- **WHEN** the climber interacts with the detail controls
+- **THEN** the inactivity period restarts
+
+#### Scenario: Nothing is lost when they close
+
+- **WHEN** the detail controls close by inactivity after a value was set
+- **THEN** the value is stored, and reopening the tick from the recent list shows it
 
 ### Requirement: The grade grid shows the whole scale, positioned at the working range
 

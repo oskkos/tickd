@@ -36,16 +36,28 @@ function cellLabel(prior: PriorExperience, isSend: boolean): string {
 export function OutcomeGrid({
   grade,
   onCommit,
+  onCancel,
 }: {
   grade: string;
   onCommit: (outcome: TickOutcome) => void;
+  onCancel: () => void;
 }) {
   return (
     <div>
-      {/* Grade renders verbatim — case is what separates Font from French (DESIGN.md §2). */}
-      <p className="tabular text-3xl" data-testid="outcome-grade">
-        {grade}
-      </p>
+      <div className="flex items-baseline justify-between gap-2">
+        {/* Grade renders verbatim — case is what separates Font from French (DESIGN.md §2). */}
+        <p className="tabular text-3xl" data-testid="outcome-grade">
+          {grade}
+        </p>
+        {/*
+          A mis-tapped grade must be abandonable without writing anything. Without this the only way
+          out was to commit a tick you did not want and then undo it — two operations and a spurious
+          row to fix a slip, on a screen whose whole premise is that mis-taps are common (§3).
+        */}
+        <button type="button" onClick={onCancel} className="min-h-touch text-sm underline">
+          Change grade
+        </button>
+      </div>
 
       <div role="group" aria-label="How did it go" className="mt-4 flex flex-col gap-2">
         {ROWS.map(({ prior, label }) => (
