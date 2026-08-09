@@ -147,3 +147,8 @@
 - [x] 11.5 Build the recent-list route back to a tick's detail — the prerequisite that makes 11.4 safe
 - [x] 11.6 Verify by planting: removing the timer fails the auto-close test, and dropping the reset
       dependency fails the does-not-close-while-in-use test. Both independently
+- [x] 11.7 Show the countdown on the sheet, so the close is predictable rather than sudden
+      — CSS keyframe rather than a render-per-frame timer, with the duration passed in from
+      `SHEET_IDLE_MS` so the bar cannot drift from the timeout. Keyed on the activity counter, since a
+      CSS animation only replays from the start on a fresh node. Verified by planting both: hardcoding
+      the bar's duration fails the drift test, dropping the key fails the restart test

@@ -74,25 +74,47 @@ export function AnnotationSheet({
       onKeyDown={() => {
         setActivity((n) => n + 1);
       }}
-      className="rounded-box fixed inset-x-3 bottom-3 z-20 bg-base-300 p-4 shadow-xl"
+      className="rounded-box fixed inset-x-3 bottom-3 z-20 overflow-hidden bg-base-300 shadow-xl"
     >
-      <div className="mb-3 flex items-baseline justify-between gap-2">
-        <p className="text-sm">
-          {/* Verbatim — case separates Font from French. */}
-          Logged <span className="tabular text-base">{tick.grade_raw}</span>. Add detail?
-        </p>
-        <button type="button" onClick={onDismiss} className="min-h-touch text-sm underline">
-          Done
-        </button>
-      </div>
+      {/*
+        The countdown, so the close is predictable rather than sudden — a sheet that vanishes without
+        warning reads as a glitch, and one you can see draining tells you whether to hurry or ignore
+        it.
 
-      <AnnotationPanel
-        annotation={annotation}
-        onChange={(next) => {
-          setActivity((n) => n + 1);
-          onChange(next);
-        }}
+        Keyed on `activity` so React remounts it and the CSS animation restarts from full whenever the
+        timer does. The duration is passed in from the same constant that drives the timeout, so the
+        bar cannot drift from the behaviour it depicts.
+
+        Hidden from assistive tech: it conveys nothing a screen reader can act on, and "Done" plus
+        interaction-resets already cover the same ground without relying on sight.
+      */}
+      <div
+        key={activity}
+        aria-hidden="true"
+        style={{ animationDuration: `${String(SHEET_IDLE_MS)}ms` }}
+        className="h-1 origin-left bg-primary [animation-name:sheet-countdown] [animation-timing-function:linear]"
+        data-testid="sheet-countdown"
       />
+
+      <div className="p-4">
+        <div className="mb-3 flex items-baseline justify-between gap-2">
+          <p className="text-sm">
+            {/* Verbatim — case separates Font from French. */}
+            Logged <span className="tabular text-base">{tick.grade_raw}</span>. Add detail?
+          </p>
+          <button type="button" onClick={onDismiss} className="min-h-touch text-sm underline">
+            Done
+          </button>
+        </div>
+
+        <AnnotationPanel
+          annotation={annotation}
+          onChange={(next) => {
+            setActivity((n) => n + 1);
+            onChange(next);
+          }}
+        />
+      </div>
     </section>
   );
 }

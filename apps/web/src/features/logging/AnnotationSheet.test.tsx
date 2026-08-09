@@ -68,6 +68,28 @@ describe('AnnotationSheet', () => {
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
+  it('shows a countdown matching the timeout it depicts', () => {
+    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+
+    const bar = screen.getByTestId('sheet-countdown');
+    // One source of truth: the bar reads its duration from the same constant as the timer, so it
+    // cannot drift from the behaviour it depicts.
+    expect(bar.style.animationDuration).toBe(`${String(SHEET_IDLE_MS)}ms`);
+    // It conveys nothing a screen reader can act on; Done and interaction-resets cover that ground.
+    expect(bar).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('restarts the countdown when the timer restarts', async () => {
+    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+    const before = screen.getByTestId('sheet-countdown');
+
+    await userEvent.click(screen.getByRole('button', { name: 'overhang' }));
+
+    // Remounted rather than restyled — a CSS animation only replays from the start on a fresh node,
+    // so the bar and the timeout stay in step.
+    expect(screen.getByTestId('sheet-countdown')).not.toBe(before);
+  });
+
   it('can be dismissed deliberately', async () => {
     const onDismiss = vi.fn();
     render(
