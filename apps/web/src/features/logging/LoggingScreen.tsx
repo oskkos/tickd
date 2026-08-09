@@ -11,7 +11,7 @@ import {
   type TickAnnotation,
 } from '../../db/ticks.ts';
 import type { Discipline, Protection, Session, Tick, TickOutcome, Venue } from '../../db/types.ts';
-import { AnnotationPanel } from './AnnotationPanel.tsx';
+import { AnnotationSheet } from './AnnotationSheet.tsx';
 import { disciplinesAt, protectionOnSwitch, protectionsFor } from './disciplines.ts';
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
@@ -39,7 +39,8 @@ export function LoggingScreen() {
   const [range, setRange] = useState<WorkingRange | undefined>();
 
   const [pendingGrade, setPendingGrade] = useState<string | undefined>();
-  const [justLogged, setJustLogged] = useState<Tick | undefined>();
+  /** The tick whose detail sheet is open, if any. Set by logging, and by tapping a row. */
+  const [annotating, setAnnotating] = useState<Tick | undefined>();
   const [annotation, setAnnotation] = useState<TickAnnotation>({});
 
   useEffect(() => {
@@ -105,7 +106,7 @@ export function LoggingScreen() {
     setSession(undefined);
     setTicks([]);
     setPendingGrade(undefined);
-    setJustLogged(undefined);
+    setAnnotating(undefined);
   }
 
   /** The second tap. The tick is written here — there is no confirm between this and the database. */
@@ -122,23 +123,38 @@ export function LoggingScreen() {
       outcome,
     });
     setPendingGrade(undefined);
-    setJustLogged(tick);
+    setAnnotating(tick);
     setAnnotation({});
     await refreshTicks(session.id);
   }
 
   async function handleAnnotate(next: TickAnnotation) {
     setAnnotation(next);
-    if (justLogged) {
-      await annotateTick(db, justLogged.id, next);
-      await refreshTicks(justLogged.session_id);
+    if (annotating) {
+      // Written on every change, so the sheet closing — by timer, by Done, or by the next grade —
+      // never loses anything.
+      await annotateTick(db, annotating.id, next);
+      await refreshTicks(annotating.session_id);
     }
+  }
+
+  /** Reopens the sheet for an earlier tick, seeded with what it already carries. */
+  function handleReopen(tick: Tick) {
+    setAnnotating(tick);
+    setAnnotation({
+      notes: tick.notes,
+      angle: tick.angle,
+      holds: tick.holds,
+      rating: tick.rating,
+      grade_opinion: tick.grade_opinion,
+      length_m: tick.length_m,
+    });
   }
 
   async function handleRemove(id: string) {
     await removeTick(db, id);
-    if (justLogged?.id === id) {
-      setJustLogged(undefined);
+    if (annotating?.id === id) {
+      setAnnotating(undefined);
     }
     if (session) {
       await refreshTicks(session.id);
@@ -212,22 +228,38 @@ export function LoggingScreen() {
             range={range}
             onPick={(grade) => {
               setPendingGrade(grade);
-              setJustLogged(undefined);
+              // Picking the next grade dismisses the sheet — the whole point of it not being modal.
+              setAnnotating(undefined);
             }}
           />
         )
       ) : (
-        <OutcomeGrid grade={pendingGrade} onCommit={(outcome) => void handleCommit(outcome)} />
+        <OutcomeGrid
+          grade={pendingGrade}
+          onCommit={(outcome) => void handleCommit(outcome)}
+          onCancel={() => {
+            setPendingGrade(undefined);
+          }}
+        />
       )}
 
-      {justLogged && (
-        <section aria-label="Add detail" className="rounded-box bg-base-200/50 p-3">
-          <p className="mb-2 text-sm opacity-70">Logged {justLogged.grade_raw}. Add detail?</p>
-          <AnnotationPanel annotation={annotation} onChange={(next) => void handleAnnotate(next)} />
-        </section>
-      )}
+      <RecentTicks
+        ticks={ticks}
+        onRemove={(id) => void handleRemove(id)}
+        onAnnotate={handleReopen}
+      />
 
-      <RecentTicks ticks={ticks} onRemove={(id) => void handleRemove(id)} />
+      {/* Last, and fixed — it overlays rather than sitting below the fold where nobody saw it. */}
+      {annotating && (
+        <AnnotationSheet
+          tick={annotating}
+          annotation={annotation}
+          onChange={(next) => void handleAnnotate(next)}
+          onDismiss={() => {
+            setAnnotating(undefined);
+          }}
+        />
+      )}
     </div>
   );
 }

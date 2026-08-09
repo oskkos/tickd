@@ -6,14 +6,15 @@ import { OutcomeGrid } from './OutcomeGrid.tsx';
 
 describe('OutcomeGrid', () => {
   it('offers exactly six cells, one per valid outcome', () => {
-    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} />);
+    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} onCancel={vi.fn()} />);
 
-    // Not five with one disabled — six, because all six are valid (D20).
-    expect(screen.getAllByRole('button')).toHaveLength(6);
+    // Not five with one disabled — six, because all six are valid (D20). Counted by name so the
+    // escape hatch beside the grade does not inflate the total.
+    expect(screen.getAllByRole('button', { name: /first go|tried it|sent it/i })).toHaveLength(6);
   });
 
   it('offers no style control at all', () => {
-    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} />);
+    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} onCancel={vi.fn()} />);
 
     // Redpoint, onsight and second go are not choices. Style is derived from what is chosen here.
     for (const word of [/redpoint/i, /onsight/i, /second go/i]) {
@@ -22,7 +23,7 @@ describe('OutcomeGrid', () => {
   });
 
   it('preselects nothing', () => {
-    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} />);
+    render(<OutcomeGrid grade="7a" onCommit={vi.fn()} onCancel={vi.fn()} />);
 
     // prior_experience is correct on the first go and wrong on every go after, so a default would be
     // silently wrong most of the time and would inflate flash rate's denominator.
@@ -34,7 +35,7 @@ describe('OutcomeGrid', () => {
 
   it('commits a flash from the first-go send, without anyone choosing "flash"', async () => {
     const onCommit = vi.fn();
-    render(<OutcomeGrid grade="7a" onCommit={onCommit} />);
+    render(<OutcomeGrid grade="7a" onCommit={onCommit} onCancel={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
 
@@ -45,7 +46,7 @@ describe('OutcomeGrid', () => {
 
   it('commits a first encounter that was not sent — the honest denominator', async () => {
     const onCommit = vi.fn();
-    render(<OutcomeGrid grade="7a" onCommit={onCommit} />);
+    render(<OutcomeGrid grade="7a" onCommit={onCommit} onCancel={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: /first go, fell/i }));
 
@@ -55,7 +56,7 @@ describe('OutcomeGrid', () => {
 
   it('derives a redpoint from a send with prior experience', async () => {
     const onCommit = vi.fn();
-    render(<OutcomeGrid grade="7a" onCommit={onCommit} />);
+    render(<OutcomeGrid grade="7a" onCommit={onCommit} onCancel={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: /tried it, sent/i }));
 
@@ -65,7 +66,7 @@ describe('OutcomeGrid', () => {
 
   it('commits on the cell tap, with no confirm step', async () => {
     const onCommit = vi.fn();
-    render(<OutcomeGrid grade="7a" onCommit={onCommit} />);
+    render(<OutcomeGrid grade="7a" onCommit={onCommit} onCancel={vi.fn()} />);
 
     await userEvent.click(screen.getByRole('button', { name: /sent it, sent/i }));
 
@@ -75,8 +76,21 @@ describe('OutcomeGrid', () => {
     expect(screen.queryByRole('button', { name: /tick it|confirm|save|submit/i })).toBeNull();
   });
 
+  it('can be abandoned without writing anything', async () => {
+    const onCommit = vi.fn();
+    const onCancel = vi.fn();
+    render(<OutcomeGrid grade="7a" onCommit={onCommit} onCancel={onCancel} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /change grade/i }));
+
+    // A mis-tapped grade must not cost a tick. Committing and undoing is two operations and a
+    // spurious row to fix a slip.
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
   it('shows the grade verbatim', () => {
-    render(<OutcomeGrid grade="6A" onCommit={vi.fn()} />);
+    render(<OutcomeGrid grade="6A" onCommit={vi.fn()} onCancel={vi.fn()} />);
 
     expect(screen.getByTestId('outcome-grade')).toHaveTextContent('6A');
   });

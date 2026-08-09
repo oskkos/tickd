@@ -114,6 +114,9 @@
       `exactOptionalPropertyTypes` absent means "leave alone" and explicit `undefined` means "clear
       it", and clearing an angle tapped by mistake is a real operation the type must express
 - [x] 9.4 Reach annotation from the recent list as well as immediately after logging
+      — **was marked done before it was built.** `RecentTicks` had only an undo path; there was no
+      way back to a tick's detail. Built in group 11, where it became a prerequisite rather than a
+      nicety: the sheet cannot safely close itself unless the detail is reachable again
 - [x] 9.5 Tests: a tick several entries back is still reversible; annotation never blocks logging
 
 ## 10. Verify
@@ -131,3 +134,16 @@
       discipline. Fixed by deriving the active discipline rather than storing and correcting it
 - [x] 10.5 Record in the commit message what was verified against what broken state — and state plainly
       why deleting the style assertions strengthens the guarantee rather than weakening it
+
+## 11. Usability, from real use on a phone
+
+- [x] 11.1 Let a chosen grade be abandoned without writing — "Change grade" beside the grade in the
+      outcome step. Without it the only escape from a mis-tap was to commit a tick and undo it
+- [x] 11.2 Move the detail controls into a sheet over the screen. In flow after the grid they landed
+      below the fold on a phone: present in the DOM, invisible in the hand
+- [x] 11.3 Keep the sheet non-modal, so the next grade tap still logs. A modal would make every log
+      three interactions on a screen whose premise is two
+- [x] 11.4 Close the sheet after `SHEET_IDLE_MS` of inactivity, restarting on any interaction inside
+- [x] 11.5 Build the recent-list route back to a tick's detail — the prerequisite that makes 11.4 safe
+- [x] 11.6 Verify by planting: removing the timer fails the auto-close test, and dropping the reset
+      dependency fails the does-not-close-while-in-use test. Both independently
