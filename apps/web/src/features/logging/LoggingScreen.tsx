@@ -16,6 +16,7 @@ import { disciplinesAt, protectionOnSwitch, protectionsFor } from './disciplines
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
 import { RecentTicks } from './RecentTicks.tsx';
+import { SessionSummary } from './SessionSummary.tsx';
 import { VenuePicker } from './VenuePicker.tsx';
 
 /**
@@ -38,6 +39,8 @@ export function LoggingScreen() {
   const [ropedProtection, setRopedProtection] = useState<Protection>('lead');
   const [range, setRange] = useState<WorkingRange | undefined>();
 
+  /** Set when End session is tapped: the summary is the confirmation, not a separate dialog. */
+  const [ending, setEnding] = useState<Date | undefined>();
   const [pendingGrade, setPendingGrade] = useState<string | undefined>();
   /** The tick whose detail sheet is open, if any. Set by logging, and by tapping a row. */
   const [annotating, setAnnotating] = useState<Tick | undefined>();
@@ -99,11 +102,14 @@ export function LoggingScreen() {
   }
 
   async function handleEnd() {
-    if (!session) {
+    if (!session || !ending) {
       return;
     }
-    await endSession(db, session, new Date());
+    // The moment End was tapped, not the moment it was confirmed — reading the summary should not
+    // pad the session's duration.
+    await endSession(db, session, ending);
     setSession(undefined);
+    setEnding(undefined);
     setTicks([]);
     setPendingGrade(undefined);
     setAnnotating(undefined);
@@ -161,6 +167,21 @@ export function LoggingScreen() {
     }
   }
 
+  if (session && ending) {
+    return (
+      <SessionSummary
+        session={session}
+        venue={venue}
+        ticks={ticks}
+        now={ending}
+        onConfirm={() => void handleEnd()}
+        onCancel={() => {
+          setEnding(undefined);
+        }}
+      />
+    );
+  }
+
   if (!session) {
     return (
       <VenuePicker
@@ -183,7 +204,10 @@ export function LoggingScreen() {
             current context and should look like something you press deliberately. */}
         <button
           type="button"
-          onClick={() => void handleEnd()}
+          onClick={() => {
+            setEnding(new Date());
+            setAnnotating(undefined);
+          }}
           className="btn btn-sm btn-outline min-h-touch shrink-0 px-4"
         >
           End session
