@@ -155,6 +155,15 @@ reopen from the recent list — so nothing is lost when they close.
 - **WHEN** the detail controls close by inactivity after a value was set
 - **THEN** the value is stored, and reopening the tick from the recent list shows it
 
+#### Scenario: The remaining time is visible
+
+- **WHEN** the detail controls are open
+- **THEN** the time left before they close is shown, and it restarts with the inactivity period
+
+A sheet that vanishes without warning reads as a glitch. Showing the countdown makes the close
+predictable and lets the climber decide whether to hurry or ignore it — and the indicator SHALL derive
+its duration from the same value as the timeout, so the two cannot drift apart.
+
 ### Requirement: The grade grid shows the whole scale, positioned at the working range
 
 The grid SHALL render every label of the active scale, easiest first, and SHALL set its initial scroll
