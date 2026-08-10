@@ -22,6 +22,9 @@ function tick(overrides: Partial<Tick> = {}): Tick {
   } as Tick;
 }
 
+/** Five goes, so the three-row cap has something to hide. */
+const FIVE_GRADES = ['7a', '7b', '7c', '6a', '6b'] as const;
+
 describe('RecentTicks', () => {
   it('shows what was recorded, not just the grade', () => {
     render(<RecentTicks ticks={[tick()]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
@@ -85,7 +88,9 @@ describe('RecentTicks', () => {
     );
 
     // The mistake is usually noticed after the next climb, which is why this is a list rather than a
-    // toast on the most recent row.
+    // toast on the most recent row. The list now collapses to the latest go, so reaching an older one
+    // costs a tap — but it must still cost only a tap, and never be impossible.
+    await userEvent.click(screen.getByRole('button', { name: /2 goes · show all/i }));
     await userEvent.click(screen.getByRole('button', { name: 'Undo 6a' }));
 
     expect(onRemove).toHaveBeenCalledWith('old');
@@ -100,6 +105,44 @@ describe('RecentTicks', () => {
 
     // This is what lets the detail sheet close itself: nothing is lost, because it comes back.
     expect(onAnnotate).toHaveBeenCalledWith(row);
+  });
+
+  it('shows only the go just logged, so it is not a second scroller', () => {
+    const five = FIVE_GRADES.map((g, i) => tick({ id: `t${String(i)}`, grade_raw: g }));
+    render(<RecentTicks ticks={five} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
+
+    // The shell is bounded to the viewport, so a list long enough to scroll would sit under the grade
+    // grid's scroller: the same swipe would do different things 40px apart, on the screen most likely
+    // to be used one-handed. The cap is what keeps the grid the only scroller in practice.
+    //
+    // The cap is asserted, not the absence of a scroll: `overflow-y-auto` stays on as a last resort,
+    // because on a very short viewport the alternative was rows off the bottom of the screen with
+    // nothing able to reach them.
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.getByRole('listitem')).toHaveTextContent('7a');
+  });
+
+  it('keeps the earlier goes reachable, because undo is the point', async () => {
+    const onRemove = vi.fn();
+    const five = FIVE_GRADES.map((g, i) => tick({ id: `t${String(i)}`, grade_raw: g }));
+    render(<RecentTicks ticks={five} onRemove={onRemove} onAnnotate={vi.fn()} />);
+
+    // A cap alone would have made every earlier go impossible to undo — there is no other route to
+    // them, and DESIGN.md makes undo persistent precisely because the mistake surfaces late. So the
+    // count is a control.
+    expect(screen.queryByRole('button', { name: 'Undo 6b' })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: /5 goes · show all/i }));
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+    await userEvent.click(screen.getByRole('button', { name: 'Undo 6b' }));
+    expect(onRemove).toHaveBeenCalledWith('t4');
+  });
+
+  it('offers no expansion when the only go is already shown', () => {
+    render(<RecentTicks ticks={[tick({ id: 'a' })]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
+
+    // A "show all 1" that reveals nothing is a control that lies about having something behind it.
+    expect(screen.queryByRole('button', { name: /show all/i })).toBeNull();
   });
 
   it('explains itself when the session is empty', () => {

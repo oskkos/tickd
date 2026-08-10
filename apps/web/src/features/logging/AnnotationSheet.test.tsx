@@ -127,6 +127,30 @@ describe('AnnotationSheet', () => {
     expect(screen.queryByTestId('sheet-countdown')).toBeNull();
   });
 
+  it('blocks the screen behind it', () => {
+    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+
+    // Reverses the original "not modal" decision. Unblocked, a tap meant for the sheet that landed
+    // just outside it logged a whole new tick and replaced the sheet being filled in — the cheap path
+    // cost a wrong row in the database. Being `fixed`, the backdrop also stops the scroll behind it.
+    const backdrop = screen.getByRole('button', { name: /close detail/i });
+    expect(backdrop).toHaveClass('fixed');
+    expect(backdrop).toHaveClass('inset-0');
+  });
+
+  it('is dismissed by the tap that would previously have logged something', async () => {
+    const onDismiss = vi.fn();
+    render(
+      <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /close detail/i }));
+
+    // The way out has to be bigger than the way in, and it is the whole screen. A backdrop that only
+    // absorbed taps would read as the app having frozen.
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
   it('can be dismissed deliberately', async () => {
     const onDismiss = vi.fn();
     render(
