@@ -40,12 +40,24 @@ export function RecentTicks({
 }) {
   if (ticks.length === 0) {
     return (
-      <p className="text-sm opacity-60">Nothing logged yet. Your ticks appear here as you go.</p>
+      <p className="shrink-0 text-sm opacity-60">
+        Nothing logged yet. Your ticks appear here as you go.
+      </p>
     );
   }
 
   return (
-    <ul aria-label="Recent ticks" className="flex flex-col gap-2">
+    /*
+      **Capped, and it yields.** The shell is bounded to the viewport so the grade grid can position
+      at the working range, which makes this list the other claimant on the same vertical space. Left
+      unbounded and unshrinkable it won that contest and squeezed the grid to a single row of grades
+      by the eighth go — the grid is tapped all evening, this list is consulted after a mis-tap, so
+      `min-h-0` lets this give way while the grid holds its floor.
+    */
+    <ul
+      aria-label="Recent ticks"
+      className="flex max-h-[28vh] min-h-0 flex-col gap-2 overflow-y-auto"
+    >
       {ticks.map((tick) => (
         <li
           key={tick.id}
