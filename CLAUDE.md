@@ -219,6 +219,11 @@ Phase 0 discipline is the stated main risk. Do not build Phase 1+ concerns into 
   **The importer replaces rather than merges, and refuses a schema-marker mismatch instead of
   upgrading it** — merging would invent Phase 1's conflict rules, and upgrading would be a Dexie
   migration by another name.
+  **Four surfaces, on a bottom tab bar:** logging (venue picker and end-of-session summary live
+  inside it), the session list plus its per-session detail, the flash-rate chart, and settings
+  (which is where export/import live). The session detail is not optional garnish — it is the only
+  read path for the tick sheet's `notes`/`rating`/`grade_opinion`/`angle`/`holds`/`length_m`, which
+  are otherwise write-only once the session closes.
 - **Phase 1** — Kotlin/Spring Boot backend, OAuth2, sync. Adds `app_user`, `user_identity`, and
   `user_id`/`device_id`/`schema_version`/`visibility` on existing tables. Migration discipline
   starts here.
@@ -278,6 +283,31 @@ sliding ~90 days, offline logging must never depend on auth, and the sync queue 
 ## Planned UI stack
 
 **Tailwind + daisyUI for appearance, Base UI for behaviour. From Phase 0. No MUI.**
+
+**Routing is `@tanstack/react-router`, and TanStack is the lean for future client-side needs — but
+`@tanstack/react-query` is not Phase 0** (D22). Do not propose `react-router`, and do not reach for
+Query because the router is already here: Query manages *server* state, and CONCEPT §8.3 makes the
+client the source of truth, so in a phase with no network a query cache would be a second copy of the
+authority with nothing to reconcile against. Reactivity, if wanted, is `dexie-react-hooks` — it
+observes IndexedDB, which *is* the authority. The `build-tooling` scope fence names server-state
+libraries alongside HTTP and auth clients for this reason.
+
+- **Routes are written by hand.** No `@tanstack/router-plugin`, no `routeTree.gen.ts` — generated code
+  is committed here, so the file would enlist `codegen-check`, both hooks and CI for a tree of three
+  routes.
+- The route tree lives in `apps/web/src/router.tsx`; the shell is the root route's component in
+  `Shell.tsx`, because `Link` needs router context and therefore every tappable part of the frame must
+  render *inside* `RouterProvider`, not around it.
+- **Address a route by its path string** (`useParams({ from: '/sessions/$sessionId' })`) rather than by
+  importing the route object — the route tree imports the screen in order to render it, so importing
+  back is a cycle. The string is no less checked: `Register` in `router.tsx` is what types it.
+- **Tests render through `renderApp()`** (`src/testing/renderApp.tsx`), which awaits the router's first
+  match. `RouterProvider` commits that match in an effect, so a synchronous `getBy*` straight after
+  `render` sees an empty `<div />`.
+- **`fileParallelism: false` in `vite.config.ts` is load-bearing, not cargo.** Three suites drive real
+  screens against the one `db` singleton those screens import and each clears it; in parallel one
+  file's `clear()` lands between another's seed and its assertion, flaking about a quarter of full
+  runs. Costs 28s against 6s.
 
 - Package is **`@base-ui/react`** — the widely-cited `@base-ui-components/react` is deprecated and
   will show up constantly in older snippets.
