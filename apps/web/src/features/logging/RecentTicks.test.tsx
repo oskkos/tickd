@@ -152,3 +152,24 @@ describe('RecentTicks', () => {
     expect(screen.getByText(/nothing logged yet/i)).toBeInTheDocument();
   });
 });
+
+describe('the space it keeps', () => {
+  it('holds a floor of one whole row', () => {
+    render(<RecentTicks ticks={[tick()]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
+
+    // Measured in Chromium at 412×600 with eight goes logged and the tab bar present: the grade grid
+    // held at its own floor, so this list was what yielded — down to 24px, showing a sliver of the row
+    // it exists to show. jsdom has no layout engine, so this guards the cause rather than the symptom.
+    expect(screen.getByRole('list', { name: 'Recent ticks' })).toHaveClass('min-h-12');
+  });
+
+  it('does not pad a row that is already a touch target', () => {
+    render(<RecentTicks ticks={[tick()]} onRemove={vi.fn()} onAnnotate={vi.fn()} />);
+
+    // The row's height comes from the inner button's `min-h-touch`. A `py-2` on the item turned a 48px
+    // target into a 64px row — sixteen pixels of nothing, and what stopped one row fitting.
+    const row = screen.getByRole('list', { name: 'Recent ticks' }).firstElementChild;
+    expect(row).not.toHaveClass('py-2');
+    expect(screen.getByRole('button', { name: 'Detail for 6c+' })).toHaveClass('min-h-touch');
+  });
+});

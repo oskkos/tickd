@@ -39,7 +39,11 @@ export function Shell() {
       measured in a real browser rather than assumed to survive the addition.
     */
     <div className="flex h-dvh flex-col overflow-hidden bg-base-100 text-base-content">
-      <header className="flex shrink-0 items-center justify-between px-4 py-3">
+      {/* `py-2` rather than `py-3`: eight pixels, paid to the logging screen. With the tab bar taking
+          57px off `main`, the grade grid sits exactly on its floor and everything below it competes for
+          what is left — and the shell's own chrome is the right place to find it, ahead of anything the
+          climber taps. */}
+      <header className="flex shrink-0 items-center justify-between px-4 py-2">
         {/* The wordmark is the heading — the visible name and the accessible one are the same
             string, so `alt="tickd"` inside carries it. */}
         <h1 className="flex">
