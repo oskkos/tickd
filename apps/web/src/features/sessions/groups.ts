@@ -54,6 +54,24 @@ export function groupGoes(ticks: readonly Tick[]): readonly GoGroup[] {
   return [...groups.values()];
 }
 
+/**
+ * How the session was climbed, in first-appearance order: `lead`, `lead, toprope`, `lead, boulder`.
+ *
+ * **`none` reads as `boulder`, because that is what it means.** Listing it as a protection would offer
+ * "no protection" as a fourth way of being roped; §7.4 defines the absence of protection as what
+ * distinguishes a boulder, so the word for it is the discipline.
+ */
+export function protectionsUsed(ticks: readonly Tick[]): readonly string[] {
+  const seen: string[] = [];
+  for (const tick of ticks) {
+    const word = tick.protection === 'none' ? 'boulder' : tick.protection;
+    if (!seen.includes(word)) {
+      seen.push(word);
+    }
+  }
+  return seen;
+}
+
 /** How a group names itself: the discipline, then the notation its grades are written in. */
 export function groupLabel(group: GoGroup): string {
   const discipline = group.discipline === 'boulder' ? 'boulder' : 'rope';

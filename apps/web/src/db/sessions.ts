@@ -194,9 +194,14 @@ export interface SessionWithTicks {
  * make this correct only as long as every row was written by this app — and Phase 0's importer replaces
  * the database wholesale from a JSON file, which can carry any history it likes.
  */
-export async function sessionHistory(db: TickdDatabase): Promise<SessionWithTicks[]> {
-  const [sessions, ticks] = await Promise.all([db.sessions.toArray(), db.ticks.toArray()]);
+export async function sessionHistory(db: TickdDatabase): Promise<SessionDetail[]> {
+  const [sessions, ticks, venues] = await Promise.all([
+    db.sessions.toArray(),
+    db.ticks.toArray(),
+    db.venues.toArray(),
+  ]);
 
+  const byVenue = new Map(venues.map((v) => [v.id, v]));
   const bySession = new Map<string, Tick[]>();
   for (const tick of ticks) {
     const bucket = bySession.get(tick.session_id);
@@ -215,6 +220,7 @@ export async function sessionHistory(db: TickdDatabase): Promise<SessionWithTick
     })
     .map((session) => ({
       session,
+      venue: byVenue.get(session.venue_id),
       // Oldest first: a session read as a whole is a sequence. The recent-ticks list is newest-first
       // because its job is undo, which is a different question.
       ticks: (bySession.get(session.id) ?? []).sort((a, b) => a.created_at - b.created_at),
