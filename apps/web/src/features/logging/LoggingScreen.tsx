@@ -230,8 +230,11 @@ export function LoggingScreen() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <header className="flex items-baseline justify-between gap-2">
+    // `min-h-0` so the grade grid inside can shrink below its content and actually scroll. Everything
+    // except the grid is `shrink-0`: the toggles and the End button are the fixed frame, and the grid
+    // is the one region that gives.
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <header className="flex shrink-0 items-baseline justify-between gap-2">
         <div>
           <h2 className="text-xl">{venue?.name ?? 'Session'}</h2>
           <p className="text-sm opacity-70">{ticks.length} ticks · saved locally</p>
@@ -258,7 +261,7 @@ export function LoggingScreen() {
         grade" is the way back out.
       */}
       {options.length > 1 && pendingGrade === undefined && (
-        <div role="group" aria-label="Discipline" className="flex gap-2">
+        <div role="group" aria-label="Discipline" className="flex shrink-0 gap-2">
           {options.map((option) => (
             <button
               key={option.discipline}
@@ -279,7 +282,7 @@ export function LoggingScreen() {
           live mid-pending, unlike the discipline: realising it was toprope is a correction to the go
           you are logging, and `protection` travels with the discipline it is paired to regardless. */}
       {climb.discipline !== 'boulder' && (
-        <div role="group" aria-label="Protection" className="flex gap-2">
+        <div role="group" aria-label="Protection" className="flex shrink-0 gap-2">
           {ROPED_PROTECTIONS.map((p) => (
             <button
               key={p}

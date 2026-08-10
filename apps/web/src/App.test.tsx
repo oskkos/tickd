@@ -18,6 +18,20 @@ describe('App shell', () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: /where are we/i })).toBeInTheDocument();
   });
+
+  it('bounds itself to the viewport, so an inner region can be the scroller', () => {
+    const { container } = render(<App />);
+    const shell = container.firstElementChild;
+
+    // `min-h-dvh` grew with its content, which left the grade grid unbounded: it rendered at its full
+    // natural height, so `overflow-y-auto` had nothing to scroll and the effect that positions it at
+    // the climber's working range wrote `scrollTop` into a container that could not scroll. The page
+    // scrolled instead and the range sat below the fold. Measured in a real browser, not here —
+    // jsdom reports every height as 0, so this guards the cause rather than the symptom.
+    expect(shell).toHaveClass('h-dvh');
+    expect(shell).not.toHaveClass('min-h-dvh');
+    expect(screen.getByRole('main')).toHaveClass('min-h-0');
+  });
 });
 
 describe('daisyUI traps', () => {

@@ -89,8 +89,8 @@ export function SessionSummary({
   const flashes = ticks.filter(isFlash).length;
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
-      <div>
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0">
         <h2 className="text-2xl">{venue?.name ?? 'Session'}</h2>
         <p className="text-sm opacity-70">
           {formatDuration(now.getTime() - session.started_at)} · {ticks.length}{' '}
@@ -106,7 +106,9 @@ export function SessionSummary({
           Nothing logged, so this session won&rsquo;t be kept.
         </p>
       ) : (
-        <ul aria-label="Grades climbed" className="flex flex-wrap gap-2">
+        // One entry per go, so a long evening is a long list. It scrolls itself rather than pushing
+        // End session out of the thumb zone, now that the shell is bounded to the viewport.
+        <ul aria-label="Grades climbed" className="flex min-h-0 flex-wrap gap-2 overflow-y-auto">
           {goesInOrder(ticks).map((t) => (
             <li
               key={t.id}

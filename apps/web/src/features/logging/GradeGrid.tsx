@@ -50,8 +50,15 @@ export function GradeGrid({
    */
   useLayoutEffect(() => {
     const container = containerRef.current;
+    if (!container) {
+      return;
+    }
     const anchor = anchorRef.current;
-    if (!container || !anchor) {
+    if (!anchor) {
+      // No range: a discipline never climbed, or day one. `range.ts` calls easiest-first the right
+      // position for someone with no history — so go there rather than inheriting the offset of the
+      // scale that was showing a moment ago, which left the Font grid mid-scroll after a switch.
+      container.scrollTop = 0;
       return;
     }
     container.scrollTop = anchor.offsetTop - container.offsetTop;
@@ -63,7 +70,22 @@ export function GradeGrid({
     <div
       ref={containerRef}
       data-testid="grade-grid"
-      className="grid grid-cols-3 gap-2 overflow-y-auto"
+      /*
+        `min-h-0 flex-1` is what makes `overflow-y-auto` mean anything. Without it the grid took its
+        natural height, so there was nothing to scroll and the effect above wrote `scrollTop` into a
+        container whose `scrollHeight` equalled its `clientHeight` — measured at 496/496 on a 600px
+        viewport, with the page scrolling instead.
+
+        `content-start` keeps the rows at their own height once the container is taller than they
+        are: a grid's default align-content stretches auto rows to fill, which would silently resize
+        every touch target with the viewport.
+
+        **`min-h-40`, not `min-h-0`** — a floor of three rows. Both this and the recent-ticks list
+        want the same vertical space, and with no floor the grid lost: measured at 105px, one row of
+        grades, after eight goes on a 600px viewport. The grid is what is being tapped all evening
+        and the list is a reference, so the list yields and this does not.
+      */
+      className="grid min-h-40 flex-1 grid-cols-3 content-start gap-2 overflow-y-auto"
     >
       {all.map((label, index) => {
         // No range means nothing is dimmed, not that everything is. `?? Infinity` / `?? -Infinity`

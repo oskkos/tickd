@@ -49,6 +49,46 @@ describe('GradeGrid', () => {
     expect(dimmed).toHaveLength(0);
   });
 
+  /**
+   * These assert the CSS contract rather than the scrolling, and that is a stated limitation.
+   *
+   * jsdom has no layout engine: every offset and `scrollHeight` is 0, so a container that cannot
+   * scroll is indistinguishable from one that can. That is exactly how the original bug shipped — the
+   * effect assigned `scrollTop` to an element whose `scrollHeight` equalled its `clientHeight`, so
+   * the assignment was a no-op and the *page* scrolled instead. Verified by measurement in a real
+   * browser at 412×600 (496/496 in the grid, 819 in the document); these guard the three classes
+   * that measurement showed to be load-bearing, so the regression is caught even though the
+   * behaviour cannot be.
+   */
+  it('is a bounded scroll container, not a block that grows to its content', () => {
+    render(<GradeGrid scale="french" range={{ from: 4, to: 6 }} onPick={vi.fn()} />);
+    const grid = screen.getByTestId('grade-grid');
+
+    // `flex-1` to take the space that is going, a floor so the recent-ticks list cannot squeeze it to
+    // one row, and `overflow-y-auto` to scroll within it. Without the first two the third is inert.
+    expect(grid).toHaveClass('flex-1');
+    expect(grid).toHaveClass('overflow-y-auto');
+    expect(grid.className).toMatch(/min-h-(?!0\b)/);
+  });
+
+  it('returns to easiest-first for a scale with no history', () => {
+    const { rerender } = render(
+      <GradeGrid scale="french" range={{ from: 10, to: 14 }} onPick={vi.fn()} />,
+    );
+    const grid = screen.getByTestId('grade-grid');
+    const scrolls: number[] = [];
+    vi.spyOn(grid, 'scrollTop', 'set').mockImplementation((v: number) => {
+      scrolls.push(v);
+    });
+
+    rerender(<GradeGrid scale="font" onPick={vi.fn()} />);
+
+    // Switching to a discipline never climbed used to inherit the previous grid's offset, leaving the
+    // Font grid mid-scroll. `range.ts` calls easiest-first the right position with no history.
+    expect(scrolls).toEqual([0]);
+    vi.restoreAllMocks();
+  });
+
   it('positions at the working range once it arrives, not only when the scale changes', () => {
     // The range is read from Dexie, so it lands a render *after* the grid mounts. Keyed on `scale`
     // alone, the effect ran once with no anchor to measure and never again — the scroll was dead
