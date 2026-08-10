@@ -5,15 +5,13 @@ import type { Tick } from '../../db/types.ts';
  *
  * Separate from the component so fast refresh keeps working — a file that exports both components
  * and plain functions loses it, and the lint rule says so.
+ *
+ * `formatDuration` moved to `src/format/time.ts` once the history cards needed the same string. It is
+ * re-exported here rather than left behind, because a second implementation would let one screen call a
+ * session `1 h 47 min` and another call it `107 min`.
  */
 
-/** `1 h 47 min`, or `12 min` under the hour. Rounded down: a session is not a stopwatch. */
-export function formatDuration(ms: number): string {
-  const totalMinutes = Math.floor(ms / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return hours > 0 ? `${String(hours)} h ${String(minutes)} min` : `${String(minutes)} min`;
-}
+export { formatDuration } from '../../format/time.ts';
 
 /**
  * The session's goes in the order they happened.

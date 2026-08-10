@@ -45,18 +45,18 @@
 
 ## 4. The session list
 
-- [ ] 4.1 Build `SessionsScreen` at `/sessions`: cards newest first, the open session first and visibly
+- [x] 4.1 Build `SessionsScreen` at `/sessions`: cards newest first, the open session first and visibly
   marked as running
-- [ ] 4.2 Card header: local date, start time, duration, tick count, venue name, and the protections its
+- [x] 4.2 Card header: local date, start time, duration, tick count, venue name, and the protections its
   ticks used. No vertical metres, no flash rate, no analytic of any kind
-- [ ] 4.3 Card body: one `GoPill` per go in the order they happened, grouped and labelled by
+- [x] 4.3 Card body: one `GoPill` per go in the order they happened, grouped and labelled by
   `(discipline, notation)` only when the session spans more than one pair
-- [ ] 4.4 The open session's duration runs to the present moment; a closed one's from its stored
+- [x] 4.4 The open session's duration runs to the present moment; a closed one's from its stored
   timestamps, unqualified — no marker distinguishing an explicit end from a lazy close, because nothing
   records which happened
-- [ ] 4.5 Tapping a closed card routes to its detail; tapping the open card routes to Log
-- [ ] 4.6 Empty state: what will appear there, plus a route to start a session
-- [ ] 4.7 Tests: two goes at one grade with different outcomes render two distinct pills, never `×2`;
+- [x] 4.5 Tapping a closed card routes to its detail; tapping the open card routes to Log
+- [x] 4.6 Empty state: what will appear there, plus a route to start a session
+- [x] 4.7 Tests: two goes at one grade with different outcomes render two distinct pills, never `×2`;
   two sessions on one local date are told apart by start time; no vertical-distance text appears
   anywhere on the screen; the empty state renders with an empty database
 
