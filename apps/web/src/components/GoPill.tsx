@@ -1,4 +1,5 @@
 import { outcomeOf, type GoOutcome } from '../db/style.ts';
+import { outcomeWord } from '../format/climbing.ts';
 import type { Tick } from '../db/types.ts';
 
 /**
@@ -12,13 +13,6 @@ import type { Tick } from '../db/types.ts';
  * **Renders an `<li>` and must sit inside a list.** The accessible name lives on the item, so keeping
  * the element here is what stops a second call site from labelling it differently.
  */
-
-/** How a go ended, in three shapes and never by colour alone. */
-const LABELS: Record<GoOutcome, string> = {
-  flash: 'flashed',
-  sent: 'sent',
-  fell: 'not sent',
-};
 
 /**
  * The mark.
@@ -60,7 +54,7 @@ export function GoPill({ tick }: { tick: Tick }) {
 
   return (
     <li
-      aria-label={`${tick.grade_raw}, ${LABELS[outcome]}`}
+      aria-label={`${tick.grade_raw}, ${outcomeWord(outcome)}`}
       className="rounded-box flex items-center gap-1.5 bg-base-200 px-2.5 py-2 text-sm"
     >
       {/* Verbatim — case is the only thing separating Font `6A` from French `6a`, so a

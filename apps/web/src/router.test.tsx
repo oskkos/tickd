@@ -89,11 +89,12 @@ describe('navigation', () => {
     expect(await screen.findByRole('heading', { name: /where are we/i })).toBeInTheDocument();
   });
 
-  it('gives the detail route its session id, typed', async () => {
+  it('matches the detail route and reads its param', async () => {
     await renderApp({ initialPath: '/sessions/session-42' });
 
-    // The whole reason the router is TanStack's rather than hand-rolled: `$sessionId` arrives as a
-    // checked param instead of something parsed out of `location.pathname`.
-    expect(screen.getByTestId('session-id')).toHaveTextContent('session-42');
+    // "Not found" is the right answer with no such row, and it is only reachable by the route having
+    // matched *and* the screen having queried with the param. That the param is the correct id is
+    // asserted where a session is actually seeded — see `SessionDetailScreen.test.tsx`.
+    expect(await screen.findByRole('heading', { name: /session not found/i })).toBeInTheDocument();
   });
 });

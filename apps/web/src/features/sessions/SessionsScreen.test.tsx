@@ -315,7 +315,12 @@ describe('opening a session', () => {
     await screen.findByRole('list', { name: 'Sessions' });
     await userEvent.click(within(card(0)).getByRole('link'));
 
-    expect(await screen.findByTestId('session-id')).toHaveTextContent(s.id);
+    // The detail's own heading, which only renders for a session that was actually found — so this
+    // asserts the right session was opened, not merely that the route changed.
+    expect(
+      await screen.findByRole('heading', { name: 'Kiipeilyareena Salmisaari' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('list', { name: 'Goes' })).toBeInTheDocument();
   });
 
   it('sends the open session back to logging instead', async () => {
