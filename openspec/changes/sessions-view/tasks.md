@@ -33,13 +33,14 @@
 
 ## 3. The shared go pill
 
-- [ ] 3.1 Extract `OutcomeIcon` from `SessionSummary.tsx` into its own module, and move `outcomeOf` into
-  `summary.ts` — a module exporting both a component and plain helpers loses fast refresh, which is why
-  `summary.ts` exists
-- [ ] 3.2 Extract the pill markup itself as `GoPill`: grade verbatim plus outcome mark, with the
+- [x] 3.1 Extract `OutcomeIcon` from `SessionSummary.tsx` into its own module, and move `outcomeOf` into
+  **`db/style.ts`** rather than `summary.ts` as originally written — it belongs with `sendStyleOf` and
+  `isFlash`, and putting it in a `features/logging` module would make the sessions feature import from
+  the logging one for a derivation neither owns
+- [x] 3.2 Extract the pill markup itself as `GoPill`: grade verbatim plus outcome mark, with the
   accessible label `SessionSummary` already builds
-- [ ] 3.3 Rewire `SessionSummary` to use `GoPill`, changing nothing it renders
-- [ ] 3.4 Tests: the existing `SessionSummary` suite still passes unchanged; a flash and a send render
+- [x] 3.3 Rewire `SessionSummary` to use `GoPill`, changing nothing it renders
+- [x] 3.4 Tests: the existing `SessionSummary` suite still passes unchanged; a flash and a send render
   distinct marks; grade text is not case-transformed
 
 ## 4. The session list

@@ -59,3 +59,24 @@ export function isFirstEncounter(outcome: TickOutcome): boolean {
 export function isRepeat(outcome: TickOutcome): boolean {
   return outcome.prior_experience === 'sent';
 }
+
+/** How a go ended, in the three shapes a reader cares about. */
+export type GoOutcome = 'flash' | 'sent' | 'fell';
+
+/**
+ * How the go ended — the whole of `(is_send, prior_experience)` collapsed to what gets shown.
+ *
+ * **Here rather than beside the component that renders it**, because it belongs to the same family as
+ * `sendStyleOf` and `isFlash` and every surface must agree with them. Two modules deriving "how did
+ * this go end" is how the session summary and a history card come to disagree about the same row.
+ *
+ * A flash is its own shape rather than a kind of send. It is flash rate's numerator (§4.2, D14), so
+ * flattening it into `sent` would make every display of a session disagree with the one metric Phase 0
+ * ships.
+ */
+export function outcomeOf(outcome: TickOutcome): GoOutcome {
+  if (!outcome.is_send) {
+    return 'fell';
+  }
+  return isFlash(outcome) ? 'flash' : 'sent';
+}
