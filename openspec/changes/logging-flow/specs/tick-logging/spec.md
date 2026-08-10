@@ -136,12 +136,24 @@ optional fields survive, the UI offers all of them or the model should not carry
 
 ### Requirement: Optional detail is presented where it can be seen
 
-The detail controls SHALL be presented over the screen rather than in flow beneath it, SHALL NOT trap
-interaction, and MAY close themselves after a period of inactivity.
+The detail controls SHALL be presented over the screen rather than in flow beneath it, SHALL block
+interaction with the content behind them, and SHALL close themselves after a period of inactivity while
+untouched.
 
 Rendered in flow after the grade grid they fall below the fold on a phone — present in the DOM and
-invisible in the hand, which is the same as absent. A modal would be worse: it would block the next
-grade tap and turn every log into three interactions on a screen whose premise is two.
+invisible in the hand, which is the same as absent.
+
+**Blocking reverses this requirement's own earlier position**, which was that a modal would be worse
+because it turns every log into three interactions on a screen whose premise is two. Use showed the
+trade running the other way: a tap meant for the controls that landed just outside them logged a *whole
+new tick* and replaced the panel being filled in, so not blocking cost a wrong row in the database and
+the climber's place in the form. Blocking costs a tap. The inactivity close is what keeps that price
+honest — untouched, the controls let go by themselves, so the two-tap path is interrupted only once the
+climber actually reaches for the detail.
+
+The dismissal target SHALL be at least the blocked area, so the way out is never smaller than the way
+in, and the blocking SHALL be visible rather than silent — interaction that stops working with no
+indication reads as the app having frozen.
 
 **Closing on inactivity does not contradict undo being persistent.** That rule exists because a
 four-second undo window is useless when the mistake is noticed after the next climb. Detail is
@@ -153,15 +165,19 @@ reopen from the recent list — so nothing is lost when they close.
 - **WHEN** a tick is logged
 - **THEN** the detail controls appear over the screen rather than below the content
 
-#### Scenario: Logging continues with the detail controls open
+#### Scenario: A near-miss tap cannot log a tick
 
-- **WHEN** another grade is chosen while they are open
-- **THEN** they close and logging proceeds, because they never blocked it
+- **WHEN** a tap lands on the content behind the open detail controls
+- **THEN** no tick is written, and the controls close instead
 
 #### Scenario: They do not close under someone using them
 
 - **WHEN** the climber interacts with the detail controls
-- **THEN** the inactivity period restarts
+- **THEN** the inactivity close is retired for that tick rather than restarted
+
+A countdown that keeps restarting still chases someone mid-form: they would be racing a clock to finish
+a field that was optional to begin with. The first interaction answers the only question the timer
+asked.
 
 #### Scenario: Nothing is lost when they close
 
@@ -170,12 +186,19 @@ reopen from the recent list — so nothing is lost when they close.
 
 #### Scenario: The remaining time is visible
 
-- **WHEN** the detail controls are open
-- **THEN** the time left before they close is shown, and it restarts with the inactivity period
+- **WHEN** the detail controls are open and untouched
+- **THEN** the time left before they close is shown
+
+#### Scenario: The indicator goes away rather than freezing
+
+- **WHEN** the climber interacts with the detail controls
+- **THEN** the countdown indicator is removed
 
 A sheet that vanishes without warning reads as a glitch. Showing the countdown makes the close
 predictable and lets the climber decide whether to hurry or ignore it — and the indicator SHALL derive
-its duration from the same value as the timeout, so the two cannot drift apart.
+its duration from the same value as the timeout, so the two cannot drift apart. Once the close is
+retired the indicator is removed rather than stopped, because a frozen bar promises a timer that is
+merely paused.
 
 ### Requirement: The grade grid shows the whole scale, positioned at the working range
 
@@ -189,6 +212,20 @@ omit the grade you are currently failing on, which is the grade you will be back
 
 Positioning SHALL be a starting position rather than an animated scroll, and SHALL be recomputed on mount
 and when the discipline changes, but **not** after each tick.
+
+**The grid SHALL be the scrolling region, which requires a bounded height.** Set inside a shell that
+grows with its content, the grid renders at its full natural height, `scrollHeight` equals
+`clientHeight`, and setting a scroll position is a silent no-op while the page scrolls instead — leaving
+the working range below the fold with every guard still passing. The grid SHALL therefore keep a minimum
+height of its own: it competes for vertical space with the recent-ticks list, and without a floor it was
+measured squeezed to a single row of grades mid-session, while a floor with nothing able to yield pushed
+rows off-screen entirely. Whatever gives, no row may become unreachable.
+
+**Where content continues past an edge, the grid SHALL show it.** Mobile overlay scrollbars appear only
+*while* scrolling, so they are feedback and never discovery: three visible rows of nine read as the whole
+scale. Both edges need it, because the grid opens partway down — with only a bottom cue the hardest
+grades announce themselves while the easier ones look absent. The initial position SHALL clear the top
+cue rather than sit under it, or the one row the positioning exists to reveal is the row obscured.
 
 #### Scenario: Every grade remains reachable
 
@@ -214,6 +251,26 @@ and when the discipline changes, but **not** after each tick.
 
 - **WHEN** a tick is logged at a grade outside the current range
 - **THEN** the grid does not reposition during the session
+
+#### Scenario: The grid can actually scroll
+
+- **WHEN** the active scale is taller than the space the grid has
+- **THEN** the grid scrolls within its own bounds rather than the page growing
+
+#### Scenario: Grades beyond an edge are announced
+
+- **WHEN** grades continue above or below the visible rows
+- **THEN** that edge is marked, and the marking goes away at the end of the content
+
+#### Scenario: The working range is not obscured by its own cue
+
+- **WHEN** the grid opens positioned at a working range with easier grades above it
+- **THEN** the first row of the range is clear of the top edge marking
+
+#### Scenario: A session's worth of ticks does not crowd out the grid
+
+- **WHEN** many goes have been logged in the session
+- **THEN** the grid keeps enough height to remain the primary target, and no logged go becomes unreachable
 
 ### Requirement: Discipline selects the scale the venue grades in
 
@@ -260,18 +317,33 @@ rather than a layout preference.
 
 ### Requirement: Recent ticks are visible and reversible
 
-The screen SHALL show recent ticks from the current session, each reversible, and each SHALL display what
-was actually recorded rather than the grade alone.
+The screen SHALL show the go just logged, SHALL keep every earlier go of the session reachable without
+leaving the screen, and each row SHALL display what was actually recorded rather than the grade alone.
 
 §3 makes undo first-class because a two-tap interface maximises mis-taps. `DESIGN.md` requires it to be
 persistent rather than a transient toast — a toast that vanishes in four seconds is useless when the
 mistake is noticed after the next climb. Defaults do much of the logging, so this list is the only place
 a wrong default becomes visible while still at the wall.
 
+**Only the latest go is shown by default, and the rest are behind a control.** The shell is bounded to
+the viewport so the grade grid can position at the working range, which makes this list a competing
+claimant on the same vertical space: left long, it becomes a second scrolling region directly beneath
+the grid, and one swipe then does different things depending on where the thumb lands — erratic on the
+screen most likely to be used one-handed with chalk on.
+
+**A cap alone would be a regression, not a simplification.** There is no other route to an earlier go,
+so hiding it without a way back would make it permanently unrevertible and contradict undo being
+first-class. Whatever collapses the list SHALL therefore also expand it.
+
 #### Scenario: A mis-tap is reversible after the next climb
 
 - **WHEN** a tick was logged several ticks ago
-- **THEN** it is still visible and can still be removed
+- **THEN** it can still be reached and removed without leaving the screen
+
+#### Scenario: Collapsing never strands a go
+
+- **WHEN** more goes exist than are shown
+- **THEN** their number is reported and revealing them removes nothing from reach
 
 #### Scenario: Rows show what was recorded
 

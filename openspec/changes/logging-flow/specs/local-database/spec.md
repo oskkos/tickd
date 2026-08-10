@@ -83,6 +83,23 @@ error (§4.2, D17).
 - **WHEN** the ticks logged at one venue are needed
 - **THEN** they are found via that venue's sessions, since the tick carries no venue of its own
 
+### Requirement: Startup never blocks or fails silently
+
+Startup SHALL be bounded in time and SHALL report whether storage is usable, rather than resolving
+normally on failure. **The bound SHALL cover every step awaited before first render, not merely the
+database open.**
+
+A bound that covers only the first step is not a bound. Seeding was raced against the timeout while a
+later read was awaited *after* that race had already settled, which left an unbounded tail on the one
+promise first render waits for — reproducing exactly the blank page the bound exists to prevent, one
+operation further along. Any step added to the boot sequence therefore goes inside the bound, or the
+guarantee decays every time the sequence grows.
+
+#### Scenario: The bound covers every step before first render
+
+- **WHEN** a storage operation after seeding hangs, rather than the open itself
+- **THEN** startup still completes within the bounded time and the app renders
+
 ## REMOVED Requirements
 
 ### Requirement: Invalid style combinations do not compile
@@ -202,3 +219,81 @@ single flat enum over both would repeat D6's error at a smaller scale, since a r
 
 - **WHEN** a tick is written without either
 - **THEN** it is valid, because these are descriptive and no Phase 0 metric reads them
+
+### Requirement: The row invariants hold at the write path, not only on the row type
+
+Every invariant asserted about a tick row SHALL hold for the type accepted by the code that writes one.
+No write path SHALL reach the table through a cast that discards the row's unions.
+
+**Proving an invariant on `Tick` is a different claim from "an invalid row cannot be written", and the
+gap was a real defect rather than a hypothetical.** The helper that logs a tick took `discipline` and
+`protection` as independent fields beside `grade_scale` and `grade_raw`, built the row, and asserted the
+result. Every type-level assertion in the suite was written against the table's `add` parameter, so the
+cast walked past all of them at once: a boulder on lead, and a French label under `grade_scale: 'font'`,
+both compiled and persisted. The invariant was advertised on the row type and absent from the only path
+that writes one.
+
+The corollary is about where assertions point. Assertions aimed at the row type cannot detect this,
+because the row type was never wrong. They SHALL be written against the accepting types — the table's
+own `add`/`put` parameters, and the draft type of any helper that writes — so a regression is a compile
+error rather than a row that cannot be repaired in a phase with no migrations.
+
+Where a value must cross from untyped input into a paired union, it SHALL be checked rather than
+asserted. A label arriving from the UI carries no proof it came from the scale currently rendered, so the
+boundary is a function that returns the union or nothing.
+
+#### Scenario: A mismatched pair cannot be drafted
+
+- **WHEN** a write helper is handed a boulder with a rope protection, or a label from the other scale
+- **THEN** it does not compile
+
+#### Scenario: The write path holds no cast that erases the unions
+
+- **WHEN** the code that writes a tick is inspected
+- **THEN** the row it builds is checked against the row type rather than asserted into it
+
+#### Scenario: Assertions are made against what the writer accepts
+
+- **WHEN** the type-level assertions are inspected
+- **THEN** they are written against the accepting parameter types, not restated row shapes
+
+#### Scenario: An untrusted label is validated, not cast
+
+- **WHEN** a grade label arrives from the interface
+- **THEN** it is paired with its scale by a check that can fail, rather than by assertion
+
+### Requirement: A stored row may outlive the labels its scale recognises
+
+Reading grades back SHALL tolerate a row whose label its scale no longer contains, rather than failing
+the whole read.
+
+The pairing the row type guarantees holds for rows this build wrote. It does not hold for rows already on
+disk, and in a phase with no migrations those are the only rows that matter: a label the current grade
+spec no longer recognises is permanent. A throwing lookup inside a read over many ticks rejects the
+entire result, so one unreadable row cost a discipline its working range for the whole ninety-day window,
+with nothing surfaced in the interface.
+
+#### Scenario: One unreadable row does not fail the read
+
+- **WHEN** a stored tick carries a label its `grade_scale` does not contain
+- **THEN** it is skipped and the remaining ticks are still read
+
+#### Scenario: No readable rows reads as no history
+
+- **WHEN** every recent tick for a pair is unreadable
+- **THEN** the result is the same as having no ticks, rather than an error
+
+### Requirement: A session is opened at most once
+
+Opening a session SHALL be atomic with respect to checking whether one is already open.
+
+"At most one session is open at a time" is relied upon silently by every reader that looks the open
+session up, and two taps on a start control produced two rows with no end. The lookup then chooses
+between them in primary-key order — effectively arbitrary — so a later launch could resume the empty one
+and report nothing logged for a session the climber had filled, while a lazy close closes one and leaves
+the other running.
+
+#### Scenario: Two starts in flight produce one session
+
+- **WHEN** a session start is requested twice before the first completes
+- **THEN** one session exists afterwards and both requests report the same one
