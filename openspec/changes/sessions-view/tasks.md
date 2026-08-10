@@ -19,15 +19,15 @@
 
 ## 2. Reading history out of the database
 
-- [ ] 2.1 Add a history read to `apps/web/src/db/sessions.ts`: all sessions plus their ticks, in one
+- [x] 2.1 Add a history read to `apps/web/src/db/sessions.ts`: all sessions plus their ticks, in one
   pass each, grouped by `session_id` in a `Map` (design D6 — not a query per card)
-- [ ] 2.2 Order sessions by `started_at` descending in memory, with the open one first. Follow
+- [x] 2.2 Order sessions by `started_at` descending in memory, with the open one first. Follow
   `lastVenueId`'s precedent and its stated reason for not adding an index
-- [ ] 2.3 Add a `sessionById` read for the detail route, returning the session, its venue and its ticks
+- [x] 2.3 Add a `sessionById` read for the detail route, returning the session, its venue and its ticks
   ordered by `created_at` ascending
-- [ ] 2.4 Add the pure grouping function: ticks → groups keyed by `(discipline, grade_scale)`, in
+- [x] 2.4 Add the pure grouping function: ticks → groups keyed by `(discipline, grade_scale)`, in
   first-appearance order, returning a single ungrouped run when there is only one pair
-- [ ] 2.5 Tests: a discarded session yields no row; the open session sorts first; a mixed-scale session
+- [x] 2.5 Tests: a discarded session yields no row; the open session sorts first; a mixed-scale session
   splits into two groups and a single-scale one does not; a session at a venue grading both disciplines
   in French still splits by discipline
 
