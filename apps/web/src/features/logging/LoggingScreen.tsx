@@ -3,14 +3,7 @@ import type { ScaleId } from '@tickd/grade-spec';
 import { db } from '../../db/schema.ts';
 import { workingRange, type WorkingRange } from '../../db/range.ts';
 import { endSession, lastVenueId, openSession, startSession } from '../../db/sessions.ts';
-import {
-  annotateTick,
-  gradeOf,
-  logTick,
-  recentTicks,
-  removeTick,
-  type TickAnnotation,
-} from '../../db/ticks.ts';
+import { gradeOf, logTick, recentTicks, removeTick } from '../../db/ticks.ts';
 import type {
   Discipline,
   RopedProtection,
@@ -20,7 +13,8 @@ import type {
   TickOutcome,
   Venue,
 } from '../../db/types.ts';
-import { AnnotationSheet } from './AnnotationSheet.tsx';
+import { AnnotationSheet } from '../../components/annotation/AnnotationSheet.tsx';
+import { useAnnotation } from '../../components/annotation/useAnnotation.ts';
 import { climbOn, disciplinesAt, ROPED_PROTECTIONS } from './disciplines.ts';
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
@@ -61,9 +55,6 @@ export function LoggingScreen() {
    * make every later `workingRange` read of that discipline throw. Found by review.
    */
   const [pendingGrade, setPendingGrade] = useState<TickGrade | undefined>();
-  /** The tick whose detail sheet is open, if any. Set by logging, and by tapping a row. */
-  const [annotating, setAnnotating] = useState<Tick | undefined>();
-  const [annotation, setAnnotation] = useState<TickAnnotation>({});
 
   useEffect(() => {
     void (async () => {
@@ -122,6 +113,16 @@ export function LoggingScreen() {
     setTicks(await recentTicks(db, sessionId));
   }, []);
 
+  /** The detail sheet's state, shared in shape with the session detail screen but never in value. */
+  const sheet = useAnnotation(
+    useCallback(
+      async (tick: Tick) => {
+        await refreshTicks(tick.session_id);
+      },
+      [refreshTicks],
+    ),
+  );
+
   async function handleStart() {
     if (!selectedVenueId || starting) {
       return;
@@ -147,7 +148,7 @@ export function LoggingScreen() {
     setEnding(undefined);
     setTicks([]);
     setPendingGrade(undefined);
-    setAnnotating(undefined);
+    sheet.dismiss();
   }
 
   /** The second tap. The tick is written here — there is no confirm between this and the database. */
@@ -165,39 +166,13 @@ export function LoggingScreen() {
       outcome,
     });
     setPendingGrade(undefined);
-    setAnnotating(tick);
-    setAnnotation({});
+    sheet.openForNew(tick);
     await refreshTicks(session.id);
-  }
-
-  async function handleAnnotate(next: TickAnnotation) {
-    setAnnotation(next);
-    if (annotating) {
-      // Written on every change, so the sheet closing — by timer, by Done, or by the next grade —
-      // never loses anything.
-      await annotateTick(db, annotating.id, next);
-      await refreshTicks(annotating.session_id);
-    }
-  }
-
-  /** Reopens the sheet for an earlier tick, seeded with what it already carries. */
-  function handleReopen(tick: Tick) {
-    setAnnotating(tick);
-    setAnnotation({
-      notes: tick.notes,
-      angle: tick.angle,
-      holds: tick.holds,
-      rating: tick.rating,
-      grade_opinion: tick.grade_opinion,
-      length_m: tick.length_m,
-    });
   }
 
   async function handleRemove(id: string) {
     await removeTick(db, id);
-    if (annotating?.id === id) {
-      setAnnotating(undefined);
-    }
+    sheet.dismissIfOpenFor(id);
     if (session) {
       await refreshTicks(session.id);
     }
@@ -245,7 +220,7 @@ export function LoggingScreen() {
           type="button"
           onClick={() => {
             setEnding(new Date());
-            setAnnotating(undefined);
+            sheet.dismiss();
           }}
           className="btn btn-sm btn-outline min-h-touch shrink-0 px-4"
         >
@@ -315,7 +290,7 @@ export function LoggingScreen() {
               }
               setPendingGrade(picked);
               // Picking the next grade dismisses the sheet — the whole point of it not being modal.
-              setAnnotating(undefined);
+              sheet.dismiss();
             }}
           />
         )
@@ -332,21 +307,20 @@ export function LoggingScreen() {
       <RecentTicks
         ticks={ticks}
         onRemove={(id) => void handleRemove(id)}
-        onAnnotate={handleReopen}
+        onAnnotate={sheet.openForExisting}
       />
 
       {/* Last, and fixed — it overlays rather than sitting below the fold where nobody saw it. */}
-      {annotating && (
+      {sheet.open && (
         <AnnotationSheet
           // Keyed on the tick, so a new one gets a fresh sheet and a fresh countdown without the
           // sheet resetting its own state in an effect.
-          key={annotating.id}
-          tick={annotating}
-          annotation={annotation}
-          onChange={(next) => void handleAnnotate(next)}
-          onDismiss={() => {
-            setAnnotating(undefined);
-          }}
+          key={sheet.open.tick.id}
+          tick={sheet.open.tick}
+          reason={sheet.open.reason}
+          annotation={sheet.annotation}
+          onChange={(next) => void sheet.change(next)}
+          onDismiss={sheet.dismiss}
         />
       )}
     </div>

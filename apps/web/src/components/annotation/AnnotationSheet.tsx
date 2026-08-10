@@ -29,6 +29,17 @@ import { AnnotationPanel } from './AnnotationPanel.tsx';
  * does not. That rule is about **undo**, where a four-second window is useless because the mistake is
  * noticed after the next climb. This is optional detail: nothing is lost when it closes, because the
  * tick is already written and the same sheet reopens from the recent list.
+ *
+ * **All of which applies only when the sheet followed a write.** `reason` exists because both the
+ * countdown and the heading were wrong the other way round: reopening a go from three weeks ago
+ * announced "Logged 6a" and started a five-second clock on a form the climber had deliberately
+ * opened. The countdown's whole justification is that it keeps an *interruption* of the two-tap path
+ * cheap — there is no such path to protect when the sheet is what was asked for, so a clock there does
+ * the opposite of its job.
+ *
+ * One prop rather than two, and that is deliberate: the heading and the countdown are two expressions
+ * of the same fact. Given `autoClose` and a separate heading flag they could disagree, and "Logged 6a"
+ * above no countdown is a stranger state than either behaviour on its own.
  */
 
 /**
@@ -39,13 +50,23 @@ import { AnnotationPanel } from './AnnotationPanel.tsx';
  */
 export const SHEET_IDLE_MS = 5000;
 
+/**
+ * Why the sheet is open, which is the only thing the countdown and the heading depend on.
+ *
+ * - `logged` — it followed a write, and the climber has not asked for it.
+ * - `reopened` — a go was tapped, in the recent list or in a session's detail.
+ */
+export type SheetReason = 'logged' | 'reopened';
+
 export function AnnotationSheet({
   tick,
+  reason,
   annotation,
   onChange,
   onDismiss,
 }: {
   tick: Tick;
+  reason: SheetReason;
   annotation: TickAnnotation;
   onChange: (next: TickAnnotation) => void;
   onDismiss: () => void;
@@ -56,8 +77,13 @@ export function AnnotationSheet({
    * Reset by the caller keying this component on the tick id, not by an effect. Resetting state in
    * an effect triggers a cascading render and is what the lint rule objects to — remounting is both
    * cheaper and the idiomatic way to say "this is a different sheet".
+   *
+   * **A reopened sheet starts engaged**, which is not a trick but the literal truth: tapping a go to
+   * open its detail *is* the first interaction. Saying it this way means the timer effect and the
+   * countdown bar below need no second condition, so there is one place where "does this sheet close
+   * itself" is decided.
    */
-  const [engaged, setEngaged] = useState(false);
+  const [engaged, setEngaged] = useState(reason === 'reopened');
 
   /**
    * The latest `onDismiss`, held in a ref so the timer below does not depend on it.
@@ -141,7 +167,15 @@ export function AnnotationSheet({
           <div className="mb-3 flex items-baseline justify-between gap-2">
             <p className="text-sm">
               {/* Verbatim — case separates Font from French. */}
-              Logged <span className="tabular text-base">{tick.grade_raw}</span>. Add detail?
+              {reason === 'logged' ? (
+                <>
+                  Logged <span className="tabular text-base">{tick.grade_raw}</span>. Add detail?
+                </>
+              ) : (
+                <>
+                  <span className="tabular text-base">{tick.grade_raw}</span>. Anything to change?
+                </>
+              )}
             </p>
             {/* Was underlined text, which reads as prose rather than a control — chalky hands need to
               see a target, not infer one. */}

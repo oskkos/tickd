@@ -62,17 +62,17 @@
 
 ## 5. The sheet, opened deliberately
 
-- [ ] 5.1 Give `AnnotationSheet` a `reason: 'logged' | 'reopened'` prop (design D5 — one cause, one
+- [x] 5.1 Give `AnnotationSheet` a `reason: 'logged' | 'reopened'` prop (design D5 — one cause, one
   prop, so the heading and the countdown cannot disagree). `'reopened'` shows no countdown and no
   "Logged" heading
-- [ ] 5.2 Rewrite the sheet's doc comment: `SHEET_IDLE_MS` exists to keep an *interruption* of the
+- [x] 5.2 Rewrite the sheet's doc comment: `SHEET_IDLE_MS` exists to keep an *interruption* of the
   two-tap path cheap, which is why a deliberately opened sheet has nothing to count down to
-- [ ] 5.3 Extract `LoggingScreen`'s `annotating` / `annotation` state and its write path into a
+- [x] 5.3 Extract `LoggingScreen`'s `annotating` / `annotation` state and its write path into a
   `useAnnotation` hook taking an "after write" callback — the file's own comment predicts this
   extraction
-- [ ] 5.4 Pass `reason: 'reopened'` from `LoggingScreen.handleReopen`, fixing the existing fault where
+- [x] 5.4 Pass `reason: 'reopened'` from `LoggingScreen.handleReopen`, fixing the existing fault where
   tapping a recent tick shows a false "Logged" and starts a countdown
-- [ ] 5.5 Tests: a sheet opened after a write closes itself and shows a countdown; one opened by
+- [x] 5.5 Tests: a sheet opened after a write closes itself and shows a countdown; one opened by
   reopening does neither and its heading does not claim a fresh write
 
 ## 6. The session detail

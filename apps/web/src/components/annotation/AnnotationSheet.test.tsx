@@ -34,7 +34,15 @@ function touchInside() {
 
 describe('AnnotationSheet', () => {
   it('names the tick it is for', () => {
-    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole('region', { name: 'Detail for 6c+' })).toBeInTheDocument();
   });
@@ -43,7 +51,13 @@ describe('AnnotationSheet', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
     );
 
     act(() => {
@@ -58,7 +72,13 @@ describe('AnnotationSheet', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
     );
 
     touchInside();
@@ -82,6 +102,7 @@ describe('AnnotationSheet', () => {
       <AnnotationSheet
         key={tick.id}
         tick={tick}
+        reason="logged"
         annotation={{}}
         onChange={vi.fn()}
         onDismiss={onDismiss}
@@ -93,6 +114,7 @@ describe('AnnotationSheet', () => {
       <AnnotationSheet
         key="b"
         tick={{ ...tick, id: 'b', grade_raw: '7a' } as Tick}
+        reason="logged"
         annotation={{}}
         onChange={vi.fn()}
         onDismiss={onDismiss}
@@ -107,7 +129,15 @@ describe('AnnotationSheet', () => {
   });
 
   it('shows a countdown matching the timeout it depicts', () => {
-    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
 
     const bar = screen.getByTestId('sheet-countdown');
     // One source of truth: the bar reads its duration from the same constant as the timer, so it
@@ -118,7 +148,15 @@ describe('AnnotationSheet', () => {
   });
 
   it('removes the countdown once touched, rather than freezing it', async () => {
-    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
     expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'overhang' }));
@@ -128,7 +166,15 @@ describe('AnnotationSheet', () => {
   });
 
   it('blocks the screen behind it', () => {
-    render(<AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={vi.fn()} />);
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
 
     // Reverses the original "not modal" decision. Unblocked, a tap meant for the sheet that landed
     // just outside it logged a whole new tick and replaced the sheet being filled in — the cheap path
@@ -141,7 +187,13 @@ describe('AnnotationSheet', () => {
   it('is dismissed by the tap that would previously have logged something', async () => {
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /close detail/i }));
@@ -154,7 +206,13 @@ describe('AnnotationSheet', () => {
   it('can be dismissed deliberately', async () => {
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet tick={tick} annotation={{}} onChange={vi.fn()} onDismiss={onDismiss} />,
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /done/i }));
@@ -164,7 +222,15 @@ describe('AnnotationSheet', () => {
 
   it('reports changes as they happen rather than on close', async () => {
     const onChange = vi.fn();
-    render(<AnnotationSheet tick={tick} annotation={{}} onChange={onChange} onDismiss={vi.fn()} />);
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        onChange={onChange}
+        onDismiss={vi.fn()}
+      />,
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'crimp' }));
 
@@ -176,6 +242,7 @@ describe('AnnotationSheet', () => {
     render(
       <AnnotationSheet
         tick={{ ...tick, grade_scale: 'font', grade_raw: '6A' }}
+        reason="logged"
         annotation={{}}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
@@ -183,5 +250,71 @@ describe('AnnotationSheet', () => {
     );
 
     expect(screen.getByRole('region', { name: 'Detail for 6A' })).toBeInTheDocument();
+  });
+});
+
+describe('a sheet the climber asked for', () => {
+  function reopened(onDismiss = vi.fn()) {
+    render(
+      <AnnotationSheet
+        tick={tick}
+        reason="reopened"
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
+    );
+    return onDismiss;
+  }
+
+  it('does not close itself, however long it is left', () => {
+    vi.useFakeTimers();
+    const onDismiss = reopened();
+
+    act(() => {
+      // Ten times the idle interval. The countdown exists to keep an *interruption* of the two-tap
+      // path cheap; there is no such path to protect when the sheet is what was tapped, so a clock
+      // here would be racing the climber to finish a field that was optional to begin with.
+      vi.advanceTimersByTime(SHEET_IDLE_MS * 10);
+    });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it('shows no countdown, since there is nothing to count down to', () => {
+    reopened();
+
+    expect(screen.queryByTestId('sheet-countdown')).toBeNull();
+  });
+
+  it('does not claim the tick was just logged', () => {
+    reopened();
+
+    // The fault this fixes was live: reopening a go from three weeks ago announced "Logged 6c+".
+    expect(screen.getByRole('region', { name: 'Detail for 6c+' })).not.toHaveTextContent(/logged/i);
+  });
+
+  it('still names the grade, verbatim', () => {
+    reopened();
+
+    expect(screen.getByRole('region', { name: 'Detail for 6c+' })).toHaveTextContent('6c+');
+  });
+
+  it('can still be dismissed deliberately', async () => {
+    const onDismiss = reopened();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    expect(onDismiss).toHaveBeenCalled();
+  });
+
+  it('still blocks the screen behind it', async () => {
+    const onDismiss = reopened();
+
+    // Modality is not what `reason` changes: a near-miss tap must not reach the grade grid whichever
+    // way the sheet opened.
+    await userEvent.click(screen.getByRole('button', { name: 'Close detail' }));
+
+    expect(onDismiss).toHaveBeenCalled();
   });
 });
