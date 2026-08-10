@@ -35,6 +35,17 @@ class ResizeObserverStub {
 // only ever runs under jsdom, so there is nothing here to preserve.
 globalThis.ResizeObserver = ResizeObserverStub;
 
+/**
+ * jsdom declares `window.scrollTo` but throws "Not implemented" when it is called.
+ *
+ * The router restores scroll position on every navigation, so without this each route change prints a
+ * jsdom error — noise that would bury a real one. A no-op is the honest stub for the same reason the
+ * `ResizeObserver` one is: there is no layout to scroll, so there is nothing to record.
+ */
+window.scrollTo = () => {
+  /* no layout to scroll */
+};
+
 // `virtual:pwa-register/react` is supplied by vite-plugin-pwa at build time and has no service
 // worker to talk to under jsdom.
 vi.mock('virtual:pwa-register/react', () => ({
