@@ -1,21 +1,21 @@
 ## 1. The router and the tab bar
 
-- [ ] 1.1 Add `@tanstack/react-router` to `apps/web` dependencies. Do **not** add
+- [x] 1.1 Add `@tanstack/react-router` to `apps/web` dependencies. Do **not** add
   `@tanstack/router-plugin` — routes are hand-written (design D1, and the `build-tooling` delta forbids
   a generated route tree)
-- [ ] 1.2 Declare the route tree in code: a root route holding the shell, `/` for Log, `/sessions` for
+- [x] 1.2 Declare the route tree in code: a root route holding the shell, `/` for Log, `/sessions` for
   the list, `/sessions/$sessionId` for the detail. `/` stays the Log route so the manifest's `start_url`
   and existing installs keep working
-- [ ] 1.3 Move screen selection out of `LoggingScreen` into the routes. The `session && ending` summary
+- [x] 1.3 Move screen selection out of `LoggingScreen` into the routes. The `session && ending` summary
   branch stays inside the Log route — ending a session is a step in logging, not a destination
-- [ ] 1.4 Build the `TabBar` component in the root route: fixed to the bottom, one tab per shipped
+- [x] 1.4 Build the `TabBar` component in the root route: fixed to the bottom, one tab per shipped
   surface (`Log`, `Sessions`), no placeholder entries for `Flash` or `Settings`. Current tab marked by
   more than colour, targets at least 48 px
-- [ ] 1.5 Keep the shell's `h-dvh` / `overflow-hidden` bounding intact and give the tab bar `shrink-0`,
+- [x] 1.5 Keep the shell's `h-dvh` / `overflow-hidden` bounding intact and give the tab bar `shrink-0`,
   so it takes space from `main` rather than overflowing it
-- [ ] 1.6 Tests: the bar renders exactly the shipped tabs and no disabled ones; the current tab is
+- [x] 1.6 Tests: the bar renders exactly the shipped tabs and no disabled ones; the current tab is
   marked; navigating to `/sessions` and back leaves the Log route intact
-- [ ] 1.7 Update `apps/web/src/App.tsx`'s doc comment — it currently states there is no router and why
+- [x] 1.7 Update `apps/web/src/App.tsx`'s doc comment — it currently states there is no router and why
 
 ## 2. Reading history out of the database
 
