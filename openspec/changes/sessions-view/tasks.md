@@ -108,20 +108,27 @@
 
 ## 8. Verify
 
-- [ ] 8.1 **Measure the logging screen in Chromium at 412×600 with the tab bar rendered.** Confirm the
+- [x] 8.1 **Measure the logging screen in Chromium at 412×600 with the tab bar rendered.** Confirm the
   grade grid shows at least three rows, scrolls within its own bounds, and that the page itself does
   not scroll. Reasoning about this layout was wrong three times during `logging-flow`; measurement was
   right every time
-- [ ] 8.2 If the grid falls below its floor, apply design D8's reclaim order — `ThemeSwitch` to Settings
-  first, then the logo header — and re-measure rather than adjusting the floor
-- [ ] 8.3 Verify an offline deep link: build, preview, load `/sessions` with the network disabled after
+- [x] 8.2 **Not needed as written, and the measurement found a different casualty.** The grid held at
+  exactly 160px / 3 rows, so D8's reclaim order was not triggered. What yielded instead was the
+  recent-ticks list — 24px against a 64px row. Fixed at the source (a `py-2` on the row that added 16px
+  to a target already 48px from `min-h-touch`), plus a one-row floor and 8px off the shell header's
+  padding. Re-measured: grid 160/3 rows, list 48px with the row fully visible, page does not scroll,
+  nothing clipped. At 412×915 the grid takes 515px and 9 rows, so the floors bind only where intended
+- [x] 8.3 Verify an offline deep link: build, preview, load `/sessions` with the network disabled after
   one online visit. Configure `workbox.navigateFallback` if `vite-plugin-pwa`'s default does not already
   cover it — do not assume either way
-- [ ] 8.4 Verify the back gesture in an installed PWA on Android: Sessions → back returns to Log without
-  dismissing the app; detail → back returns to the list
-- [ ] 8.5 Confirm the scope fence still holds: `apps/web/package.json` has no HTTP, auth, sync or
+- [ ] 8.4 **Not performed — needs a device I do not have.** What *was* verified in Chromium at 412×600:
+  `history.back()` from `/sessions` returns to `/` with the app still mounted, and `history.forward()`
+  returns to `/sessions`; the Sessions tab stays marked current on the detail route. That exercises the
+  same History API the Android gesture drives, but **not** the installed-PWA case, where back at the
+  first entry closes the app. Left unticked deliberately: it needs a phone
+- [x] 8.5 Confirm the scope fence still holds: `apps/web/package.json` has no HTTP, auth, sync or
   server-state dependency, and no generated route tree or route plugin exists
-- [ ] 8.6 Plant-verify the new guards one at a time — break the grouping function so a mixed session
+- [x] 8.6 Plant-verify the new guards one at a time — break the grouping function so a mixed session
   renders one run, drop the `reason` prop's effect, tally the pills — confirming each fails exactly its
   own test, then restore. One plant at a time; batching produces collateral that proves nothing
-- [ ] 8.7 `just check` green, and record the test count
+- [x] 8.7 `just check` green, and record the test count

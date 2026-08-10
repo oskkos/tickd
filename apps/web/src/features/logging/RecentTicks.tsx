@@ -91,17 +91,31 @@ export function RecentTicks({
 
         The `max-h` applies when expanded, where scrolling is exactly what was asked for.
       */}
+      {/*
+        **`min-h-12` is a floor of one row, added when the tab bar arrived.** Measured at 412×600 with
+        eight goes logged: the grade grid held at its own floor, so this list was what yielded — down to
+        24px, showing a sliver of the row it exists to show. The whole reason `RECENT_VISIBLE` is 1 is
+        that the row confirming the write is the one being looked at, so a list that cannot fit one row
+        is not doing the job. It still scrolls; the floor only stops it collapsing below a single row.
+
+        `12` is the row's measured height rather than a guess — a first attempt at `11` was 44px against
+        a 64px row, so the floor held and the row was still cut.
+      */}
       <ul
         aria-label="Recent ticks"
         className={[
-          'flex min-h-0 flex-col gap-2 overflow-y-auto',
+          'flex min-h-12 flex-col gap-2 overflow-y-auto',
           expanded ? 'max-h-[40vh]' : '',
         ].join(' ')}
       >
+        {/* Rows carry no vertical padding: the height is already the inner button's `min-h-touch`, and
+            a `py-2` on top of it made a 48px target into a 64px row. Sixteen pixels of nothing, and what
+            stopped a single row fitting once the tab bar arrived. The touch floor is unchanged — it was
+            never coming from here. */}
         {shown.map((tick) => (
           <li
             key={tick.id}
-            className="rounded-box flex items-center gap-3 bg-base-200 px-3 py-2 text-sm"
+            className="rounded-box flex items-center gap-3 bg-base-200 px-3 text-sm"
           >
             {/*
             The row itself reopens the detail sheet. This is what makes the sheet safe to auto-close:
