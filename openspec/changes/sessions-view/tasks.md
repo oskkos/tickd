@@ -95,16 +95,16 @@
 
 ## 7. The documents
 
-- [ ] 7.1 Append `CONCEPT.md` **D22** — TanStack Router adopted in Phase 0; the family is the default
+- [x] 7.1 Append `CONCEPT.md` **D22** — TanStack Router adopted in Phase 0; the family is the default
   lean for future client-side needs; Query, Table and Form are not Phase 0, with §8.3's client-is-the-
   source-of-truth reasoning stated rather than referenced
-- [ ] 7.2 Fix the `CONCEPT.md` §5 drift: its Phase 0 feature list names neither the session list nor the
+- [x] 7.2 Fix the `CONCEPT.md` §5 drift: its Phase 0 feature list names neither the session list nor the
   settings screen, while `DESIGN.md` §6 lists both as Phase 0 surfaces. Add them, since CONCEPT owns
   *what*
-- [ ] 7.3 Add the router to `CLAUDE.md`'s planned-UI-stack section, with the Query boundary — this is the
+- [x] 7.3 Add the router to `CLAUDE.md`'s planned-UI-stack section, with the Query boundary — this is the
   file loaded into context unprompted, so it is what stops a future session reaching for `react-router`
   or adding Query
-- [ ] 7.4 Update the `Last updated:` line in `CONCEPT.md`, and `DESIGN.md`'s if it is touched
+- [x] 7.4 Update the `Last updated:` line in `CONCEPT.md`, and `DESIGN.md`'s if it is touched
 
 ## 8. Verify
 
