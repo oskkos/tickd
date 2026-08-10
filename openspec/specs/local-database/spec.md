@@ -7,12 +7,16 @@ corrupt row unrepresentable rather than merely discouraged. The client is the so
 Dexie/IndexedDB serves every read and there is no network at all in Phase 0 (`CONCEPT.md` §8, §9.0).
 
 **The invariants here fail silently rather than loudly, which is why they are types and not
-validators.** A tick with `is_send: false` carrying `send_style: 'flash'` does not throw when
-written; it inflates the flash-rate numerator permanently, and flash rate is the one Phase 0 analytic
-(§4.2, D14). A Font label stored against a French scale records a harder climb in a notation it was
+validators.** A Font label stored against a French scale records a harder climb in a notation it was
 never graded with (§7.3, D5). A boulder carrying rope protection is counted in one view and dropped in
-another (§7.4). None of these produce an error at the point of the mistake, so the point of the
-mistake has to be a compile error.
+another (§7.4). A `prior_experience` of `none` on a go that was not the first manufactures a first
+encounter, inflating the denominator of flash rate — the one Phase 0 analytic (§4.2, D14). None of these
+produce an error at the point of the mistake, so the point of the mistake has to be a compile error.
+
+**The strongest version of an invariant is one with nothing left to contradict.** Style was a stored
+column that could disagree with its own neighbours, and the two combinations that made it wrong were
+prevented by assertion; dropping it and deriving it instead (D20) made them unrepresentable rather than
+merely rejected, which is why the requirement that policed them is gone rather than relaxed.
 
 **An invariant that holds only for the row type is not enforced.** The write path — `add`, `put`,
 `bulkPut` — is the sole ingress the UI uses, and a table typing that derives its insert type from the
@@ -38,6 +42,11 @@ Phase 1 adds `app_user`, `user_identity` and the `user_id`/`device_id`/`schema_v
 columns; Phase 2 adds `session_note` and `project`. A single-device disposable database needs none of
 them, and there is nothing to backfill.
 
+**Phase 0 carries only what the screen writes.** D7 makes adding a column later free — data is
+disposable and a schema change is the wipe-and-restart already accepted — so there is no reason to carry
+a field ahead of a consumer. `send_style`, `attempts`, `sector`, `high_point` and `tick.venue_id` are
+therefore absent from the tick, and `conditions` and `felt` from the session (D18, D19, D20, D21).
+
 #### Scenario: The three Phase 0 tables exist
 
 - **WHEN** the database is opened
@@ -48,89 +57,39 @@ them, and there is nothing to backfill.
 - **WHEN** a row type is inspected
 - **THEN** it declares no `user_id`, `device_id`, `schema_version`, `visibility` or `project_id` field
 
+#### Scenario: Dropped columns are absent
+
+- **WHEN** the tick row type is inspected
+- **THEN** it declares no `send_style`, `attempts`, `sector`, `high_point` or `venue_id` field
+
+#### Scenario: Session-level narrative columns are absent
+
+- **WHEN** the session row type is inspected
+- **THEN** it declares no `conditions` or `felt` field, because `notes` on a tick carries them
+
 ### Requirement: There is no route entity
 
 A tick SHALL be anonymous. It SHALL identify what was climbed only by
-`(venue, sector?, grade, protection, send_style, prior_experience, is_send, date)`, and the schema
-SHALL NOT contain a route table, a route identifier, a natural key over route attributes, or lifecycle
-fields such as `set_at` or `removed_at`.
+`(grade, protection, prior_experience, is_send, date)` together with the session it belongs to, and the
+schema SHALL NOT contain a route table, a route identifier, a natural key over route attributes, or
+lifecycle fields such as `set_at` or `removed_at`.
 
 Indoor routes cannot be identified: a newly set 6c+ in sector 4 is indistinguishable from the one it
 replaced (§7.2, D2, D3).
+
+**The identity tuple is shorter than §7.2 originally stated.** `sector` and `send_style` are gone, and
+`venue` is reached through the session rather than stored on the tick — so what remains is the climb as
+performed, plus where and when the session was.
 
 #### Scenario: No route table or reference exists
 
 - **WHEN** the schema is inspected
 - **THEN** there is no route store, and no tick field references one
 
-#### Scenario: Sector is free text, not an entity
+#### Scenario: No grouping key links goes on the same climb
 
-- **WHEN** a tick records a sector
-- **THEN** it is stored as an optional free-text value on the tick itself
-
-### Requirement: Invalid style combinations do not compile
-
-The tick row type SHALL make the two invalid combinations of `is_send`, `send_style` and
-`prior_experience` unrepresentable, such that constructing one is a compile-time error rather than a
-value rejected at runtime.
-
-The two invalid combinations are: a `send_style` present when `is_send` is false, and `flash` or
-`onsight` paired with a `prior_experience` other than `none` (§7.4, D6, D14).
-
-Runtime validation alone is insufficient. A tick carrying `is_send: false` with `send_style: 'flash'`
-does not fail on write; it inflates the flash-rate numerator permanently, which is the exact
-corruption D14 exists to prevent.
-
-#### Scenario: An attempt cannot carry a send style
-
-- **WHEN** a tick with `is_send: false` and any `send_style` is constructed
-- **THEN** typechecking fails
-
-#### Scenario: An attempt omits the field rather than nulling it
-
-- **WHEN** a tick with `is_send: false` sets `send_style` to `undefined`
-- **THEN** typechecking fails, because the field must be absent
-
-#### Scenario: A flash cannot follow prior experience
-
-- **WHEN** a tick pairs `send_style: 'flash'` with `prior_experience: 'attempted'` or `'sent'`
-- **THEN** typechecking fails
-
-#### Scenario: A send requires a send style
-
-- **WHEN** a tick with `is_send: true` omits `send_style`
-- **THEN** typechecking fails
-
-#### Scenario: Worked sends accept any prior experience
-
-- **WHEN** a tick pairs `send_style: 'redpoint'` or `'second_go'` with `prior_experience: 'none'`
-- **THEN** it typechecks, because several goes within one session leave the experience before the
-  first go at none
-
-#### Scenario: Removing the guard breaks the build
-
-- **WHEN** the outcome union is widened so an invalid combination becomes representable
-- **THEN** the type-level assertions fail rather than passing silently
-
-#### Scenario: The invariant holds at the write path, not only on the row type
-
-- **WHEN** an invalid tick is passed to the table's `add`, `put` or `bulkPut`
-- **THEN** typechecking fails
-
-Asserting only against the row type is insufficient and was insufficient in practice. A table typing
-that derives its insert type from the row can flatten the union — `Omit` over a union keeps only the
-common keys and merges their property types — leaving every row-type assertion passing while the
-tables accept the rows they forbid. The write path is the only ingress the logging screen uses, so
-the assertions SHALL read the parameter types off the table methods rather than restate them.
-
-#### Scenario: Absence of a field is checked per union member
-
-- **WHEN** a forbidden field such as a cached ordinal is added to a single member of the grade or
-  outcome union
-- **THEN** the assertion that the field is absent fails
-
-`keyof` a union yields only the keys common to every member, so a check against `keyof Tick` cannot
-see a field added to one member alone — which is how a per-scale cached ordinal would arrive.
+- **WHEN** several ticks record goes on one climb
+- **THEN** nothing in the schema connects them, because a session-scoped climb entity is deferred (D21)
 
 ### Requirement: Discipline and protection cannot contradict each other
 
@@ -313,12 +272,12 @@ keys remain valid when a second device and a server exist (§8.3).
 
 ### Requirement: Metrics can be queried by discipline and scale together
 
-The tick store SHALL carry a compound index over `(discipline, grade_scale)`, because every metric
-groups by that pair.
+The tick store SHALL carry a compound index over `(discipline, grade_scale)`, because every metric groups
+by that pair, and SHALL NOT index `venue_id`, which no longer exists on the tick.
 
 Grouping by discipline alone pools Font and French boulders into one ranking of incomparable values;
-grouping by scale alone pools boulders with routes. Either yields a plausible wrong number rather than
-an error (§4.2, D17).
+grouping by scale alone pools boulders with routes. Either yields a plausible wrong number rather than an
+error (§4.2, D17).
 
 #### Scenario: The compound index exists
 
@@ -329,6 +288,11 @@ an error (§4.2, D17).
 
 - **WHEN** ticks are queried for one discipline and one scale
 - **THEN** only ticks matching both are returned
+
+#### Scenario: A venue-scoped query goes through the session
+
+- **WHEN** the ticks logged at one venue are needed
+- **THEN** they are found via that venue's sessions, since the tick carries no venue of its own
 
 ### Requirement: A schema marker is exported and derived from the shape
 
@@ -385,15 +349,14 @@ implement it — so absence is an expected outcome rather than an error (§7.6).
 ### Requirement: Startup never blocks or fails silently
 
 Startup SHALL be bounded in time and SHALL report whether storage is usable, rather than resolving
-normally on failure.
+normally on failure. **The bound SHALL cover every step awaited before first render, not merely the
+database open.**
 
-Handling a *rejecting* IndexedDB is not sufficient: a **hanging** open — the `blocked` event when
-another tab holds the connection, or a browser that fires no event at all — leaves an awaited promise
-unsettled and the first render never happens, producing a blank page with nothing to act on.
-
-When storage is unusable the app SHALL say so. An empty venue list is indistinguishable from a first
-launch, and the natural reading of an empty logbook is that the data is gone. §7.6 accepts losing data
-to eviction; it does not accept failing to say that nothing is being saved.
+A bound that covers only the first step is not a bound. Seeding was raced against the timeout while a
+later read was awaited *after* that race had already settled, which left an unbounded tail on the one
+promise first render waits for — reproducing exactly the blank page the bound exists to prevent, one
+operation further along. Any step added to the boot sequence therefore goes inside the bound, or the
+guarantee decays every time the sequence grows.
 
 #### Scenario: A hanging open does not block first render
 
@@ -414,6 +377,11 @@ to eviction; it does not accept failing to say that nothing is being saved.
 
 - **WHEN** storage opens normally
 - **THEN** no warning is shown
+
+#### Scenario: The bound covers every step before first render
+
+- **WHEN** a storage operation after seeding hangs, rather than the open itself
+- **THEN** startup still completes within the bounded time and the app renders
 
 ### Requirement: Identifier generation does not depend on a secure context
 
@@ -445,3 +413,180 @@ the wrong reason.
 
 - **WHEN** two tests write conflicting rows
 - **THEN** neither observes the other's data
+### Requirement: A tick records one go
+
+A tick SHALL record a single attempt on a climb, not a climb's worth of attempts. `prior_experience`
+SHALL be read relative to that go: the history before **this** go began.
+
+Four goes on one route are four ticks. The first carries `prior_experience = 'none'` and the rest carry
+`'attempted'`, so exactly one first encounter is recorded and flash rate's denominator counts the climb
+once (§4.2, D14).
+
+This replaces §7.4's example of four goes logged as one redpoint row, which assumed a tick could span
+several goes.
+
+#### Scenario: Each go is its own row
+
+- **WHEN** a climber falls three times and sends on the fourth go
+- **THEN** four ticks exist
+
+#### Scenario: Only the first go is a first encounter
+
+- **WHEN** those four ticks are read
+- **THEN** exactly one carries `prior_experience = 'none'`, so the climb contributes one row to flash
+  rate's denominator rather than four
+
+### Requirement: Style is derived, never stored
+
+The schema SHALL NOT contain a `send_style` column. Send style SHALL be derived at read time from
+`is_send` and `prior_experience`.
+
+```
+is_send && prior_experience = 'none'   →  flash
+is_send && otherwise                   →  redpoint
+!is_send                               →  no style
+```
+
+Because a tick is one go, a send with no prior experience *is* the first acquaintance and can only be a
+flash. Storing the value would store something computable from the two fields beside it — which is how it
+becomes able to disagree with them, and is the same error §7.3 forbids for ordinals.
+
+All six combinations of `prior_experience` and `is_send` are valid. **There is no invalid combination
+left to police.**
+
+#### Scenario: No style column exists
+
+- **WHEN** the tick row type is inspected
+- **THEN** it declares no `send_style` field, and no `onsight`, `flash`, `redpoint` or `second_go` enum
+
+#### Scenario: Every outcome combination is representable
+
+- **WHEN** a tick pairs any `prior_experience` with either value of `is_send`
+- **THEN** it typechecks, because all six states are valid
+
+#### Scenario: A flash is derived, not asserted
+
+- **WHEN** a tick has `is_send: true` and `prior_experience: 'none'`
+- **THEN** it is reported as a flash without any stored value saying so
+
+#### Scenario: Flash rate reads the derivation
+
+- **WHEN** flash rate is computed
+- **THEN** its numerator counts ticks with `is_send` and `prior_experience = 'none'`, and its denominator
+  counts every tick with `prior_experience = 'none'` including ones never sent
+
+#### Scenario: Repeat status remains derived
+
+- **WHEN** a tick has `prior_experience = 'sent'`
+- **THEN** it is a repeat, derived as before, with no `is_repeat` column (D6)
+
+### Requirement: Route characteristics are typed, not free text
+
+Where a tick records what the climb was like, it SHALL do so through typed fields rather than free-text
+tags: `angle` as at most one of `slab`, `vertical`, `overhang`, `roof`; and `holds` as any number of
+`crimp`, `sloper`, `pinch`, `pocket`, `jug`.
+
+Free text fragments — *overhang*, *overhung*, *roof* and *steep* are one concept and four strings. A
+single flat enum over both would repeat D6's error at a smaller scale, since a route is not overhanging
+*or* crimpy but both; wall angle and hold type are independent questions.
+
+`angle` is singular because it is the one that groups, slotting into the existing key as
+`(discipline, grade_scale, angle)` with no array handling.
+
+#### Scenario: Angle admits one value
+
+- **WHEN** a tick records an angle
+- **THEN** it holds a single value from the enum, not a list
+
+#### Scenario: Holds admit several
+
+- **WHEN** a tick records hold types
+- **THEN** it may hold more than one value
+
+#### Scenario: Free-text characteristics are not accepted
+
+- **WHEN** the tick row type is inspected
+- **THEN** it declares no `tags` field and no free-text characteristic
+
+#### Scenario: Both are optional
+
+- **WHEN** a tick is written without either
+- **THEN** it is valid, because these are descriptive and no Phase 0 metric reads them
+
+### Requirement: The row invariants hold at the write path, not only on the row type
+
+Every invariant asserted about a tick row SHALL hold for the type accepted by the code that writes one.
+No write path SHALL reach the table through a cast that discards the row's unions.
+
+**Proving an invariant on `Tick` is a different claim from "an invalid row cannot be written", and the
+gap was a real defect rather than a hypothetical.** The helper that logs a tick took `discipline` and
+`protection` as independent fields beside `grade_scale` and `grade_raw`, built the row, and asserted the
+result. Every type-level assertion in the suite was written against the table's `add` parameter, so the
+cast walked past all of them at once: a boulder on lead, and a French label under `grade_scale: 'font'`,
+both compiled and persisted. The invariant was advertised on the row type and absent from the only path
+that writes one.
+
+The corollary is about where assertions point. Assertions aimed at the row type cannot detect this,
+because the row type was never wrong. They SHALL be written against the accepting types — the table's
+own `add`/`put` parameters, and the draft type of any helper that writes — so a regression is a compile
+error rather than a row that cannot be repaired in a phase with no migrations.
+
+Where a value must cross from untyped input into a paired union, it SHALL be checked rather than
+asserted. A label arriving from the UI carries no proof it came from the scale currently rendered, so the
+boundary is a function that returns the union or nothing.
+
+#### Scenario: A mismatched pair cannot be drafted
+
+- **WHEN** a write helper is handed a boulder with a rope protection, or a label from the other scale
+- **THEN** it does not compile
+
+#### Scenario: The write path holds no cast that erases the unions
+
+- **WHEN** the code that writes a tick is inspected
+- **THEN** the row it builds is checked against the row type rather than asserted into it
+
+#### Scenario: Assertions are made against what the writer accepts
+
+- **WHEN** the type-level assertions are inspected
+- **THEN** they are written against the accepting parameter types, not restated row shapes
+
+#### Scenario: An untrusted label is validated, not cast
+
+- **WHEN** a grade label arrives from the interface
+- **THEN** it is paired with its scale by a check that can fail, rather than by assertion
+
+### Requirement: A stored row may outlive the labels its scale recognises
+
+Reading grades back SHALL tolerate a row whose label its scale no longer contains, rather than failing
+the whole read.
+
+The pairing the row type guarantees holds for rows this build wrote. It does not hold for rows already on
+disk, and in a phase with no migrations those are the only rows that matter: a label the current grade
+spec no longer recognises is permanent. A throwing lookup inside a read over many ticks rejects the
+entire result, so one unreadable row cost a discipline its working range for the whole ninety-day window,
+with nothing surfaced in the interface.
+
+#### Scenario: One unreadable row does not fail the read
+
+- **WHEN** a stored tick carries a label its `grade_scale` does not contain
+- **THEN** it is skipped and the remaining ticks are still read
+
+#### Scenario: No readable rows reads as no history
+
+- **WHEN** every recent tick for a pair is unreadable
+- **THEN** the result is the same as having no ticks, rather than an error
+
+### Requirement: A session is opened at most once
+
+Opening a session SHALL be atomic with respect to checking whether one is already open.
+
+"At most one session is open at a time" is relied upon silently by every reader that looks the open
+session up, and two taps on a start control produced two rows with no end. The lookup then chooses
+between them in primary-key order — effectively arbitrary — so a later launch could resume the empty one
+and report nothing logged for a session the climber had filled, while a lazy close closes one and leaves
+the other running.
+
+#### Scenario: Two starts in flight produce one session
+
+- **WHEN** a session start is requested twice before the first completes
+- **THEN** one session exists afterwards and both requests report the same one
