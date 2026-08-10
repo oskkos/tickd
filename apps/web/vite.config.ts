@@ -52,6 +52,27 @@ export default defineConfig({
   ],
   test: {
     environment: 'jsdom',
+    /*
+      **One test file at a time, because three of them drive real screens against one database.**
+
+      `LoggingScreen`, `SessionsScreen` and `SessionDetailScreen` all import the `db` singleton
+      directly — the router constructs them, so there is no prop to inject a different one through —
+      and each suite clears and seeds it in `beforeEach`. Run in parallel, one file's `clear()` lands
+      between another file's seed and its assertion, and the symptom is a venue picker with no
+      venues in a test that seeded four. Measured: flaky in roughly a quarter of full runs, never
+      reproducible in a single file.
+
+      **The cost is measured, not negligible: 28s serialised against 6s parallel**, almost all of it
+      standing up 24 jsdom environments one after another. That is accepted here because a suite that
+      fails a quarter of the time is worth less than a slow one, and because the pre-commit hook does
+      not run tests — CI does.
+
+      The better fix, when a fourth database-driven screen makes this hurt, is to reach the database
+      through context with the singleton as its default, so each test file can hand the screens their
+      own. It is a larger change than this one and worth making deliberately rather than as a
+      side-effect of adding a screen.
+    */
+    fileParallelism: false,
     globals: false,
     setupFiles: ['./vitest.setup.ts'],
     css: true,

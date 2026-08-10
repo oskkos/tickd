@@ -77,19 +77,19 @@
 
 ## 6. The session detail
 
-- [ ] 6.1 Build `SessionDetailScreen` at `/sessions/$sessionId`: venue, local date, start and end times,
+- [x] 6.1 Build `SessionDetailScreen` at `/sessions/$sessionId`: venue, local date, start and end times,
   duration, and counts of ticks, sends and flashes
-- [ ] 6.2 List every go by `created_at` ascending — interleaved across disciplines, not sectioned
+- [x] 6.2 List every go by `created_at` ascending — interleaved across disciplines, not sectioned
   (design and spec: the detail is the session's sequence)
-- [ ] 6.3 Row line one always: time, grade verbatim, outcome mark, then the protection for a roped go or
+- [x] 6.3 Row line one always: time, grade verbatim, outcome mark, then the protection for a roped go or
   the word `boulder` when protection is `none`, then prior experience in `RecentTicks`' existing
   vocabulary
-- [ ] 6.4 Row remainder, each omitted when absent: angle and holds; rating, grade opinion and length;
+- [x] 6.4 Row remainder, each omitted when absent: angle and holds; rating, grade opinion and length;
   notes. A go carrying none of them collapses to one line
-- [ ] 6.5 Tapping a go opens the annotation sheet with `reason: 'reopened'`, seeded from the tick;
+- [x] 6.5 Tapping a go opens the annotation sheet with `reason: 'reopened'`, seeded from the tick;
   writing refreshes the list in place
-- [ ] 6.6 No delete control anywhere on this screen or the list
-- [ ] 6.7 Tests: goes appear oldest first; a bare go renders one line; a fully annotated go shows all
+- [x] 6.6 No delete control anywhere on this screen or the list
+- [x] 6.7 Tests: goes appear oldest first; a bare go renders one line; a fully annotated go shows all
   six fields; a boulder row reads `boulder` and shows no protection; editing prior experience on a go in
   a closed session persists; neither history screen exposes a delete affordance
 
