@@ -1,8 +1,7 @@
+import { GoPill } from '../../components/GoPill.tsx';
 import { isFlash } from '../../db/style.ts';
 import { formatDuration, goesInOrder } from './summary.ts';
 import type { Session, Tick, Venue } from '../../db/types.ts';
-
-const LABELS = { flash: 'flashed', sent: 'sent', fell: 'not sent' } as const;
 
 /**
  * What the session contained, shown before it closes.
@@ -20,54 +19,6 @@ const LABELS = { flash: 'flashed', sent: 'sent', fell: 'not sent' } as const;
  * analytic on its own screen (§5) — putting a version of it here would smuggle it in early and at its
  * least trustworthy.
  */
-
-/**
- * How a go ended, in three shapes.
- *
- * A flash gets its own mark rather than sharing the send's. It is the thing worth spotting in a
- * session — and it is flash rate's numerator (§4.2, D14), so making it visually distinct from an
- * ordinary send is the summary agreeing with the metric rather than flattening it.
- *
- * Shape carries the meaning and colour only reinforces it: `DESIGN.md` §3 requires colour never to be
- * the only signal, and a summary read at a glance in a changing room is exactly where that matters.
- * `currentColor` throughout, so both themes are covered without a second asset.
- */
-function OutcomeIcon({ outcome }: { outcome: 'flash' | 'sent' | 'fell' }) {
-  if (outcome === 'flash') {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-4 w-4 text-warning"
-        fill="currentColor"
-      >
-        <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
-      </svg>
-    );
-  }
-
-  const up = outcome === 'sent';
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`h-4 w-4 ${up ? 'text-success' : 'text-base-content/50'}`}
-      style={up ? undefined : { transform: 'rotate(180deg)' }}
-      fill="currentColor"
-    >
-      <path d="M2 10h4v11H2zM8 21h9.3a2 2 0 0 0 1.94-1.5l1.7-6.5A1.6 1.6 0 0 0 19.4 11H14l.9-4.3a2 2 0 0 0-3.4-1.8L8 9.4z" />
-    </svg>
-  );
-}
-
-/** The word for a go, used as the accessible label since the icon is hidden. */
-function outcomeOf(tick: Tick): 'flash' | 'sent' | 'fell' {
-  if (!tick.is_send) {
-    return 'fell';
-  }
-  // Derived, never stored — sent with nothing before it can only be a flash (D20).
-  return isFlash(tick) ? 'flash' : 'sent';
-}
 
 export function SessionSummary({
   session,
@@ -110,15 +61,7 @@ export function SessionSummary({
         // End session out of the thumb zone, now that the shell is bounded to the viewport.
         <ul aria-label="Grades climbed" className="flex min-h-0 flex-wrap gap-2 overflow-y-auto">
           {goesInOrder(ticks).map((t) => (
-            <li
-              key={t.id}
-              aria-label={`${t.grade_raw}, ${LABELS[outcomeOf(t)]}`}
-              className="rounded-box flex items-center gap-1.5 bg-base-200 px-2.5 py-2 text-sm"
-            >
-              {/* Verbatim — case separates Font from French (DESIGN.md §2). */}
-              <span className="tabular text-base">{t.grade_raw}</span>
-              <OutcomeIcon outcome={outcomeOf(t)} />
-            </li>
+            <GoPill key={t.id} tick={t} />
           ))}
         </ul>
       )}
