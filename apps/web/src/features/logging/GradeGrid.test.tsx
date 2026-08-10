@@ -64,11 +64,32 @@ describe('GradeGrid', () => {
     render(<GradeGrid scale="french" range={{ from: 4, to: 6 }} onPick={vi.fn()} />);
     const grid = screen.getByTestId('grade-grid');
 
-    // `flex-1` to take the space that is going, a floor so the recent-ticks list cannot squeeze it to
-    // one row, and `overflow-y-auto` to scroll within it. Without the first two the third is inert.
+    // The scroller takes the space going (`flex-1`) and may shrink below its content (`min-h-0`),
+    // which is what makes `overflow-y-auto` mean anything rather than decorate a block that grew.
     expect(grid).toHaveClass('flex-1');
+    expect(grid).toHaveClass('min-h-0');
     expect(grid).toHaveClass('overflow-y-auto');
-    expect(grid.className).toMatch(/min-h-(?!0\b)/);
+
+    // The floor lives on the wrapper: without it the recent-ticks list squeezed the grid to 105px —
+    // one row of grades — by the eighth go on a 600px viewport.
+    expect(grid.parentElement?.className).toMatch(/min-h-\d/);
+  });
+
+  it('cues both edges, since it opens partway down the scale', () => {
+    render(<GradeGrid scale="french" range={{ from: 10, to: 14 }} onPick={vi.fn()} />);
+
+    // Whether either fade is *showing* depends on layout, which jsdom has none of — so this asserts
+    // the pair exists and is inert, and Chromium is where the appearing and retiring was measured.
+    // Both edges matter because the grid opens at the working range rather than at the top: with only
+    // a bottom fade, the hardest grades announce themselves while the easy ones look absent.
+    const grid = screen.getByTestId('grade-grid');
+    const overlays = [...(grid.parentElement?.children ?? [])].filter((el) => el !== grid);
+
+    for (const overlay of overlays) {
+      // A fade that swallowed a reachable grade would be worse than no fade.
+      expect(overlay).toHaveClass('pointer-events-none');
+      expect(overlay).toHaveAttribute('aria-hidden', 'true');
+    }
   });
 
   it('returns to easiest-first for a scale with no history', () => {
@@ -107,7 +128,31 @@ describe('GradeGrid', () => {
 
     rerender(<GradeGrid scale="french" range={{ from: 10, to: 14 }} onPick={vi.fn()} />);
 
-    expect(scrolls).toEqual([anchorTop]);
+    // Short of the anchor, not level with it: scrolled flush, the working range's first row lands
+    // under the top fade and is the one row rendered dim — the opposite of the point. The shortfall is
+    // the fade's own height, so the row clears it exactly.
+    const [scrolled] = scrolls;
+    expect(scrolled).toBeLessThan(anchorTop);
+    expect(anchorTop - (scrolled ?? 0)).toBe(32);
+    vi.restoreAllMocks();
+  });
+
+  it('does not scroll past the top to make room for a fade that is not there', () => {
+    const { rerender } = render(<GradeGrid scale="french" onPick={vi.fn()} />);
+    const container = screen.getByTestId('grade-grid');
+    vi.spyOn(container, 'offsetTop', 'get').mockReturnValue(0);
+    const scrolls: number[] = [];
+    vi.spyOn(container, 'scrollTop', 'set').mockImplementation((value: number) => {
+      scrolls.push(value);
+    });
+    // A range starting at the very first grade: the anchor is already at the top.
+    vi.spyOn(HTMLButtonElement.prototype, 'offsetTop', 'get').mockReturnValue(0);
+
+    rerender(<GradeGrid scale="french" range={{ from: 0, to: 4 }} onPick={vi.fn()} />);
+
+    // Clamped rather than negative. Nothing is above the range, so no fade is drawn and no clearance
+    // is owed — subtracting one anyway would be a silent no-op here and a wrong number elsewhere.
+    expect(scrolls).toEqual([0]);
     vi.restoreAllMocks();
   });
 

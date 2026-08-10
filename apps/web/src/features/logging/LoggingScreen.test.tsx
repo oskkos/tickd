@@ -77,6 +77,9 @@ describe('a full session', () => {
       await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
     }
 
+    // The list collapses to the go just logged, so an older one is behind the count. Still a tap, and
+    // still never impossible — undo has to outlive the climb after it.
+    await userEvent.click(await screen.findByRole('button', { name: /3 goes · show all/i }));
     await userEvent.click(await screen.findByRole('button', { name: 'Undo 6a' }));
 
     const remaining = await db.ticks.toArray();
