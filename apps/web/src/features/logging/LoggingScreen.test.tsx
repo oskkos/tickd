@@ -238,3 +238,41 @@ describe('the venue picker', () => {
     expect(screen.getByRole('button', { name: /start session/i })).toBeEnabled();
   });
 });
+
+describe('reopening a go from the recent list', () => {
+  it('does not pretend the tick was just logged, and starts no clock', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    // The sheet that follows the write says "Logged" and counts down, which is correct: it is an
+    // interruption of the two-tap path that nobody asked for.
+    expect(screen.getByRole('region', { name: 'Detail for 6c+' })).toHaveTextContent(/logged/i);
+    expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await userEvent.click(screen.getByRole('button', { name: /detail for 6c\+/i }));
+
+    // Reopening is deliberate, so neither applies. Both were wrong here before `reason` existed —
+    // tapping a go announced "Logged" and gave you five seconds to fill in the form.
+    const sheet = screen.getByRole('region', { name: 'Detail for 6c+' });
+    expect(sheet).not.toHaveTextContent(/logged/i);
+    expect(screen.queryByTestId('sheet-countdown')).toBeNull();
+  });
+
+  it('seeds the sheet from what the tick already carries', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'overhang' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    await userEvent.click(screen.getByRole('button', { name: /detail for 6c\+/i }));
+
+    // An empty form would overwrite the stored value on the first keystroke.
+    expect(screen.getByRole('button', { name: 'overhang' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+});
