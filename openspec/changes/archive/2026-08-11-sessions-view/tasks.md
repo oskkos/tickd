@@ -125,11 +125,10 @@
 - [x] 8.3 Verify an offline deep link: build, preview, load `/sessions` with the network disabled after
   one online visit. Configure `workbox.navigateFallback` if `vite-plugin-pwa`'s default does not already
   cover it — do not assume either way
-- [ ] 8.4 **Not performed — needs a device I do not have.** What *was* verified in Chromium at 412×600:
-  `history.back()` from `/sessions` returns to `/` with the app still mounted, and `history.forward()`
-  returns to `/sessions`; the Sessions tab stays marked current on the detail route. That exercises the
-  same History API the Android gesture drives, but **not** the installed-PWA case, where back at the
-  first entry closes the app. Left unticked deliberately: it needs a phone
+- [x] 8.4 **Verified on a device by the user**, on the Cloudflare preview: the back gesture returns to
+  Log from Sessions without dismissing the app, and to the list from a session detail. This was left
+  unticked through the rest of the work precisely because Chromium's `history.back()` exercises the same
+  API but not the installed-PWA case, where back at the first entry closes the app
 - [x] 8.5 Confirm the scope fence still holds: `apps/web/package.json` has no HTTP, auth, sync or
   server-state dependency, and no generated route tree or route plugin exists
 - [x] 8.6 Plant-verify the new guards one at a time — break the grouping function so a mixed session
