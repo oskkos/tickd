@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { screen, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { FontLabel, FrenchLabel } from '@tickd/grade-spec';
+import { GoPill } from '../../components/GoPill.tsx';
 import { db, newId } from '../../db/schema.ts';
 import { localDateOf } from '../../db/sessions.ts';
 import { renderApp } from '../../testing/renderApp.tsx';
@@ -58,6 +59,7 @@ const boulder = (grade_raw: FontLabel): TickDiscipline & TickGrade => ({
  */
 interface Overrides {
   is_send?: boolean;
+  tz_offset?: number;
   prior_experience?: PriorExperience;
   angle?: WallAngle;
   holds?: readonly HoldType[];
@@ -266,7 +268,7 @@ describe('correcting a go', () => {
     expect(screen.queryByTestId('sheet-countdown')).toBeNull();
   });
 
-  it('persists an edit to a go in a closed session', async () => {
+  it('persists an annotation on a go in a closed session', async () => {
     const target = tick(rope('6a'), NOW - 2 * HOUR);
     await seed([target]);
     await open();
@@ -275,8 +277,10 @@ describe('correcting a go', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a' }));
     await userEvent.click(screen.getByRole('button', { name: 'roof' }));
 
-    // Annotation was never gated on the session being open, and should not be — the whole point of
-    // this screen is that history stops being write-only.
+    // Annotation was never gated on the session being open, and should not be — the whole point of this
+    // screen is that history stops being write-only. Note the field: `angle`, not `prior_experience`.
+    // The sheet cannot reach the outcome fields at all, and an earlier version of this test's *name*
+    // claimed otherwise while asserting exactly this.
     const stored = await db.ticks.get(target.id);
     expect(stored?.angle).toBe('roof');
   });
@@ -303,5 +307,77 @@ describe('what the detail refuses to offer', () => {
     // Undo stays session-scoped: it exists for mis-taps at the wall, which is a different operation
     // from editing history.
     expect(screen.queryByRole('button', { name: /undo|delete|remove/i })).toBeNull();
+  });
+});
+
+describe('when the database cannot be read', () => {
+  it('does not claim the session was deleted', async () => {
+    await seed([tick(rope('6a'), NOW - 2 * HOUR)]);
+    // A read that fails is not a row that is absent. Collapsing the two told the climber their data was
+    // gone when IndexedDB was merely blocked by another tab — the "reads as data loss" failure
+    // StorageWarning exists to prevent.
+    const failing = vi.spyOn(db.sessions, 'get').mockRejectedValue(new Error('blocked'));
+    try {
+      await open();
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/has not been deleted/i);
+      expect(screen.queryByText(/no longer in your logbook/i)).toBeNull();
+    } finally {
+      failing.mockRestore();
+    }
+  });
+
+  it('still says a genuinely absent session is absent', async () => {
+    await renderApp({ initialPath: '/sessions/no-such-session' });
+
+    expect(await screen.findByRole('heading', { name: /session not found/i })).toBeInTheDocument();
+  });
+});
+
+describe('the times it shows', () => {
+  it("reads each go in the zone it was logged in, not the reader's", async () => {
+    // **A zone the runner is not in, deliberately.** The suite runs in Europe/Helsinki, which in July is
+    // UTC+3 — so asserting against a stored offset of 180 would pass whether the offset was read or
+    // ignored. UTC-5 makes the two answers differ: 16:15 if the stored offset is honoured, 00:15 if the
+    // reader's zone is used instead.
+    await seed([tick(rope('6a'), Date.UTC(2026, 6, 28, 21, 15), { tz_offset: -300 })]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    expect(rows()[0]).toHaveTextContent('16:15');
+    expect(rows()[0]).not.toHaveTextContent('00:15');
+  });
+});
+
+describe('consistency with the session list', () => {
+  it('draws the same outcome marks the pills draw', async () => {
+    await seed([
+      tick(rope('6a'), NOW - 2 * HOUR),
+      tick(rope('6b'), NOW - 100 * 60_000, { is_send: false }),
+      tick(rope('6c'), NOW - 95 * 60_000, { prior_experience: 'attempted' }),
+    ]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    // The rows drew their own text glyphs at first — a flash was a bolt on the session list and a
+    // different bolt one tap later, and a send was a thumb here and an arrow there. Compared by path
+    // geometry rather than by class, since that is what actually differs.
+    const detailPaths = rows().map((r) => r.querySelector('svg path')?.getAttribute('d'));
+
+    cleanup();
+    const { container } = render(
+      <ul>
+        <GoPill tick={tick(rope('6a'), 0)} />
+        <GoPill tick={tick(rope('6b'), 0, { is_send: false })} />
+        <GoPill tick={tick(rope('6c'), 0, { prior_experience: 'attempted' })} />
+      </ul>,
+    );
+    const pillPaths = [...container.querySelectorAll('li')].map((li) =>
+      li.querySelector('svg path')?.getAttribute('d'),
+    );
+
+    expect(detailPaths).toEqual(pillPaths);
+    // And the three outcomes are still told apart, so this is not two identical marks agreeing.
+    expect(new Set(detailPaths).size).toBe(2);
   });
 });

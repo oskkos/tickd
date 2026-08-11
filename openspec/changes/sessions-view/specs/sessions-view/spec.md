@@ -201,9 +201,16 @@ A go in the detail view SHALL be tappable, and tapping it SHALL open the annotat
 tick, seeded with what the tick already carries. Saving SHALL write through to the tick and the detail
 view SHALL reflect the change without a reload.
 
-Read-only history would leave a mis-tapped `prior_experience` permanently wrong, and that field is
-flash rate's denominator — a phantom first encounter inflates it at exactly the grade the metric
-exists to find.
+**What the sheet reaches is the annotation fields only** — `notes`, `rating`, `grade_opinion`, `angle`,
+`holds`, `length_m`. `prior_experience` and `is_send` are **not** editable, and this requirement does not
+claim they are: the write path is `annotateTick`, which is deliberately confined to fields outside
+`TickOutcome` because a partial of a discriminated union is unsound.
+
+That leaves a real gap, stated here rather than glossed: a mis-tapped `prior_experience` is still
+permanently wrong, and that field is flash rate's denominator, so a phantom first encounter inflates the
+metric at exactly the grade it exists to find. Correcting it needs a write path that replaces the whole
+`TickOutcome` rather than patching part of it, and a control in the sheet to drive it. Neither is in this
+change.
 
 #### Scenario: The sheet opens seeded with existing values
 
@@ -215,10 +222,10 @@ exists to find.
 - **WHEN** a value is changed in the sheet opened from the detail view
 - **THEN** the tick is updated in the database and the detail row shows the new value
 
-#### Scenario: Prior experience can be corrected after the session ended
+#### Scenario: Annotation is not gated on the session being open
 
-- **WHEN** a go in a closed session has its prior experience changed
-- **THEN** the stored tick reflects the correction
+- **WHEN** a go in a closed session has its notes changed
+- **THEN** the stored tick reflects the change, exactly as it would mid-session
 
 ### Requirement: The annotation sheet's countdown and heading follow why it opened
 

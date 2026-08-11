@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { sendStyleOf } from '../../db/style.ts';
-import { priorLabel, protectionLabel } from '../../format/climbing.ts';
+import { outcomeOf } from '../../db/style.ts';
+import { outcomeWord, priorLabel, protectionLabel } from '../../format/climbing.ts';
 import type { Tick } from '../../db/types.ts';
 
 /**
@@ -28,11 +28,6 @@ export const RECENT_VISIBLE = 1;
  * `protection` is sticky — so this list is the only place a wrong default becomes visible while still
  * standing at the wall.
  */
-
-/** What happened, in the vocabulary a climber uses rather than the enum's. */
-function outcomeLabel(tick: Tick): string {
-  return sendStyleOf(tick) ?? 'fell';
-}
 
 export function RecentTicks({
   ticks,
@@ -133,7 +128,8 @@ export function RecentTicks({
               {/* Verbatim — case separates Font from French (DESIGN.md §2). */}
               <span className="tabular text-lg">{tick.grade_raw}</span>
               <span className="flex-1 opacity-70">
-                {protectionLabel(tick)} · {outcomeLabel(tick)} · {priorLabel(tick.prior_experience)}
+                {protectionLabel(tick)} · {outcomeWord(outcomeOf(tick))} ·{' '}
+                {priorLabel(tick.prior_experience)}
               </span>
             </button>
             <button

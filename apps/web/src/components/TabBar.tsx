@@ -58,7 +58,14 @@ export function TabBar() {
     // to the viewport. The grade grid inside `main` is what yields, and it has a floor.
     <nav
       aria-label="Sections"
-      className="flex shrink-0 border-t border-base-300 bg-base-100"
+      /*
+        `pb-[env(safe-area-inset-bottom)]` rather than letting `body` pad it. The shell is `h-dvh`, so a
+        padded body made the document taller than the screen and pushed this bar off the bottom edge —
+        on an installed iOS PWA it was almost entirely invisible and navigation was unreachable. Padding
+        it here keeps the targets above the home affordance while the bar's own background still runs to
+        the physical edge.
+      */
+      className="flex shrink-0 border-t border-base-300 bg-base-100 pb-[env(safe-area-inset-bottom)]"
       data-testid="tab-bar"
     >
       {TABS.map(({ to, label, Icon, exact }) => (
