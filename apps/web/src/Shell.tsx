@@ -52,15 +52,21 @@ export function Shell() {
         <ThemeSwitch />
       </header>
 
-      <main className="flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
+      {/* `relative` so the update prompt can anchor to the bottom of *this* box rather than to the
+          viewport. Anchored to the viewport it landed on top of the tab bar — measured at 412×600, 41px
+          of the bar's 57px, with `elementFromPoint` reporting both tabs unreachable. It did not push the
+          bar anywhere; it stole the taps. */}
+      <main className="relative flex min-h-0 flex-1 flex-col gap-4 px-4 pb-4">
         <StorageWarning status={startup.status} />
         <ClosedSessionNote result={startup.lazyClose} />
         <Outlet />
+        {/* Inside `main`, so the bar below it stays reachable while the prompt is up. In flow between the
+            two instead would be worse: at 412×600 `main` has no spare height — the grade grid is already
+            on its floor — so a ~112px prompt would have to come out of something that cannot yield. */}
+        <UpdatePrompt />
       </main>
 
       <TabBar />
-
-      <UpdatePrompt />
     </div>
   );
 }

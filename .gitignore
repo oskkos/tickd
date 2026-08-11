@@ -27,3 +27,7 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Playwright MCP scratch: snapshots and console logs written into the repo root by the browser
+# tooling. Committed by accident three times, and it breaks `fmt-check` when it lands.
+.playwright-mcp/
