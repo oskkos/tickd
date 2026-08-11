@@ -5,6 +5,12 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
  *
  * Sessions are logged in fragments and every tap persists immediately, so a reload the user did not
  * ask for is indistinguishable from data loss. The new service worker waits until they accept.
+ *
+ * **Positioned against `main`, not the viewport.** `fixed bottom-0` was correct while the shell ended in
+ * `main`'s own padding; once a bottom tab bar arrived it put this card straight over the navigation —
+ * 41px of a 57px bar, with both tabs failing a hit test. So the card is `absolute` and `main` is its
+ * containing block: it can cover the bottom of the content, which is transient and dismissible, but it
+ * can no longer reach the bar.
  */
 export function UpdatePrompt() {
   const {
@@ -19,10 +25,9 @@ export function UpdatePrompt() {
   return (
     <div
       role="status"
-      className="fixed inset-x-0 bottom-0 z-50 m-4 card bg-base-200 shadow-lg"
-      // Sits above the thumb zone rather than inside it, so it cannot be dismissed by accident
-      // mid-entry.
-      style={{ marginBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+      // No safe-area margin any more: the tab bar sits below this and owns the bottom inset, so adding
+      // one here would have lifted the card by an inset it is no longer adjacent to.
+      className="card absolute inset-x-0 bottom-0 z-50 m-4 bg-base-200 shadow-lg"
     >
       <div className="card-body gap-3 p-4">
         <p className="text-sm">A new version is ready.</p>
