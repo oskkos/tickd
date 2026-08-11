@@ -67,7 +67,29 @@ export function LoggingScreen() {
       const last = open?.venue_id ?? (await lastVenueId(db));
       setSelectedVenueId((current) => current ?? last);
       if (open) {
-        setTicks(await recentTicks(db, open.id));
+        const logged = await recentTicks(db, open.id);
+        setTicks(logged);
+        /**
+         * **Discipline and protection are seeded from the session's own last go.**
+         *
+         * They were component state and nothing more, which the router turned into a data bug: this
+         * screen unmounts on every tab navigation, so a tap on Sessions and back silently reset the
+         * toggle to `sport`/`lead`. At Nekala, where both disciplines are graded in French, the grid
+         * renders identical labels either way — so the next go was written as a lead route with nothing
+         * on screen to contradict it, corrupting the `(discipline, grade_scale)` key every metric groups
+         * by, with no repair path in a phase that has no delete and no outcome editing.
+         *
+         * Reading it back from the newest tick is better than merely hoisting the state somewhere that
+         * survives: it also survives a reload and a crash, which the old version never did. The database
+         * is already the authority on what this session has been, so nothing else needs to remember.
+         */
+        const latest = logged[0];
+        if (latest) {
+          setPreferred(latest.discipline);
+          if (latest.protection !== 'none') {
+            setRopedProtection(latest.protection);
+          }
+        }
       }
     })();
   }, []);
@@ -313,9 +335,12 @@ export function LoggingScreen() {
       {/* Last, and fixed — it overlays rather than sitting below the fold where nobody saw it. */}
       {sheet.open && (
         <AnnotationSheet
-          // Keyed on the tick, so a new one gets a fresh sheet and a fresh countdown without the
-          // sheet resetting its own state in an effect.
-          key={sheet.open.tick.id}
+          // Keyed on the tick **and the reason**. The tick alone was not enough: going from
+          // `{tick: A, logged}` to `{tick: A, reopened}` never passes through `undefined`, so the key was
+          // unchanged, the component did not remount, and `engaged` stayed `false` from the first mount —
+          // leaving the original five-second timer running under a deliberately opened form. Reachable
+          // by keyboard, since the backdrop traps no focus: log a go, Tab to its row, press Enter.
+          key={`${sheet.open.tick.id}:${sheet.open.reason}`}
           tick={sheet.open.tick}
           reason={sheet.open.reason}
           annotation={sheet.annotation}

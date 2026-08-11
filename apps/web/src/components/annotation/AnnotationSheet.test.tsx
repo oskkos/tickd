@@ -318,3 +318,37 @@ describe('a sheet the climber asked for', () => {
     expect(onDismiss).toHaveBeenCalled();
   });
 });
+
+describe('reopening the tick whose sheet is already open', () => {
+  it('drops the countdown when the reason changes without a remount', () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    // Exactly how the screens key it. `useAnnotation` goes from {tick: A, logged} to {tick: A, reopened}
+    // without passing through undefined, so a key of the tick id alone never changes — the component
+    // does not remount, `engaged` stays false from the first mount, and the original five-second timer
+    // keeps running under a form the climber deliberately opened. Reachable by keyboard: log a go, Tab
+    // to its row, press Enter.
+    const sheet = (reason: 'logged' | 'reopened') => (
+      <AnnotationSheet
+        key={`${tick.id}:${reason}`}
+        tick={tick}
+        reason={reason}
+        annotation={{}}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />
+    );
+
+    const { rerender } = render(sheet('logged'));
+    expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
+
+    rerender(sheet('reopened'));
+    expect(screen.queryByTestId('sheet-countdown')).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(SHEET_IDLE_MS * 10);
+    });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+});

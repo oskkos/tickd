@@ -34,11 +34,11 @@ describe('RecentTicks', () => {
     const row = screen.getByRole('listitem');
     expect(row).toHaveTextContent('6c+');
     expect(row).toHaveTextContent(/lead/);
-    expect(row).toHaveTextContent(/flash/);
+    expect(row).toHaveTextContent(/flashed/);
     expect(row).toHaveTextContent(/first go/);
   });
 
-  it('says "fell" rather than inventing a style for an attempt', () => {
+  it('says a go was not sent rather than inventing a style for it', () => {
     render(
       <RecentTicks
         ticks={[tick({ is_send: false, prior_experience: 'attempted' })]}
@@ -48,7 +48,9 @@ describe('RecentTicks', () => {
     );
 
     const row = screen.getByRole('listitem');
-    expect(row).toHaveTextContent(/fell/);
+    // "not sent", the same words the session detail and the pills use. This row said "fell" and the
+    // detail said "not sent" for the same go — one vocabulary per screen is one too many.
+    expect(row).toHaveTextContent(/not sent/);
     expect(row).toHaveTextContent(/tried before/);
   });
 

@@ -141,3 +141,28 @@ describe('the wordmark', () => {
     expect(screen.getByTestId('logo-dark')).not.toHaveAttribute('aria-hidden');
   });
 });
+
+describe('safe-area insets', () => {
+  it('does not pad the body, which would push the shell past the viewport', async () => {
+    const { readFileSync } = await import('node:fs');
+    const css = readFileSync('src/index.css', 'utf8');
+
+    // The shell is `h-dvh` — the full screen height, insets included — so padding the body made the
+    // document `inset-top + 100dvh + inset-bottom` tall and pushed the tab bar below the fold. Measured
+    // in Chromium by simulating a 47px top inset: the bar's bottom edge landed 47px past the viewport,
+    // hiding most of a 57px bar. Invisible on a desktop browser, where every `env()` inset is 0, which
+    // is why the measurement that signed off the tab bar missed it entirely.
+    const bodyBlock = /body\s*\{([\s\S]*?)\}/.exec(css)?.[1] ?? '';
+    expect(bodyBlock).not.toMatch(/padding[^;]*env\(\s*safe-area/);
+  });
+
+  it('pads the edges the shell actually occupies', async () => {
+    await renderApp();
+
+    // The insets belong to the elements sitting against those edges: the header against the notch, the
+    // tab bar against the home affordance. Asserted as the classes that set them, because jsdom has no
+    // layout engine and resolves every `env()` to nothing.
+    expect(screen.getByTestId('tab-bar').className).toMatch(/pb-\[env\(safe-area-inset-bottom\)\]/);
+    expect(screen.getByRole('banner').className).toMatch(/env\(safe-area-inset-top\)/);
+  });
+});

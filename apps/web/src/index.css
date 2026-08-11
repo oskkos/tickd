@@ -73,9 +73,18 @@
 
   body {
     font-family: var(--font-sans);
-    /* Respect the notch and the home-affordance rather than drawing under them. */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    /*
+      **The safe-area insets are NOT padded here, and that is deliberate.** They used to be, which broke
+      the moment the shell gained a bottom tab bar: the shell is `h-dvh` — the full screen height,
+      insets included — so padding the body made the document `inset-top + 100dvh + inset-bottom` tall
+      and pushed the shell's bottom edge that far below the fold. On an installed iOS PWA the ~57px tab
+      bar was almost entirely off-screen and navigation was unreachable. Invisible on a desktop browser,
+      where every `env()` inset is 0, which is why the measurement that signed off the tab bar missed it.
+
+      The insets belong to the elements that sit against those edges instead: the shell's header pads the
+      top, the tab bar pads the bottom. That also draws the background under the notch rather than
+      leaving a band, which is what `viewport-fit=cover` is asking for.
+    */
   }
 
   h1,

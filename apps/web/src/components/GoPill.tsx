@@ -1,5 +1,6 @@
-import { outcomeOf, type GoOutcome } from '../db/style.ts';
+import { outcomeOf } from '../db/style.ts';
 import { outcomeWord } from '../format/climbing.ts';
+import { OutcomeIcon } from './OutcomeIcon.tsx';
 import type { Tick } from '../db/types.ts';
 
 /**
@@ -13,41 +14,6 @@ import type { Tick } from '../db/types.ts';
  * **Renders an `<li>` and must sit inside a list.** The accessible name lives on the item, so keeping
  * the element here is what stops a second call site from labelling it differently.
  */
-
-/**
- * The mark.
- *
- * Shape carries the meaning and colour only reinforces it: `DESIGN.md` §3 requires colour never to be
- * the only signal, and a session read at a glance in a changing room is exactly where that matters.
- * `currentColor` throughout, so both themes are covered without a second asset.
- */
-function OutcomeIcon({ outcome }: { outcome: GoOutcome }) {
-  if (outcome === 'flash') {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="h-4 w-4 text-warning"
-        fill="currentColor"
-      >
-        <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
-      </svg>
-    );
-  }
-
-  const up = outcome === 'sent';
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`h-4 w-4 ${up ? 'text-success' : 'text-base-content/50'}`}
-      style={up ? undefined : { transform: 'rotate(180deg)' }}
-      fill="currentColor"
-    >
-      <path d="M2 10h4v11H2zM8 21h9.3a2 2 0 0 0 1.94-1.5l1.7-6.5A1.6 1.6 0 0 0 19.4 11H14l.9-4.3a2 2 0 0 0-3.4-1.8L8 9.4z" />
-    </svg>
-  );
-}
 
 export function GoPill({ tick }: { tick: Tick }) {
   const outcome = outcomeOf(tick);

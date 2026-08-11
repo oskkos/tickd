@@ -22,6 +22,12 @@ export function formatDuration(ms: number): string {
 /** `en-GB` gives `Tue 28 Jul` and `17:05` — day before month, and a 24-hour clock without a meridiem. */
 const DAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 const CLOCK = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' });
+/** The same clock pinned to UTC, so a stored offset can be applied by shifting the instant. */
+const UTC_CLOCK = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+});
 
 /**
  * `Today`, `Yesterday`, or `Tue 28 Jul`.
@@ -60,7 +66,26 @@ export function dayLabel(dateLocal: LocalDate, now: Date): string {
   return DAY.format(new Date(year, month - 1, day));
 }
 
-/** The wall-clock time an instant happened at, `18:30`. */
-export function clockTime(at: Instant): string {
-  return CLOCK.format(new Date(at));
+/**
+ * The wall-clock time an instant happened at, `18:30`.
+ *
+ * **`tzOffset` is the whole point, and leaving it out was a bug.** This used to format in the *viewer's*
+ * current zone, which is a different question from the one it claims to answer: a Helsinki session logged
+ * in July (UTC+3) and read back in December (UTC+2) showed every go an hour early, and a go logged at
+ * 00:15 rendered as `23:15` directly beneath a session labelled with the previous day — the date and the
+ * time beside it contradicting each other. `tz_offset` is stored on every tick precisely so this can be
+ * reconstructed, in the same spirit as `dayLabel` reading stored `date_local` rather than deriving a day.
+ *
+ * Shifting the instant and formatting as UTC is what pins it: `Intl` has no way to be handed a raw
+ * offset, only a named zone, and the stored value is minutes east of UTC rather than a zone name.
+ *
+ * The offset is optional because `Session` does not carry one — §7.7 gives it `date_local` and instants
+ * only. A caller with no offset to hand gets the viewer's zone, which is the old behaviour and the best
+ * available answer for a session with no ticks to borrow one from.
+ */
+export function clockTime(at: Instant, tzOffset?: number): string {
+  if (tzOffset === undefined) {
+    return CLOCK.format(new Date(at));
+  }
+  return UTC_CLOCK.format(new Date(at + tzOffset * 60_000));
 }

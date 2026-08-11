@@ -65,3 +65,31 @@ describe('clockTime', () => {
     expect(clockTime(new Date(2026, 7, 8, 0, 0).getTime())).toBe('00:00');
   });
 });
+
+describe('clockTime with a stored offset', () => {
+  // 2026-07-28 21:15 UTC. In Helsinki summer (UTC+3) that is 00:15 the next day.
+  const at = Date.UTC(2026, 6, 28, 21, 15);
+
+  it('reads the wall clock of the zone the go was logged in', () => {
+    // The bug this replaces: formatting in the *viewer's* zone answered a different question. A go
+    // logged at 00:15 in Helsinki showed as 23:15 to a reader in UTC+2, contradicting the date beside it.
+    expect(clockTime(at, 180)).toBe('00:15');
+  });
+
+  it('gives the same answer wherever it is read', () => {
+    // The property that matters: the stored offset, not the reader's, decides the digits.
+    expect(clockTime(at, 180)).toBe(clockTime(at, 180));
+    expect(clockTime(at, 120)).toBe('23:15');
+    expect(clockTime(at, -300)).toBe('16:15');
+  });
+
+  it('handles a zero offset without falling back to local time', () => {
+    // `0` is falsy — a `tzOffset ?? local` guard would have silently used the reader's zone for UTC.
+    expect(clockTime(at, 0)).toBe('21:15');
+  });
+
+  it("falls back to the reader's zone when no offset is stored", () => {
+    // `Session` carries no offset (§7.7), so a session with no ticks to borrow one from lands here.
+    expect(clockTime(new Date(2026, 6, 28, 17, 5).getTime())).toBe('17:05');
+  });
+});

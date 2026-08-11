@@ -90,8 +90,12 @@
   writing refreshes the list in place
 - [x] 6.6 No delete control anywhere on this screen or the list
 - [x] 6.7 Tests: goes appear oldest first; a bare go renders one line; a fully annotated go shows all
-  six fields; a boulder row reads `boulder` and shows no protection; editing prior experience on a go in
-  a closed session persists; neither history screen exposes a delete affordance
+  six fields; a boulder row reads `boulder` and shows no protection; **annotating** a go in a closed
+  session persists; neither history screen exposes a delete affordance.
+  **Corrected after review:** this originally read "editing prior experience … persists", which the test
+  never did and the sheet cannot do — `annotateTick` is confined to fields outside `TickOutcome`. The
+  spec scenario made the same claim and has been rewritten. Outcome correction is a real gap and needs
+  its own change: a write that replaces the whole `TickOutcome`, plus a control in the sheet
 
 ## 7. The documents
 

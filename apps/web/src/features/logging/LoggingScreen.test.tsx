@@ -276,3 +276,50 @@ describe('reopening a go from the recent list', () => {
     );
   });
 });
+
+describe('the sticky discipline across a remount', () => {
+  it('is read back from the session rather than reset to sport', async () => {
+    await startAt(/Tampereen Kiipeilykeskus Nekala/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Boulder' }));
+    // French labels, not Font: Nekala grades *both* disciplines in French (D17). That is precisely why
+    // this bug was invisible — the grid looks identical whichever discipline is selected.
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    // A tab navigation unmounts this screen; so does a reload. Both used to reset the toggle to Rope,
+    // and at Nekala — which grades both disciplines in French — the grid renders identical labels either
+    // way, so the next go was silently written as a lead route.
+    cleanup();
+    render(<LoggingScreen />);
+
+    expect(await screen.findByRole('button', { name: 'Boulder' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6b' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    const stored = await db.ticks.toArray();
+    const latest = stored.find((t) => t.grade_raw === '6b');
+    expect(latest?.discipline).toBe('boulder');
+    expect(latest?.protection).toBe('none');
+  });
+
+  it('keeps the roped protection that was in force', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'toprope' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    cleanup();
+    render(<LoggingScreen />);
+    await screen.findByRole('button', { name: 'Grade 6a' });
+
+    // `protection` is sticky *and visible*, which is the condition DESIGN.md attaches to allowing it —
+    // so coming back to a screen that silently says `lead` breaks the deal.
+    expect(screen.getByRole('button', { name: 'toprope' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
