@@ -15,7 +15,7 @@
  */
 
 import { db } from './schema.ts';
-import type { TickDraft } from './ticks.ts';
+import type { correctGrade, correctOutcome, correctProtection, TickDraft } from './ticks.ts';
 import type { Tick, TickBase, TickDiscipline, TickGrade, Venue } from './types.ts';
 
 type IsAssignable<Candidate, Target> = [Candidate] extends [Target] ? true : false;
@@ -252,6 +252,86 @@ export type RopeWithoutProtectionIsNotLoggable = AssertNotAssignable<
 /** A venue offering neither discipline is not a venue. */
 export type ScalelessVenueIsNotInsertable = AssertNotAssignable<
   IsAssignable<VenueFields, VenueAdd>
+>;
+
+// ── Correction is a write path, so it carries the same obligation ────────────────────────────────
+
+/**
+ * The three correction helpers, asserted through their **parameter types** like everything above.
+ *
+ * A correction writes the whole row through `put`, so it is exactly as capable of persisting a
+ * contradictory pair as `logTick` was before its cast was removed. What is asserted here is narrower than
+ * for the draft, and deliberately so: the correction helpers do not *take* the fields that could
+ * contradict each other. `correctGrade` takes a bare `string` and pairs it against the scale it reads off
+ * the row, so there is no scale parameter to mismatch; `correctProtection` takes no `discipline`, so there
+ * is none to move. The assertions therefore prove the shape of the *interface* — that a boulder cannot
+ * reach the protection helper, and that `none` cannot be offered as a protection — because that shape is
+ * what stands in for a validator.
+ *
+ * There is no `correctClimb` to assert against, which is the point: a cross-discipline correction is
+ * unrepresentable because the function does not exist, not because a check rejects it.
+ */
+type CorrectProtectionTick = Parameters<typeof correctProtection>[1];
+type CorrectProtectionValue = Parameters<typeof correctProtection>[2];
+type CorrectGradeValue = Parameters<typeof correctGrade>[2];
+type CorrectOutcomeValue = Parameters<typeof correctOutcome>[2];
+
+/** Controls: the valid corrections must still reach the helpers. */
+export type RopeTickIsCorrectable = AssertAssignable<
+  IsAssignable<
+    RopeFields & FrenchGrade & { is_send: true; prior_experience: 'none' },
+    CorrectProtectionTick
+  >
+>;
+export type EveryRopedProtectionIsOfferable = AssertAssignable<
+  IsAssignable<'lead' | 'toprope' | 'autobelay', CorrectProtectionValue>
+>;
+export type EveryOutcomeIsCorrectable = AssertAssignable<
+  IsAssignable<
+    | { is_send: true; prior_experience: 'none' }
+    | { is_send: false; prior_experience: 'none' }
+    | { is_send: true; prior_experience: 'attempted' }
+    | { is_send: false; prior_experience: 'attempted' }
+    | { is_send: true; prior_experience: 'sent' }
+    | { is_send: false; prior_experience: 'sent' },
+    CorrectOutcomeValue
+  >
+>;
+
+/**
+ * A boulder cannot reach the protection helper.
+ *
+ * This is the compile-time half of "correction never crosses a discipline". The runtime guard on the row
+ * the helper reads is the other half, and `ticks.test.ts` covers it by casting past this assertion.
+ */
+export type BoulderTickIsNotProtectionCorrectable = AssertNotAssignable<
+  IsAssignable<
+    BoulderFields & { grade_scale: 'font'; grade_raw: '6A' } & {
+      is_send: false;
+      prior_experience: 'none';
+    },
+    CorrectProtectionTick
+  >
+>;
+
+/** `none` *means* boulder, so it is not one of the protections a correction may choose. */
+export type NoneIsNotAnOfferableProtection = AssertNotAssignable<
+  IsAssignable<'none', CorrectProtectionValue>
+>;
+
+/**
+ * The grade helper takes a label and no scale.
+ *
+ * A `TickGrade` parameter would read better and would move the pairing decision to a click handler that
+ * has no proof of which grid rendered the label — the hole `gradeOf` exists to close. Asserting the
+ * parameter is a plain `string` is how that stays true: if someone widens it to accept a pre-paired grade,
+ * this fails.
+ */
+export type CorrectGradeTakesAnUnpairedLabel = AssertAssignable<
+  IsAssignable<CorrectGradeValue, string>
+>;
+export type CorrectGradeTakesNoPairedGrade = AssertNotAssignable<
+  IsAssignable<FrenchGrade, CorrectGradeValue>
 >;
 
 // ── Narrowing through the intersection, non-vacuously ────────────────────────────────────────────
