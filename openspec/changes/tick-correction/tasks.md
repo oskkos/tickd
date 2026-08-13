@@ -55,8 +55,11 @@
 
 ## 7. Verify
 
-- [ ] 7.1 `just check` clean — codegen-check, fmt-check, typecheck, lint, full test suite
-- [ ] 7.2 In a real browser at a phone viewport: log a go, correct its grade from the recent list, correct its protection, end the session, reopen it from Sessions and correct its outcome. Confirm each lands and each survives a reload
-- [ ] 7.3 In the browser, confirm the correcting grade grid opens at the tick's own grade with nothing dimmed, and that the logging grid's position is unaffected by the correction
-- [ ] 7.4 Confirm every target on the new first line meets the 48px floor with the sheet at a 412×600 viewport
-- [ ] 7.5 Export the JSON and confirm a corrected tick reads as one row with its original timestamps
+- [x] 7.1 `just check` clean — codegen-check, fmt-check, typecheck, lint, full test suite
+- [x] 7.2 In a real browser at a phone viewport: log a go, correct its grade from the recent list, correct its protection, end the session, reopen it from Sessions and correct its outcome. Confirm each lands and each survives a reload
+- [x] 7.3 In the browser, confirm the correcting grade grid opens at the tick's own grade with nothing dimmed, and that the logging grid's position is unaffected by the correction
+- [x] 7.4 Confirm every target on the new first line meets the 48px floor with the sheet at a 412×600 viewport
+- [x] 7.5 Read the stored row back (straight from IndexedDB — the settings/export surface is not built
+  yet, so there is no export button to press) and confirm a corrected tick is one row with its original
+  timestamps: `created_at` 18:41:05 against `updated_at` 18:44:20, `date_local` and `tz_offset`
+  unchanged, twelve keys and no strays
