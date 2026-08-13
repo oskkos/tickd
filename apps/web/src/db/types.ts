@@ -227,3 +227,20 @@ export type TickDiscipline =
 /** A tick: anonymous, graded in exactly one notation, with style and discipline combinations that
  *  are valid by construction. */
 export type Tick = TickBase & TickGrade & TickOutcome & TickDiscipline;
+
+/**
+ * A tick whose protection is a *choice* — that is, one that is not a boulder.
+ *
+ * **Narrowing to it is `tick.protection !== 'none'`**, which is the same test that decides whether a
+ * protection control renders at all: boulder's `none` is not one option among four, it is what boulder
+ * means (§7.4). One check answers both questions, so the control and the write path cannot disagree
+ * about which ticks have a protection to change.
+ *
+ * It exists for the correction path. `correctProtection` accepts this rather than `Tick`, so handing it
+ * a boulder is a compile error at the call site instead of a rejection at runtime — and since
+ * `discipline` never appears in its parameters, a correction cannot move one.
+ */
+export type RopedTick = TickBase &
+  TickGrade &
+  TickOutcome &
+  Extract<TickDiscipline, { discipline: 'sport' | 'trad' }>;
