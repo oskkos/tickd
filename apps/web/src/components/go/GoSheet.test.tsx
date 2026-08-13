@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { AnnotationSheet, SHEET_IDLE_MS } from './AnnotationSheet.tsx';
+import { GoSheet, SHEET_IDLE_MS } from './GoSheet.tsx';
 import type { Tick } from '../../db/types.ts';
 
 const tick = {
@@ -32,10 +32,10 @@ function touchInside() {
   });
 }
 
-describe('AnnotationSheet', () => {
+describe('GoSheet', () => {
   it('names the tick it is for', () => {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -51,7 +51,7 @@ describe('AnnotationSheet', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -72,7 +72,7 @@ describe('AnnotationSheet', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -99,7 +99,7 @@ describe('AnnotationSheet', () => {
     // Keyed on the tick id, exactly as the screen renders it — that key is what makes a new tick a
     // new sheet with a fresh countdown.
     const { rerender } = render(
-      <AnnotationSheet
+      <GoSheet
         key={tick.id}
         tick={tick}
         reason="logged"
@@ -111,7 +111,7 @@ describe('AnnotationSheet', () => {
 
     touchInside();
     rerender(
-      <AnnotationSheet
+      <GoSheet
         key="b"
         tick={{ ...tick, id: 'b', grade_raw: '7a' } as Tick}
         reason="logged"
@@ -130,7 +130,7 @@ describe('AnnotationSheet', () => {
 
   it('shows a countdown matching the timeout it depicts', () => {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -149,7 +149,7 @@ describe('AnnotationSheet', () => {
 
   it('removes the countdown once touched, rather than freezing it', async () => {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -167,7 +167,7 @@ describe('AnnotationSheet', () => {
 
   it('blocks the screen behind it', () => {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -187,7 +187,7 @@ describe('AnnotationSheet', () => {
   it('is dismissed by the tap that would previously have logged something', async () => {
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -206,7 +206,7 @@ describe('AnnotationSheet', () => {
   it('can be dismissed deliberately', async () => {
     const onDismiss = vi.fn();
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -223,7 +223,7 @@ describe('AnnotationSheet', () => {
   it('reports changes as they happen rather than on close', async () => {
     const onChange = vi.fn();
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="logged"
         annotation={{}}
@@ -240,7 +240,7 @@ describe('AnnotationSheet', () => {
 
   it('shows the grade verbatim', () => {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={{ ...tick, grade_scale: 'font', grade_raw: '6A' }}
         reason="logged"
         annotation={{}}
@@ -256,7 +256,7 @@ describe('AnnotationSheet', () => {
 describe('a sheet the climber asked for', () => {
   function reopened(onDismiss = vi.fn()) {
     render(
-      <AnnotationSheet
+      <GoSheet
         tick={tick}
         reason="reopened"
         annotation={{}}
@@ -323,13 +323,13 @@ describe('reopening the tick whose sheet is already open', () => {
   it('drops the countdown when the reason changes without a remount', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
-    // Exactly how the screens key it. `useAnnotation` goes from {tick: A, logged} to {tick: A, reopened}
+    // Exactly how the screens key it. `useGoSheet` goes from {tick: A, logged} to {tick: A, reopened}
     // without passing through undefined, so a key of the tick id alone never changes — the component
     // does not remount, `engaged` stays false from the first mount, and the original five-second timer
     // keeps running under a form the climber deliberately opened. Reachable by keyboard: log a go, Tab
     // to its row, press Enter.
     const sheet = (reason: 'logged' | 'reopened') => (
-      <AnnotationSheet
+      <GoSheet
         key={`${tick.id}:${reason}`}
         tick={tick}
         reason={reason}

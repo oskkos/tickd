@@ -4,7 +4,12 @@ import type { Tick } from '../../db/types.ts';
 import { AnnotationPanel } from './AnnotationPanel.tsx';
 
 /**
- * The detail panel, as a sheet over the screen rather than a block below it.
+ * One go, in detail — as a sheet over the screen rather than a block below it.
+ *
+ * **Named for the go rather than for the annotation**, because it stopped being only the annotation
+ * panel's container. It shows what was recorded and lets each part of it be corrected; the annotation
+ * fields are one region inside it. `AnnotationPanel` keeps its own name, since that is still exactly
+ * what it is.
  *
  * It used to render in flow after the grade grid, which on a phone put it below the fold — present in
  * the DOM, invisible in the hand. Optional detail that nobody can see is the same as no detail.
@@ -58,7 +63,7 @@ export const SHEET_IDLE_MS = 5000;
  */
 export type SheetReason = 'logged' | 'reopened';
 
-export function AnnotationSheet({
+export function GoSheet({
   tick,
   reason,
   annotation,

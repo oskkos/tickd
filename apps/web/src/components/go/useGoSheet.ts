@@ -2,10 +2,10 @@ import { useCallback, useState } from 'react';
 import { db } from '../../db/schema.ts';
 import { annotateTick, type TickAnnotation } from '../../db/ticks.ts';
 import type { Tick } from '../../db/types.ts';
-import type { SheetReason } from './AnnotationSheet.tsx';
+import type { SheetReason } from './GoSheet.tsx';
 
 /**
- * The annotation sheet's state, extracted so two screens can each have their own.
+ * The go sheet's state, extracted so two screens can each have their own.
  *
  * `LoggingScreen` owned this and said so: "State lives here rather than in a store because Phase 0 has
  * one screen and no router. When a second screen arrives, this is the thing to extract." The session
@@ -38,7 +38,7 @@ export interface Annotation {
   readonly dismissIfOpenFor: (tickId: string) => void;
 }
 
-export function useAnnotation(afterWrite: (tick: Tick) => void | Promise<void>): Annotation {
+export function useGoSheet(afterWrite: (tick: Tick) => void | Promise<void>): Annotation {
   const [open, setOpen] = useState<OpenSheet | undefined>();
   const [annotation, setAnnotation] = useState<TickAnnotation>({});
 

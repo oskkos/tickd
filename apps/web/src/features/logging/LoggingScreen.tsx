@@ -13,8 +13,8 @@ import type {
   TickOutcome,
   Venue,
 } from '../../db/types.ts';
-import { AnnotationSheet } from '../../components/annotation/AnnotationSheet.tsx';
-import { useAnnotation } from '../../components/annotation/useAnnotation.ts';
+import { GoSheet } from '../../components/go/GoSheet.tsx';
+import { useGoSheet } from '../../components/go/useGoSheet.ts';
 import { climbOn, disciplinesAt } from './disciplines.ts';
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
@@ -137,7 +137,7 @@ export function LoggingScreen() {
   }, []);
 
   /** The detail sheet's state, shared in shape with the session detail screen but never in value. */
-  const sheet = useAnnotation(
+  const sheet = useGoSheet(
     useCallback(
       async (tick: Tick) => {
         await refreshTicks(tick.session_id);
@@ -324,7 +324,7 @@ export function LoggingScreen() {
 
       {/* Last, and fixed — it overlays rather than sitting below the fold where nobody saw it. */}
       {sheet.open && (
-        <AnnotationSheet
+        <GoSheet
           // Keyed on the tick **and the reason**. The tick alone was not enough: going from
           // `{tick: A, logged}` to `{tick: A, reopened}` never passes through `undefined`, so the key was
           // unchanged, the component did not remount, and `engaged` stayed `false` from the first mount —

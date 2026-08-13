@@ -21,9 +21,9 @@
 
 ## 3. The sheet becomes the go sheet
 
-- [ ] 3.1 Move `components/annotation/` to `components/go/`, renaming `AnnotationSheet` → `GoSheet` and `useAnnotation` → `useGoSheet`. `AnnotationPanel` keeps its name — it really is the annotation panel
-- [ ] 3.2 Update the importing modules and their tests; no behaviour change in this group
-- [ ] 3.3 Run the full gate to confirm the rename is mechanical
+- [x] 3.1 Move `components/annotation/` to `components/go/`, renaming `AnnotationSheet` → `GoSheet` and `useAnnotation` → `useGoSheet`. `AnnotationPanel` keeps its name — it really is the annotation panel
+- [x] 3.2 Update the importing modules and their tests; no behaviour change in this group
+- [x] 3.3 Run the full gate to confirm the rename is mechanical
 
 ## 4. Corrections in the go sheet
 
