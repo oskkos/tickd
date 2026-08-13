@@ -246,9 +246,11 @@ export async function correctOutcome(
 /**
  * Removes a tick.
  *
- * Correction is a plain `DELETE` (§7.1) — no tombstone, nothing to reconcile. Undo is first-class
- * because a two-tap interface maximises mis-taps (§3), so this is the common path rather than an
- * exceptional one.
+ * **This is undo, not correction.** A delete is a plain `DELETE` (§7.1) — no tombstone, nothing to
+ * reconcile — and it is first-class because a two-tap interface maximises mis-taps (§3), so this is the
+ * common path rather than an exceptional one. Repairing a go that is worth keeping is the `correct*`
+ * path above, which edits in place: delete-and-relog would append the go at the end of the evening and
+ * re-stamp it with the day the mistake was noticed (D23).
  */
 export async function removeTick(db: TickdDatabase, id: string): Promise<void> {
   await db.ticks.delete(id);

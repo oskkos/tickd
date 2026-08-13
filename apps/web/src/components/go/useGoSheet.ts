@@ -28,7 +28,13 @@ export interface OpenSheet {
   readonly reason: SheetReason;
 }
 
-export interface Annotation {
+/**
+ * Named for the sheet rather than for the annotation, like the hook and the component.
+ *
+ * It was `Annotation` while annotating was all this could do. Leaving that name on a value that now
+ * carries three corrections as well is the same mismatch the rename existed to remove.
+ */
+export interface GoSheetState {
   /** The open sheet, or `undefined` when none is. */
   readonly open: OpenSheet | undefined;
   /** What the sheet currently holds. */
@@ -50,7 +56,7 @@ export interface Annotation {
   readonly dismissIfOpenFor: (tickId: string) => void;
 }
 
-export function useGoSheet(afterWrite: (tick: Tick) => void | Promise<void>): Annotation {
+export function useGoSheet(afterWrite: (tick: Tick) => void | Promise<void>): GoSheetState {
   const [open, setOpen] = useState<OpenSheet | undefined>();
   const [annotation, setAnnotation] = useState<TickAnnotation>({});
 
