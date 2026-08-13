@@ -1,12 +1,12 @@
 # Icons
 
-The production icon set, generated from the vector brand assets in `src/assets/brand/`. These replaced
+The production icon set, generated from the vector brand assets in `apps/web/src/assets/brand/`. These replaced
 the mechanical placeholders derived from `tickd.png`, and they answer the three problems `DESIGN.md` §1
 raised.
 
 ## What the source is
 
-`src/assets/brand/` holds six SVGs — three lockups × two themes:
+`apps/web/src/assets/brand/` holds six SVGs — three lockups × two themes:
 
 | File               | Contents             | Used for                                          |
 | ------------------ | -------------------- | ------------------------------------------------- |
@@ -42,7 +42,8 @@ an asset problem, and is deliberately left open there.
 
 ## The shipped set
 
-Everything below lives in `public/` and is referenced by `vite.config.ts` (manifest) or `index.html`.
+Everything below lives in `apps/web/public/` and is referenced by `apps/web/vite.config.ts`
+(manifest) or `apps/web/index.html`.
 
 | File                       | Size | Wordmark | Background            | Why                                                                                                  |
 | -------------------------- | ---- | -------- | --------------------- | ---------------------------------------------------------------------------------------------------- |
