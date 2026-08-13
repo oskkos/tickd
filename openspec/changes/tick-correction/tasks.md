@@ -48,10 +48,10 @@
 
 ## 6. Documents
 
-- [ ] 6.1 Append `D23` to `CONCEPT.md`'s decision log: a written tick's grade, protection and outcome are correctable; correction never crosses a discipline; correction is per-tick. Record the Nekala case, why undo is not a substitute, and that closing the discipline gap waits on D17
-- [ ] 6.2 Add a line to `CLAUDE.md`'s invariants section: the three unions are corrected whole through the correction path, never patched through `annotateTick`, and a correction preserves `created_at`/`date_local`/`tz_offset`
-- [ ] 6.3 Update the `Last updated:` lines on any document touched
-- [ ] 6.4 Note for the archive sync: `openspec/specs/sessions-view/spec.md`'s **Purpose** paragraph claims "no editing of `prior_experience` or `is_send`". A delta spec cannot reach a Purpose section, so that sentence has to be corrected by hand when the specs are folded in
+- [x] 6.1 Append `D23` to `CONCEPT.md`'s decision log: a written tick's grade, protection and outcome are correctable; correction never crosses a discipline; correction is per-tick. Record the Nekala case, why undo is not a substitute, and that closing the discipline gap waits on D17
+- [x] 6.2 Add a line to `CLAUDE.md`'s invariants section: the three unions are corrected whole through the correction path, never patched through `annotateTick`, and a correction preserves `created_at`/`date_local`/`tz_offset`
+- [x] 6.3 Update the `Last updated:` lines on any document touched
+- [x] 6.4 Note for the archive sync: `openspec/specs/sessions-view/spec.md`'s **Purpose** paragraph claims "no editing of `prior_experience` or `is_send`". A delta spec cannot reach a Purpose section, so that sentence has to be corrected by hand when the specs are folded in
 
 ## 7. Verify
 
