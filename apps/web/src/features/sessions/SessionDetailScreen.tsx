@@ -46,14 +46,18 @@ function GoRow({ tick, onOpen }: { tick: Tick; onOpen: (tick: Tick) => void }) {
 
   return (
     <li>
-      {/* Tapping a go reopens its sheet, which is what makes the annotation fields correctable rather
-          than only readable — notes, rating, grade felt, angle, holds, length.
+      {/* Tapping a go reopens its sheet, which is what makes the row correctable rather than only
+          readable: the annotation fields through `annotateTick` — notes, rating, grade felt, angle,
+          holds, length — and the grade, the protection and the outcome through the three narrow
+          `correct*` writes. Those three are paired unions, so they are replaced whole rather than
+          patched; `prior_experience` is the one that mattered most, being flash rate's denominator
+          (§4.2, D14).
 
-          **It does not reach `prior_experience` or `is_send`, and this comment used to imply it did.**
-          The write path is `annotateTick`, deliberately confined to fields outside `TickOutcome` because
-          a partial of a discriminated union is unsound. So a mis-tapped `prior_experience` is still
-          permanently wrong — which matters, because it is flash rate's denominator — and correcting it
-          needs a write that replaces the whole outcome plus a control to drive it. Neither is here. */}
+          **The one thing no control here reaches is the `discipline`.** The scale travels with it, so
+          turning a boulder into a roped go would leave a Font label under a French scale, and
+          converting between the notations is deferred (D17). A go logged under the wrong discipline
+          therefore stays wrong — stated rather than worked around, and enforced by the absence of a
+          `correctClimb` rather than by a check (D23). */}
       <button
         type="button"
         onClick={() => {

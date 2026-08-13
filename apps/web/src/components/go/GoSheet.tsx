@@ -111,17 +111,25 @@ function BackToDetail({ onBack }: { onBack: () => void }) {
  * `aria-pressed` marks the one whose control is open rather than the value being "on" — there is no off
  * state for a grade. It is the only honest way to say "this is what you are editing" on a toggle-shaped
  * control, and it means the open mode is announced rather than only coloured.
+ *
+ * **All three facts render through here, the grade included.** The grade wants its own type size, which
+ * is what `className` is for — written as a second copy of this button it drifted in target size and in
+ * pressed styling from the two beside it, on a row whose whole job is that every value is both visible
+ * and 48px.
  */
 function Fact({
   label,
   value,
   open,
   onOpen,
+  className = 'text-sm',
 }: {
   label: string;
   value: string;
   open: boolean;
   onOpen: () => void;
+  /** Type size, and `tabular` where the value is a grade. Carries no layout of its own. */
+  className?: string;
 }) {
   return (
     <button
@@ -129,7 +137,7 @@ function Fact({
       aria-label={`${label}, ${value}`}
       aria-pressed={open}
       onClick={onOpen}
-      className="min-h-touch rounded-box bg-base-200 px-3 text-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+      className={`min-h-touch rounded-box bg-base-200 px-3 aria-pressed:bg-primary aria-pressed:text-primary-content ${className}`}
     >
       {value}
     </button>
@@ -280,17 +288,15 @@ export function GoSheet({
           */}
           <div aria-label="Recorded as" role="group" className="mb-3 flex flex-wrap gap-1.5">
             {/* Verbatim, and tabular — case is the only thing separating Font `6A` from French `6a`. */}
-            <button
-              type="button"
-              aria-label={`Grade, ${tick.grade_raw}`}
-              aria-pressed={mode === 'grade'}
-              onClick={() => {
+            <Fact
+              label="Grade"
+              value={tick.grade_raw}
+              open={mode === 'grade'}
+              onOpen={() => {
                 setMode(mode === 'grade' ? 'detail' : 'grade');
               }}
-              className="min-h-touch rounded-box tabular bg-base-200 px-3 text-base aria-pressed:bg-primary aria-pressed:text-primary-content"
-            >
-              {tick.grade_raw}
-            </button>
+              className="tabular text-base"
+            />
 
             {/*
               A boulder's protection is not a control, because `protection: 'none'` *means* boulder — it
@@ -305,7 +311,10 @@ export function GoSheet({
             ) : (
               <Fact
                 label="Protection"
-                value={tick.protection}
+                // Through `protectionLabel` like the boulder branch above it, so the claim that every
+                // value on this row is worded from `format/climbing.ts` holds for all three of them —
+                // printing the stored value here would put the second phrasing one line from the first.
+                value={protectionLabel(tick)}
                 open={mode === 'protection'}
                 onOpen={() => {
                   setMode(mode === 'protection' ? 'detail' : 'protection');
