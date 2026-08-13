@@ -10,15 +10,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 LICENSE. There is no `package.json`, no Gradle build, no source tree, and therefore no build, lint
 or test commands. Everything under "Planned architecture" below is specification, not code.
 
-The two documents are the product:
+**All prose documentation lives in `docs/`.** The two design documents are the product:
 
-- **`CONCEPT.md`** — owns *what* the app does and *why*: market position, phasing, data model,
+- **`docs/CONCEPT.md`** — owns *what* the app does and *why*: market position, phasing, data model,
   stack choices, hosting, risks.
-- **`DESIGN.md`** — owns *how it looks*: logo, typography, colour, the logging screen layout, the
+- **`docs/DESIGN.md`** — owns *how it looks*: logo, typography, colour, the logging screen layout, the
   component-library decision.
+- **`docs/decision-log/`** — one file per decision, `D1`–`D23`. See below.
+- **`docs/DEPLOY.md`** and **`docs/ICONS.md`** — operational notes: the Cloudflare Pages setup, and the
+  icon/asset catalogue that `docs/DESIGN.md` §1 defers the detail to.
 
 They cross-reference by section number (`CONCEPT.md` §7.4) rather than restating each other. Keep
 that boundary when editing: a flow change goes in CONCEPT, its visual expression in DESIGN.
+
+**Cite the documents by name, not by path.** Code comments and specs say `` `CONCEPT.md` §7.4 `` and
+`D17`, and that is deliberate: there is exactly one of each document, the citation is a reference
+rather than a link, and prefixing ~230 of them with `docs/` would churn fifty source files to buy
+precision nobody needs. Use the path only when pointing a reader at the file to open.
 
 ## Feature workflow — OpenSpec
 
@@ -113,15 +121,19 @@ the hook as the fast feedback loop.
 
 ## Working with the documents
 
-**The decision log at the end of `CONCEPT.md` (D1–D15) records positions that were argued through
-and changed.** Read it before proposing an alternative — most obvious-seeming suggestions
+**`docs/decision-log/` records positions that were argued through and changed — one file per decision,
+`D1`–`D23`.** Read the relevant entry before proposing an alternative: most obvious-seeming suggestions
 (a `route` table, colour-coded grades, one flat style enum, an always-on VPS, Quarkus, GraalVM,
-Terraform, 8a.nu CSV import, a native mobile app) were already considered and rejected there, with
-reasoning. If a
-decision genuinely needs revisiting, append a new numbered entry rather than silently editing the
-body.
+Terraform, 8a.nu CSV import, a native mobile app, `react-router`, TanStack Query) were already
+considered and rejected there, with reasoning. `docs/CONCEPT.md`'s own **Decision log** section is the
+index; `docs/decision-log/README.md` owns the shared structure and the rules below.
 
-Both files carry a `Last updated:` line — update it when making substantive edits.
+**The number is the key and it never changes.** `D17` is cited from code comments, from the capability
+specs and from this file, so a decision is never renumbered, never deleted, and never split into two
+numbers. If a decision genuinely needs revisiting, **append a new numbered entry** and mark the old
+one's `status` — never silently edit the body, which is the historical argument the log exists to keep.
+
+Both design documents carry a `Last updated:` line — update it when making substantive edits.
 
 ## Invariants that are easy to violate
 
