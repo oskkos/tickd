@@ -13,11 +13,11 @@
 
 ## 2. The reusable controls
 
-- [ ] 2.1 Add `anchor?: number` to `GradeGrid`, separate from `range`: it sets the opening scroll position without dimming anything. Keep `range`'s meaning untouched so the logging path is unchanged
-- [ ] 2.2 Add `selected?: string` to `GradeGrid`, marking the current grade with `aria-pressed` and not by colour alone
-- [ ] 2.3 Add a `cancelLabel` prop to `OutcomeGrid` — "Change grade" is right on the logging screen and wrong in a sheet where cancelling returns to the detail panel
-- [ ] 2.4 Extract the protection toggle from `LoggingScreen` as a presentational `ProtectionGroup({ value, onChange })` and use it in both places. It keeps the target size and wording in one place; the logging screen keeps its own rules about when the group renders
-- [ ] 2.5 Tests: an anchored grid opens at the anchor and dims nothing; a ranged grid still dims and positions as before; `ProtectionGroup` renders the three roped values and never `none`
+- [x] 2.1 Add `anchor?: number` to `GradeGrid`, separate from `range`: it sets the opening scroll position without dimming anything. Keep `range`'s meaning untouched so the logging path is unchanged
+- [x] 2.2 Add `selected?: string` to `GradeGrid`, marking the current grade with `aria-pressed` and not by colour alone
+- [x] 2.3 Add a `cancelLabel` prop to `OutcomeGrid` — "Change grade" is right on the logging screen and wrong in a sheet where cancelling returns to the detail panel
+- [x] 2.4 Extract the protection toggle from `LoggingScreen` as a presentational `ProtectionGroup({ value, onChange })` and use it in both places. It keeps the target size and wording in one place; the logging screen keeps its own rules about when the group renders
+- [x] 2.5 Tests: an anchored grid opens at the anchor and dims nothing; a ranged grid still dims and positions as before; `ProtectionGroup` renders the three roped values and never `none`
 
 ## 3. The sheet becomes the go sheet
 

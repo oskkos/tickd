@@ -37,10 +37,19 @@ export function OutcomeGrid({
   grade,
   onCommit,
   onCancel,
+  cancelLabel = 'Change grade',
 }: {
   grade: string;
   onCommit: (outcome: TickOutcome) => void;
   onCancel: () => void;
+  /**
+   * What backing out of this grid does, in words.
+   *
+   * On the logging screen it returns to the grade grid, so "Change grade" is literal. Correcting a
+   * written tick, it returns to the go sheet's detail panel and the grade is not what is being changed —
+   * the same label there would offer an operation this grid is not performing.
+   */
+  cancelLabel?: string;
 }) {
   return (
     <div>
@@ -59,7 +68,7 @@ export function OutcomeGrid({
           onClick={onCancel}
           className="btn btn-sm btn-outline min-h-touch shrink-0 px-4"
         >
-          Change grade
+          {cancelLabel}
         </button>
       </div>
 

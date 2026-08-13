@@ -94,4 +94,22 @@ describe('OutcomeGrid', () => {
 
     expect(screen.getByTestId('outcome-grade')).toHaveTextContent('6A');
   });
+
+  it('names what backing out actually does', async () => {
+    const onCancel = vi.fn();
+    render(
+      <OutcomeGrid
+        grade="7a"
+        onCommit={vi.fn()}
+        onCancel={onCancel}
+        cancelLabel="Back to detail"
+      />,
+    );
+
+    // Correcting a written tick, this grid returns to the go sheet and the grade is not what is being
+    // changed — "Change grade" there would offer an operation the control is not performing.
+    expect(screen.queryByRole('button', { name: /change grade/i })).toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Back to detail' }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });

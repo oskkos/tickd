@@ -15,9 +15,10 @@ import type {
 } from '../../db/types.ts';
 import { AnnotationSheet } from '../../components/annotation/AnnotationSheet.tsx';
 import { useAnnotation } from '../../components/annotation/useAnnotation.ts';
-import { climbOn, disciplinesAt, ROPED_PROTECTIONS } from './disciplines.ts';
+import { climbOn, disciplinesAt } from './disciplines.ts';
 import { GradeGrid } from './GradeGrid.tsx';
 import { OutcomeGrid } from './OutcomeGrid.tsx';
+import { ProtectionGroup } from './ProtectionGroup.tsx';
 import { RecentTicks } from './RecentTicks.tsx';
 import { SessionSummary } from './SessionSummary.tsx';
 import { VenuePicker } from './VenuePicker.tsx';
@@ -277,23 +278,12 @@ export function LoggingScreen() {
 
       {/* Sticky, and visible — visibility is the condition DESIGN.md attaches to allowing it. Still
           live mid-pending, unlike the discipline: realising it was toprope is a correction to the go
-          you are logging, and `protection` travels with the discipline it is paired to regardless. */}
-      {climb.discipline !== 'boulder' && (
-        <div role="group" aria-label="Protection" className="flex shrink-0 gap-2">
-          {ROPED_PROTECTIONS.map((p) => (
-            <button
-              key={p}
-              type="button"
-              aria-pressed={p === climb.protection}
-              onClick={() => {
-                setRopedProtection(p);
-              }}
-              className="min-h-touch rounded-box flex-1 bg-base-200 text-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
-            >
-              {p}
-            </button>
-          ))}
-        </div>
+          you are logging, and `protection` travels with the discipline it is paired to regardless.
+
+          The buttons themselves are shared with the go sheet, which corrects this field on a written
+          tick. When to show them is still this screen's decision. */}
+      {climb.protection !== 'none' && (
+        <ProtectionGroup value={climb.protection} onChange={setRopedProtection} />
       )}
 
       {pendingGrade === undefined ? (

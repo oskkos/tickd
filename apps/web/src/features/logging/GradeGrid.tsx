@@ -31,14 +31,35 @@ const EDGE_FADE_PX = 32;
 export function GradeGrid({
   scale,
   range,
+  anchor,
+  selected,
   onPick,
 }: {
   scale: ScaleId;
   range?: WorkingRange | undefined;
+  /**
+   * Where to open, when that is not the working range.
+   *
+   * **Separate from `range` on purpose, because the two answer different questions.** `range` says which
+   * grades to emphasise *and* where to start; correcting a written tick wants only the second half.
+   * Passing `{ from: i, to: i }` to get the position would dim the other twenty-six cells, which on a
+   * phone reads as "disabled" — the same misreading that made a first-ever launch render the whole scale
+   * at half opacity.
+   *
+   * The working range answers "what am I likely to climb next", which is the wrong question for a
+   * correction: the answer is already recorded, and a mis-tap is almost always adjacent to the cell that
+   * was meant.
+   */
+  anchor?: number | undefined;
+  /** The grade currently recorded, when the grid is correcting one. Marked, not merely positioned at. */
+  selected?: string | undefined;
   onPick: (grade: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLButtonElement>(null);
+
+  /** Where the grid opens: the correction's grade if there is one, otherwise the working range's start. */
+  const anchorIndex = anchor ?? range?.from;
 
   /**
    * Whether grades continue past each edge — the only cue that there is anything to scroll.
@@ -96,14 +117,18 @@ export function GradeGrid({
    * would re-fire this for an unchanged position. The index changes exactly when the anchor element
    * does. Logging a tick does not recompute the range at all, so the grid still does not move under
    * a thumb that is about to tap it.
+   *
+   * An explicit `anchor` wins over the range's start, so a correcting grid opens at the grade it is
+   * correcting. Neither prop moves the other's grid: the logging screen passes no anchor and the sheet
+   * passes no range.
    */
   useLayoutEffect(() => {
     const container = containerRef.current;
     if (!container) {
       return;
     }
-    const anchor = anchorRef.current;
-    if (!anchor) {
+    const anchorEl = anchorRef.current;
+    if (!anchorEl) {
       // No range: a discipline never climbed, or day one. `range.ts` calls easiest-first the right
       // position for someone with no history — so go there rather than inheriting the offset of the
       // scale that was showing a moment ago, which left the Font grid mid-scroll after a switch.
@@ -113,8 +138,8 @@ export function GradeGrid({
     // Less the fade's height, so the working range's first row sits *below* the top fade rather than
     // under it. Clamped at zero: when the range starts at the top of the scale there is nothing above
     // it, so no fade is drawn and no clearance is needed.
-    container.scrollTop = Math.max(0, anchor.offsetTop - container.offsetTop - EDGE_FADE_PX);
-  }, [scale, range?.from]);
+    container.scrollTop = Math.max(0, anchorEl.offsetTop - container.offsetTop - EDGE_FADE_PX);
+  }, [scale, anchorIndex]);
 
   const all = labels(scale);
 
@@ -152,16 +177,22 @@ export function GradeGrid({
           return (
             <button
               key={label}
-              ref={index === range?.from ? anchorRef : undefined}
+              ref={index === anchorIndex ? anchorRef : undefined}
               type="button"
               onClick={() => {
                 onPick(label);
               }}
               aria-label={`Grade ${label}`}
+              // Absent unless the grid is correcting something, so the logging grid's cells stay plain
+              // buttons rather than becoming toggles that are all switched off.
+              aria-pressed={selected === undefined ? undefined : label === selected}
               data-in-range={inRange}
               className={[
                 'min-h-touch rounded-box tabular flex items-center justify-center text-2xl',
                 inRange ? 'bg-base-200 text-base-content' : 'bg-base-200/40 text-base-content/50',
+                // The ring is what keeps this from being colour alone (DESIGN.md §3) — the grade being
+                // corrected has an outline as well as a fill.
+                'aria-pressed:bg-primary aria-pressed:text-primary-content aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-2 aria-pressed:ring-offset-base-100',
               ].join(' ')}
             >
               {label}

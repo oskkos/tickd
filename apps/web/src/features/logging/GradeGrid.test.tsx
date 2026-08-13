@@ -156,6 +156,70 @@ describe('GradeGrid', () => {
     vi.restoreAllMocks();
   });
 
+  it('opens at an explicit anchor without dimming anything', () => {
+    const { rerender } = render(<GradeGrid scale="french" onPick={vi.fn()} />);
+    const container = screen.getByTestId('grade-grid');
+    vi.spyOn(container, 'offsetTop', 'get').mockReturnValue(0);
+    const scrolls: number[] = [];
+    vi.spyOn(container, 'scrollTop', 'set').mockImplementation((value: number) => {
+      scrolls.push(value);
+    });
+    vi.spyOn(HTMLButtonElement.prototype, 'offsetTop', 'get').mockReturnValue(240);
+
+    // What a correction passes: where to open, and no opinion about which grades are yours.
+    rerender(<GradeGrid scale="french" anchor={10} onPick={vi.fn()} />);
+
+    expect(scrolls).toEqual([240 - 32]);
+    // The reason `anchor` is not `range={{ from: i, to: i }}`: that would dim the other twenty-six
+    // cells, which on a phone reads as "disabled".
+    const dimmed = screen.getAllByRole('button').filter((b) => b.dataset.inRange === 'false');
+    expect(dimmed).toHaveLength(0);
+    vi.restoreAllMocks();
+  });
+
+  it('lets an anchor override the working range it was given', () => {
+    const { rerender } = render(
+      <GradeGrid scale="french" range={{ from: 4, to: 8 }} onPick={vi.fn()} />,
+    );
+    const container = screen.getByTestId('grade-grid');
+    const anchored: HTMLElement[] = [];
+    vi.spyOn(HTMLButtonElement.prototype, 'offsetTop', 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      anchored.push(this);
+      return 100;
+    });
+    vi.spyOn(container, 'offsetTop', 'get').mockReturnValue(0);
+    vi.spyOn(container, 'scrollTop', 'set').mockImplementation(() => undefined);
+
+    rerender(<GradeGrid scale="french" range={{ from: 4, to: 8 }} anchor={14} onPick={vi.fn()} />);
+
+    // The measured cell is the anchor's, not the range's start — the range still dims its own five.
+    expect(anchored.at(-1)).toHaveTextContent(labels('french')[14] ?? '');
+    const inRange = screen.getAllByRole('button').filter((b) => b.dataset.inRange === 'true');
+    expect(inRange).toHaveLength(5);
+    vi.restoreAllMocks();
+  });
+
+  it('marks the grade being corrected, and only when there is one', () => {
+    const { rerender } = render(<GradeGrid scale="french" onPick={vi.fn()} />);
+
+    // Logging: plain buttons. Without this, every cell would be a toggle reading "not pressed".
+    expect(
+      screen.getAllByRole('button').filter((b) => b.hasAttribute('aria-pressed')),
+    ).toHaveLength(0);
+
+    rerender(<GradeGrid scale="french" selected="6c+" onPick={vi.fn()} />);
+
+    const pressed = screen
+      .getAllByRole('button')
+      .filter((b) => b.getAttribute('aria-pressed') === 'true');
+    expect(pressed).toHaveLength(1);
+    expect(pressed[0]).toHaveTextContent('6c+');
+    // Not colour alone (DESIGN.md §3): the fill comes with an outline.
+    expect(pressed[0]?.className).toMatch(/aria-pressed:ring-2/);
+  });
+
   it('reports the grade that was tapped', async () => {
     const onPick = vi.fn();
     render(<GradeGrid scale="french" onPick={onPick} />);
