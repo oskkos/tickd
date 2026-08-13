@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
-import { AnnotationSheet } from '../../components/annotation/AnnotationSheet.tsx';
+import { GoSheet } from '../../components/go/GoSheet.tsx';
 import { OutcomeIcon } from '../../components/OutcomeIcon.tsx';
-import { useAnnotation } from '../../components/annotation/useAnnotation.ts';
+import { useGoSheet } from '../../components/go/useGoSheet.ts';
 import { db } from '../../db/schema.ts';
 import { sessionDetail, type SessionDetail } from '../../db/sessions.ts';
 import { isFlash, outcomeOf } from '../../db/style.ts';
@@ -13,7 +13,7 @@ import type { Tick } from '../../db/types.ts';
 /**
  * One session, every go, everything each go carries.
  *
- * **This screen is the reason the change exists.** `AnnotationSheet` collects six optional fields and
+ * **This screen is the reason the change exists.** `GoSheet` collects six optional fields and
  * until now the only read path was the open session's recent-ticks list — so notes, rating, grade
  * opinion, angle, holds and length became unreachable the moment the session closed, recoverable only
  * by exporting JSON and reading it by hand.
@@ -136,7 +136,7 @@ export function SessionDetailScreen() {
    * Re-reading rather than merging the annotation into the row locally, deliberately: the database stays
    * the only authority on what a tick says, and a local merge would be a second one.
    */
-  const sheet = useAnnotation(
+  const sheet = useGoSheet(
     useCallback(() => {
       /* the row is behind the sheet; it is re-read when the sheet closes */
     }, []),
@@ -213,7 +213,7 @@ export function SessionDetailScreen() {
           editing history, and Phase 0 accepts that a session logged at the wrong venue stays. */}
 
       {sheet.open && (
-        <AnnotationSheet
+        <GoSheet
           // Tick and reason both, so a reopen cannot inherit a countdown from a previous mount.
           key={`${sheet.open.tick.id}:${sheet.open.reason}`}
           tick={sheet.open.tick}
