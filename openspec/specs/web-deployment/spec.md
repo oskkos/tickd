@@ -86,7 +86,7 @@ assets MAY be cached long-term.
 Note: Cloudflare currently ignores an `immutable` `Cache-Control` set on `/assets/*` via `_headers`,
 returning its own `max-age=0, must-revalidate`, while honouring the same file's `/sw.js` rule. Because
 long-term asset caching is MAY rather than SHALL, this is a missed optimisation rather than a violation.
-See `apps/web/DEPLOY.md`.
+See `docs/DEPLOY.md`.
 
 ### Requirement: The build is reproducible in CI without local tooling
 

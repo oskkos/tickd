@@ -23,7 +23,7 @@ production asset and nothing references it.
 ### The asset set
 
 Vector sources live in `apps/web/src/assets/brand/`; rendered icons in `apps/web/public/`. Both are
-catalogued in `apps/web/ICONS.md`, which owns the operational detail — this section owns the intent.
+catalogued in `ICONS.md`, which owns the operational detail — this section owns the intent.
 
 | Asset | Format | Notes |
 |---|---|---|

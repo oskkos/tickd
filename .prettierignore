@@ -5,9 +5,17 @@ coverage/
 pnpm-lock.yaml
 
 # The design documents are the product and are hand-formatted — CONCEPT.md and DESIGN.md are written
-# to a deliberate 100-column wrap with intentional emphasis markers. Prettier rewrites both.
+# to a deliberate 100-column wrap with intentional emphasis markers. Prettier rewrites both. The
+# decision log inherits that: each entry's body is a verbatim move out of CONCEPT.md.
 *.md
 !apps/web/**/*.md
+
+# The operational notes are *not* design documents and stay Prettier-managed, which is where their
+# aligned table pipes come from. They lived under `apps/web/` and were covered by the negation above
+# until the docs moved into `docs/`; naming them keeps the move from silently changing who owns their
+# formatting.
+!docs/DEPLOY.md
+!docs/ICONS.md
 
 # Agent and tooling instructions are maintained upstream.
 .claude/
