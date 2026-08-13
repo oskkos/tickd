@@ -220,6 +220,12 @@ export function SessionDetailScreen() {
           reason={sheet.open.reason}
           annotation={sheet.annotation}
           onChange={(next) => void sheet.change(next)}
+          // Same as the annotation path: the write lands immediately, the sheet shows the corrected row,
+          // and the list behind it is re-read on dismiss. The row being corrected is under the backdrop
+          // until then, so there is nothing to see out of date.
+          onCorrectGrade={(raw) => void sheet.correctGrade(raw)}
+          onCorrectProtection={(protection) => void sheet.correctProtection(protection)}
+          onCorrectOutcome={(outcome) => void sheet.correctOutcome(outcome)}
           onDismiss={() => {
             sheet.dismiss();
             refresh();

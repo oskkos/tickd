@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { db } from '../../db/schema.ts';
+import { localDateOf } from '../../db/sessions.ts';
 import { seedVenues } from '../../db/seed.ts';
 import { sendStyleOf } from '../../db/style.ts';
 import { LoggingScreen } from './LoggingScreen.tsx';
@@ -321,5 +322,102 @@ describe('the sticky discipline across a remount', () => {
     // `protection` is sticky *and visible*, which is the condition DESIGN.md attaches to allowing it —
     // so coming back to a screen that silently says `lead` breaks the deal.
     expect(screen.getByRole('button', { name: 'toprope' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('correcting a go mid-session', () => {
+  it('re-grades a go from the recent list, and the row follows', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    // The sheet is already open from the write, so a mis-tap is correctable without even reopening it.
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+    // Scoped to the sheet: the logging screen's own grid is still mounted behind the backdrop, so
+    // `Grade 6c` matches twice. The backdrop covers it, but it is not removed from the accessibility
+    // tree — the sheet traps no focus, which this file's other tests rely on to reach it by keyboard.
+    const sheet = screen.getByRole('region', { name: 'Detail for 6c+' });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Grade 6c' }));
+
+    const stored = await db.ticks.toArray();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.grade_raw).toBe('6c');
+    // The list behind the sheet refreshes through the hook's `afterWrite`, as it does for a write.
+    expect(await screen.findByRole('listitem')).toHaveTextContent('6c');
+  });
+
+  it('corrects a stale sticky protection on a go already logged', async () => {
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    // Reached from the row rather than the fresh sheet — the case where the mistake is noticed a climb
+    // or two later, which is when undoing from the middle stops being acceptable.
+    await userEvent.click(screen.getByRole('button', { name: /detail for 6c\+/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+    // Scoped for the same reason: the screen's own sticky protection control is behind the backdrop.
+    const sheet = screen.getByRole('region', { name: 'Detail for 6c+' });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'toprope' }));
+
+    const stored = await db.ticks.toArray();
+    expect(stored[0]?.protection).toBe('toprope');
+    expect(stored[0]?.discipline).toBe('sport');
+    expect(await screen.findByRole('listitem')).toHaveTextContent('toprope');
+  });
+
+  it('does not move the grade grid when a go is corrected past the working range', async () => {
+    // A range only exists once there is history, and `beforeEach` clears it — so seed a go from earlier
+    // in the window. Without this the grid has no range at all, nothing is dimmed either way, and the
+    // assertion below would pass against a grid that had repositioned.
+    await db.ticks.add({
+      id: 'earlier',
+      session_id: 'some-earlier-session',
+      discipline: 'sport',
+      protection: 'lead',
+      grade_scale: 'french',
+      grade_raw: '6b',
+      is_send: true,
+      prior_experience: 'none',
+      date_local: localDateOf(new Date()),
+      tz_offset: 180,
+      created_at: Date.now() - 24 * 60 * 60 * 1000,
+      updated_at: Date.now() - 24 * 60 * 60 * 1000,
+    });
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    const dimmedBefore = within(screen.getByTestId('grade-grid'))
+      .getAllByRole('button')
+      .filter((b) => b.dataset.inRange === 'false')
+      .map((b) => b.textContent);
+    expect(dimmedBefore).toContain('9a');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+    const sheet = screen.getByRole('region', { name: 'Detail for 6c+' });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'Grade 9a' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    // The working range is recomputed on mount and on a discipline change, never after a write — and a
+    // correction is no different. Repositioning would move the grid under a thumb about to tap it.
+    const dimmedAfter = within(screen.getByTestId('grade-grid'))
+      .getAllByRole('button')
+      .filter((b) => b.dataset.inRange === 'false')
+      .map((b) => b.textContent);
+    expect(dimmedAfter).toEqual(dimmedBefore);
+  });
+
+  it('keeps a boulder’s sheet free of any protection control', async () => {
+    // Salmisaari grades boulders in Font and routes in French, so this is the venue where a
+    // cross-discipline correction would leave the grade in the wrong notation.
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Boulder' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6A' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    const sheet = screen.getByRole('region', { name: 'Detail for 6A' });
+    expect(within(sheet).queryByRole('button', { name: /^Protection,/ })).toBeNull();
+    expect(within(sheet).getByRole('group', { name: 'Recorded as' })).toHaveTextContent('boulder');
   });
 });

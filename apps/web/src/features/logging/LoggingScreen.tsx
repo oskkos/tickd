@@ -335,6 +335,11 @@ export function LoggingScreen() {
           reason={sheet.open.reason}
           annotation={sheet.annotation}
           onChange={(next) => void sheet.change(next)}
+          // A correction refreshes the recent list through the hook's `afterWrite`, exactly as a write
+          // does — the row it corrected is one of the rows on screen.
+          onCorrectGrade={(raw) => void sheet.correctGrade(raw)}
+          onCorrectProtection={(protection) => void sheet.correctProtection(protection)}
+          onCorrectOutcome={(outcome) => void sheet.correctOutcome(outcome)}
           onDismiss={sheet.dismiss}
         />
       )}
