@@ -8,7 +8,7 @@ the two don't drift apart.
 
 Status: first draft. Logo, icon set and fonts are production assets; UI stack chosen; screen-level
 visual details open.
-Last updated: 2026-08-08
+Last updated: 2026-08-13
 
 ---
 
@@ -322,6 +322,30 @@ at once, with no extra screen.
 Each row must show what was actually recorded — grade, `protection`, `send_style` and
 `prior_experience` — not just the grade. Defaults do most of the logging, so the list is the only
 place a wrong default becomes visible while you are still standing in front of the wall.
+
+### Correcting a go
+
+Undo is the tool at the wall; correction is the tool afterwards. The two are not alternatives — undo
+removes a go from the middle of the evening, and re-logging it puts it back at the end, so a mis-tapped
+grade fixed that way rewrites the sequence of the visit (`CONCEPT.md` D23).
+
+**The tick sheet's first line is what was recorded, and each part of it is a target**: grade,
+`protection`, outcome. Tapping one replaces the detail fields with that control; committing a value
+returns to the fields. So the corrections sit **one tap deeper than the annotation controls** and the
+two-tap logging path gains nothing — a climber with nothing to fix sees one line of text they already
+wanted and no control they did not.
+
+The values are worded exactly as the recent-ticks list and the session detail word them. A fourth
+phrasing of "toprope" would be the drift that shared vocabulary exists to prevent.
+
+**A boulder's protection is text, not a control.** `protection = 'none'` *means* boulder, so there is
+no fourth value to offer — and the correction that would be needed instead crosses a discipline, which
+takes the grade's notation with it and is deliberately not built.
+
+**The correcting grade grid opens at the grade being corrected, and dims nothing.** The working range
+answers "what will I climb next", which is the wrong question here: the answer is recorded already, and
+a mis-tap is almost always adjacent to the cell that was meant. The current grade is marked with a fill
+*and* an outline — §3's rule again, colour may not be the only signal.
 
 ### Empty states
 

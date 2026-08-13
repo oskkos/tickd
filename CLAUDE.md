@@ -187,6 +187,21 @@ the choice. `is_repeat` is derived from `prior_experience = sent`. (CONCEPT §7.
 `(boulder, lead)` and `(sport, none)` are unrepresentable too — such a row would be counted in one
 view and dropped in another rather than rejected.
 
+**A tick's three unions are corrected whole; only the annotation fields are patched.** `annotateTick`
+reaches `notes`/`angle`/`holds`/`rating`/`grade_opinion`/`length_m` through `update` and nothing else,
+because a partial of a discriminated union is unsound. `correctGrade`, `correctProtection` and
+`correctOutcome` replace a whole union through `put` — and each **re-reads the row inside the
+transaction** rather than writing the caller's copy, since the annotation path writes to the same row
+once per keystroke while the sheet is open and a whole-row `put` from a stale copy erases what it
+missed. A correction preserves `id`, `session_id`, `created_at`, `date_local` and `tz_offset`, and
+moves `updated_at`; **never re-stamp a correction**, or a Tuesday climb becomes Thursday's.
+
+**There is deliberately no `correctClimb`, and the absence is the enforcement.** Correction never
+crosses a discipline — the scale travels with it, so the grade would land in a notation it was never
+graded with, and converting between Font and French is deferred (D17). Do not add a function taking a
+`TickDiscipline`; a go logged under the wrong discipline stays wrong, which is stated in the specs
+rather than worked around. Correction is also **per go** — no bulk apply. (D23)
+
 **Flash rate = flashes ÷ first encounters**, where a first encounter is any tick with
 `prior_experience = none` — *including* ones never sent. Dividing by sends is biased upward at
 exactly the limit grade the metric exists to find. This is the one metric that deliberately does
@@ -223,7 +238,8 @@ Phase 0 discipline is the stated main risk. Do not build Phase 1+ concerns into 
   inside it), the session list plus its per-session detail, the flash-rate chart, and settings
   (which is where export/import live). The session detail is not optional garnish — it is the only
   read path for the tick sheet's `notes`/`rating`/`grade_opinion`/`angle`/`holds`/`length_m`, which
-  are otherwise write-only once the session closes.
+  are otherwise write-only once the session closes, and the only **repair** path for a closed
+  session's goes (D23).
 - **Phase 1** — Kotlin/Spring Boot backend, OAuth2, sync. Adds `app_user`, `user_identity`, and
   `user_id`/`device_id`/`schema_version`/`visibility` on existing tables. Migration discipline
   starts here.
