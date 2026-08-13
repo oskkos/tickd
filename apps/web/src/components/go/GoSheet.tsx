@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { labels } from '@tickd/grade-spec';
 import type { TickAnnotation } from '../../db/ticks.ts';
-import type { Tick } from '../../db/types.ts';
+import { outcomeOf } from '../../db/style.ts';
+import type { RopedProtection, Tick, TickOutcome } from '../../db/types.ts';
+import { outcomeWord, priorLabel, protectionLabel } from '../../format/climbing.ts';
+import { GradeGrid } from '../../features/logging/GradeGrid.tsx';
+import { OutcomeGrid } from '../../features/logging/OutcomeGrid.tsx';
+import { ProtectionGroup } from '../../features/logging/ProtectionGroup.tsx';
 import { AnnotationPanel } from './AnnotationPanel.tsx';
 
 /**
@@ -63,19 +69,96 @@ export const SHEET_IDLE_MS = 5000;
  */
 export type SheetReason = 'logged' | 'reopened';
 
+/**
+ * What the sheet is showing: the annotation fields, or one of the three corrections.
+ *
+ * The corrections sit **one tap deeper than the detail panel**, which is what keeps the two-tap logging
+ * path intact — a climber with nothing to correct sees one line stating what was recorded and no control
+ * they did not ask for.
+ */
+type SheetMode = 'detail' | 'grade' | 'protection' | 'outcome';
+
+/**
+ * The outcome in one phrase — what `OutcomeGrid` would set, said backwards.
+ *
+ * Both fields, because the chip opens a control that writes both. `flashed` names its own prior
+ * experience, though: a flash *is* a first-go send, so adding "first go" beside it would restate the word
+ * rather than add to it. The other four outcomes say nothing about what came before, so they carry it.
+ */
+function outcomeSummary(tick: Tick): string {
+  const outcome = outcomeOf(tick);
+  return outcome === 'flash'
+    ? outcomeWord(outcome)
+    : `${outcomeWord(outcome)} · ${priorLabel(tick.prior_experience)}`;
+}
+
+/** The way back from a correction control, for the two that have no cancel of their own. */
+function BackToDetail({ onBack }: { onBack: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onBack}
+      className="btn btn-sm btn-outline min-h-touch shrink-0 self-start px-4"
+    >
+      Back
+    </button>
+  );
+}
+
+/**
+ * One recorded fact, tappable to correct it.
+ *
+ * `aria-pressed` marks the one whose control is open rather than the value being "on" — there is no off
+ * state for a grade. It is the only honest way to say "this is what you are editing" on a toggle-shaped
+ * control, and it means the open mode is announced rather than only coloured.
+ */
+function Fact({
+  label,
+  value,
+  open,
+  onOpen,
+}: {
+  label: string;
+  value: string;
+  open: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`${label}, ${value}`}
+      aria-pressed={open}
+      onClick={onOpen}
+      className="min-h-touch rounded-box bg-base-200 px-3 text-sm aria-pressed:bg-primary aria-pressed:text-primary-content"
+    >
+      {value}
+    </button>
+  );
+}
+
 export function GoSheet({
   tick,
   reason,
   annotation,
   onChange,
+  onCorrectGrade,
+  onCorrectProtection,
+  onCorrectOutcome,
   onDismiss,
 }: {
   tick: Tick;
   reason: SheetReason;
   annotation: TickAnnotation;
   onChange: (next: TickAnnotation) => void;
+  /** A grade from the tick's own scale. `gradeOf` still checks it — the grid proves nothing by itself. */
+  onCorrectGrade: (raw: string) => void;
+  onCorrectProtection: (protection: RopedProtection) => void;
+  /** Both halves at once. `TickOutcome` is written whole, and a control reaching only one of them would
+   *  leave a go recorded as not sent when it was sent permanently wrong. */
+  onCorrectOutcome: (outcome: TickOutcome) => void;
   onDismiss: () => void;
 }) {
+  const [mode, setMode] = useState<SheetMode>('detail');
   /**
    * Set by the first interaction inside, which retires the countdown for this tick.
    *
@@ -170,17 +253,11 @@ export function GoSheet({
           only as a floor for very short viewports. */}
         <div className="max-h-[80vh] overflow-y-auto p-4">
           <div className="mb-3 flex items-baseline justify-between gap-2">
+            {/* The grade moved out of the heading and into the fact row below, where it is a control
+                rather than prose — it used to appear here and would otherwise read twice. What is left
+                is the one thing the heading is for: whether this followed a write. */}
             <p className="text-sm">
-              {/* Verbatim — case separates Font from French. */}
-              {reason === 'logged' ? (
-                <>
-                  Logged <span className="tabular text-base">{tick.grade_raw}</span>. Add detail?
-                </>
-              ) : (
-                <>
-                  <span className="tabular text-base">{tick.grade_raw}</span>. Anything to change?
-                </>
-              )}
+              {reason === 'logged' ? 'Logged. Anything to add?' : 'Anything to change?'}
             </p>
             {/* Was underlined text, which reads as prose rather than a control — chalky hands need to
               see a target, not infer one. */}
@@ -193,7 +270,119 @@ export function GoSheet({
             </button>
           </div>
 
-          <AnnotationPanel annotation={annotation} onChange={onChange} />
+          {/*
+            What was recorded, and the way to correct each part of it.
+
+            This is the line that makes the sheet the *go* sheet rather than the annotation panel's
+            container. Every value is worded from `format/climbing.ts`, so a go is described the same way
+            here as in the recent-ticks list and the session detail — a fourth phrasing of "toprope" is
+            exactly what that module exists to prevent.
+          */}
+          <div aria-label="Recorded as" role="group" className="mb-3 flex flex-wrap gap-1.5">
+            {/* Verbatim, and tabular — case is the only thing separating Font `6A` from French `6a`. */}
+            <button
+              type="button"
+              aria-label={`Grade, ${tick.grade_raw}`}
+              aria-pressed={mode === 'grade'}
+              onClick={() => {
+                setMode(mode === 'grade' ? 'detail' : 'grade');
+              }}
+              className="min-h-touch rounded-box tabular bg-base-200 px-3 text-base aria-pressed:bg-primary aria-pressed:text-primary-content"
+            >
+              {tick.grade_raw}
+            </button>
+
+            {/*
+              A boulder's protection is not a control, because `protection: 'none'` *means* boulder — it
+              is not a fourth way of being roped. Shown as plain text so the sheet still says what the go
+              was, without offering a change that would have to cross a discipline and take the grade's
+              notation with it (D17).
+            */}
+            {tick.protection === 'none' ? (
+              <span className="min-h-touch rounded-box flex items-center px-3 text-sm opacity-60">
+                {protectionLabel(tick)}
+              </span>
+            ) : (
+              <Fact
+                label="Protection"
+                value={tick.protection}
+                open={mode === 'protection'}
+                onOpen={() => {
+                  setMode(mode === 'protection' ? 'detail' : 'protection');
+                }}
+              />
+            )}
+
+            <Fact
+              label="Outcome"
+              value={outcomeSummary(tick)}
+              open={mode === 'outcome'}
+              onOpen={() => {
+                setMode(mode === 'outcome' ? 'detail' : 'outcome');
+              }}
+            />
+          </div>
+
+          {mode === 'detail' && <AnnotationPanel annotation={annotation} onChange={onChange} />}
+
+          {mode === 'grade' && (
+            /*
+              **The height is load-bearing, not styling.** `GradeGrid` positions itself by writing
+              `scrollTop`, which is a silent no-op when `scrollHeight` equals `clientHeight` — and inside
+              the sheet's own scroller the grid would render at its natural height and never be the
+              scrolling region. The grid would then open at the top of the scale rather than at the grade
+              being corrected, with every guard still passing. A definite height here is what gives its
+              `flex-1 min-h-0` something to shrink against.
+            */
+            <div className="flex h-[45vh] flex-col gap-2">
+              <GradeGrid
+                scale={tick.grade_scale}
+                anchor={labels(tick.grade_scale).indexOf(tick.grade_raw)}
+                selected={tick.grade_raw}
+                onPick={(raw) => {
+                  onCorrectGrade(raw);
+                  setMode('detail');
+                }}
+              />
+              <BackToDetail
+                onBack={() => {
+                  setMode('detail');
+                }}
+              />
+            </div>
+          )}
+
+          {mode === 'protection' && tick.protection !== 'none' && (
+            <div className="flex flex-col gap-2">
+              <ProtectionGroup
+                value={tick.protection}
+                label="Correct protection"
+                onChange={(protection) => {
+                  onCorrectProtection(protection);
+                  setMode('detail');
+                }}
+              />
+              <BackToDetail
+                onBack={() => {
+                  setMode('detail');
+                }}
+              />
+            </div>
+          )}
+
+          {mode === 'outcome' && (
+            <OutcomeGrid
+              grade={tick.grade_raw}
+              cancelLabel="Back"
+              onCommit={(outcome) => {
+                onCorrectOutcome(outcome);
+                setMode('detail');
+              }}
+              onCancel={() => {
+                setMode('detail');
+              }}
+            />
+          )}
         </div>
       </section>
     </>

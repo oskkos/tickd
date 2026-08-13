@@ -32,6 +32,20 @@ function touchInside() {
   });
 }
 
+/**
+ * The three correction handlers, defaulted for the tests that are not about corrections.
+ *
+ * Spread rather than repeated at fourteen call sites: a test about the countdown says nothing about
+ * re-grading, and listing them there would bury what each test is actually asserting.
+ */
+function corrections() {
+  return {
+    onCorrectGrade: vi.fn(),
+    onCorrectProtection: vi.fn(),
+    onCorrectOutcome: vi.fn(),
+  };
+}
+
 describe('GoSheet', () => {
   it('names the tick it is for', () => {
     render(
@@ -39,6 +53,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -55,6 +70,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -76,6 +92,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -104,6 +121,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -116,6 +134,7 @@ describe('GoSheet', () => {
         tick={{ ...tick, id: 'b', grade_raw: '7a' } as Tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -134,6 +153,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -153,6 +173,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -171,6 +192,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -191,6 +213,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -210,6 +233,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -227,6 +251,7 @@ describe('GoSheet', () => {
         tick={tick}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={onChange}
         onDismiss={vi.fn()}
       />,
@@ -244,6 +269,7 @@ describe('GoSheet', () => {
         tick={{ ...tick, grade_scale: 'font', grade_raw: '6A' }}
         reason="logged"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={vi.fn()}
       />,
@@ -260,6 +286,7 @@ describe('a sheet the climber asked for', () => {
         tick={tick}
         reason="reopened"
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />,
@@ -334,6 +361,7 @@ describe('reopening the tick whose sheet is already open', () => {
         tick={tick}
         reason={reason}
         annotation={{}}
+        {...corrections()}
         onChange={vi.fn()}
         onDismiss={onDismiss}
       />
@@ -350,5 +378,184 @@ describe('reopening the tick whose sheet is already open', () => {
     });
 
     expect(onDismiss).not.toHaveBeenCalled();
+  });
+});
+
+describe('correcting what was recorded', () => {
+  function open(overrides: Partial<Tick> = {}, handlers = corrections()) {
+    render(
+      <GoSheet
+        tick={{ ...tick, ...overrides } as Tick}
+        reason="reopened"
+        annotation={{}}
+        {...handlers}
+        onChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
+    return handlers;
+  }
+
+  it('states what was recorded, in the words the lists use', () => {
+    open();
+
+    const recorded = screen.getByRole('group', { name: 'Recorded as' });
+    // The same three facts a recent-ticks row shows, so a go is never described two ways depending on
+    // which surface you are looking at.
+    expect(recorded).toHaveTextContent('6c+');
+    expect(recorded).toHaveTextContent('lead');
+    expect(recorded).toHaveTextContent('flashed');
+  });
+
+  it('names the prior experience except where the outcome already implies it', () => {
+    open({ is_send: true, prior_experience: 'attempted' });
+
+    // A flash *is* a first-go send, so "flashed · first go" would restate the word. A redpoint says
+    // nothing about what came before, so it carries it.
+    expect(screen.getByRole('group', { name: 'Recorded as' })).toHaveTextContent(
+      'sent · tried before',
+    );
+  });
+
+  it('offers no protection control for a boulder', () => {
+    open({ discipline: 'boulder', protection: 'none', grade_scale: 'font', grade_raw: '6A' });
+
+    // `protection: 'none'` *means* boulder, so there is no fourth value to offer — and changing it
+    // would cross a discipline and take the grade's notation with it (D17).
+    expect(screen.queryByRole('button', { name: /^Protection,/ })).toBeNull();
+    // Still stated, though: the sheet says what the go was.
+    expect(screen.getByRole('group', { name: 'Recorded as' })).toHaveTextContent('boulder');
+  });
+
+  it('opens the grade grid on the tick’s own notation, at its own grade', async () => {
+    open({ discipline: 'boulder', protection: 'none', grade_scale: 'font', grade_raw: '6A' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6A' }));
+
+    // Font, not French — case is the only thing separating `6A` from `6a`, so a French grid here would
+    // offer the labels of a notation this climb was never graded with.
+    expect(screen.getByRole('button', { name: 'Grade 6A' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Grade 6a' })).toBeNull();
+    // Marked, so the grid shows where you are rather than only where you can go.
+    expect(screen.getByRole('button', { name: 'Grade 6A' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+
+  it('replaces the detail panel rather than sitting under it', async () => {
+    open();
+    expect(screen.getByRole('button', { name: 'overhang' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+
+    // One region at a time: the grid is tall, and both at once would put the annotation fields below a
+    // fold inside a sheet that already has a fold of its own.
+    expect(screen.queryByRole('button', { name: 'overhang' })).toBeNull();
+  });
+
+  it('reports a corrected grade and returns to the detail panel', async () => {
+    const handlers = open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade 7a' }));
+
+    expect(handlers.onCorrectGrade).toHaveBeenCalledWith('7a');
+    expect(screen.getByRole('button', { name: 'overhang' })).toBeInTheDocument();
+  });
+
+  it('reports a corrected protection and returns to the detail panel', async () => {
+    const handlers = open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+    await userEvent.click(screen.getByRole('button', { name: 'toprope' }));
+
+    // The failure this whole change exists for: a toprope lap logged under a stale sticky `lead`.
+    expect(handlers.onCorrectProtection).toHaveBeenCalledWith('toprope');
+    expect(screen.getByRole('button', { name: 'overhang' })).toBeInTheDocument();
+  });
+
+  it('reports both halves of a corrected outcome', async () => {
+    const handlers = open({ is_send: false, prior_experience: 'attempted' });
+
+    await userEvent.click(screen.getByRole('button', { name: /^Outcome,/ }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    // Both fields, never one: `TickOutcome` is written whole, and a control reaching only
+    // `prior_experience` would leave a go recorded as not sent when it was sent permanently wrong.
+    expect(handlers.onCorrectOutcome).toHaveBeenCalledWith({
+      prior_experience: 'none',
+      is_send: true,
+    });
+    expect(screen.getByRole('button', { name: 'overhang' })).toBeInTheDocument();
+  });
+
+  it('backs out of a correction without reporting one', async () => {
+    const handlers = open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    expect(handlers.onCorrectProtection).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'overhang' })).toBeInTheDocument();
+  });
+
+  it('closes a control by tapping the fact that opened it', async () => {
+    open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+    expect(screen.getByRole('group', { name: 'Correct protection' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+
+    expect(screen.queryByRole('group', { name: 'Correct protection' })).toBeNull();
+  });
+
+  it('marks which fact is being corrected', async () => {
+    open();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+
+    // `aria-pressed` here says "this is what you are editing" rather than "this value is on" — there is
+    // no off state for a grade, and the open mode has to be announced rather than only coloured.
+    expect(screen.getByRole('button', { name: 'Grade, 6c+' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Protection, lead' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('does not close itself under a correction it followed a write with', async () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    render(
+      <GoSheet
+        tick={tick}
+        reason="logged"
+        annotation={{}}
+        {...corrections()}
+        onChange={vi.fn()}
+        onDismiss={onDismiss}
+      />,
+    );
+    expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
+
+    // Opening a correction is a `pointerdown` inside the sheet, which retires the countdown for good.
+    // Without that, a five-second clock would run out under a grid somebody is reading.
+    act(() => {
+      screen
+        .getByRole('button', { name: 'Grade, 6c+' })
+        .dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(SHEET_IDLE_MS * 10);
+      await Promise.resolve();
+    });
+
+    expect(onDismiss).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('sheet-countdown')).toBeNull();
   });
 });

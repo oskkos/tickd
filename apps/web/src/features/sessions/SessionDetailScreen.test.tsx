@@ -111,6 +111,15 @@ function open() {
   return renderApp({ initialPath: `/sessions/${SESSION_ID}` });
 }
 
+/** The oldest go's row, which is the first one — the detail view lists oldest first. */
+function firstRow() {
+  const [first] = rows();
+  if (!first) {
+    throw new Error('expected at least one go');
+  }
+  return within(first);
+}
+
 /** The go rows — direct children, since each row's contents include no nested list items. */
 function rows() {
   return within(screen.getByRole('list', { name: 'Goes' })).getAllByRole('listitem');
@@ -379,5 +388,118 @@ describe('consistency with the session list', () => {
     expect(detailPaths).toEqual(pillPaths);
     // And the three outcomes are still told apart, so this is not two identical marks agreeing.
     expect(new Set(detailPaths).size).toBe(2);
+  });
+});
+
+describe('correcting a go from a closed session', () => {
+  it('re-grades it, and the row follows without a reload', async () => {
+    const target = tick(rope('6a'), NOW - 2 * HOUR);
+    await seed([target]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade 6b+' }));
+
+    // The row is behind the backdrop, so it is re-read when the sheet closes — the sheet itself shows
+    // the corrected value in the meantime.
+    expect((await db.ticks.get(target.id))?.grade_raw).toBe('6b+');
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    expect(await screen.findByRole('button', { name: 'Detail for 6b+' })).toBeInTheDocument();
+  });
+
+  it('corrects the outcome, and the row’s mark and wording follow it', async () => {
+    const target = tick(rope('6a'), NOW - 2 * HOUR, { is_send: false, prior_experience: 'none' });
+    await seed([target]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+    expect(firstRow().getByText('not sent')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: /^Outcome,/ }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    // This is the correction with a metric behind it: `prior_experience` is flash rate's denominator.
+    const stored = await db.ticks.get(target.id);
+    expect(stored?.is_send).toBe(true);
+    expect(stored?.prior_experience).toBe('none');
+    await screen.findByText(/1 tick · 1 sent · 1 flashed/);
+    expect(firstRow().getByText('flashed')).toBeInTheDocument();
+  });
+
+  it('corrects one go of several logged under the same wrong protection', async () => {
+    // The reported failure, as it actually happened: three laps logged before the stale `lead` was
+    // noticed. Correction is per-tick on purpose — a bulk control would have to guess which goes it
+    // covers, and the same stale value may have been right for some of them.
+    const first = tick(rope('6a'), NOW - 100 * 60_000);
+    const second = tick(rope('6a+'), NOW - 95 * 60_000);
+    const third = tick(rope('6b'), NOW - 90 * 60_000);
+    await seed([first, second, third]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a+' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Protection, lead' }));
+    await userEvent.click(screen.getByRole('button', { name: 'toprope' }));
+
+    expect((await db.ticks.get(second.id))?.protection).toBe('toprope');
+    expect((await db.ticks.get(first.id))?.protection).toBe('lead');
+    expect((await db.ticks.get(third.id))?.protection).toBe('lead');
+  });
+
+  it('shows the corrected grade in the sheet, without it being closed and reopened', async () => {
+    const target = tick(rope('6a'), NOW - 2 * HOUR);
+    await seed([target]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6a' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade 7a' }));
+
+    // The regression this guards: `useGoSheet` held the row it was opened with and never refreshed it.
+    // Harmless while nothing the sheet displayed could change — and the moment a grade is correctable,
+    // the sheet keeps announcing the old one above a grid that just changed it.
+    expect(await screen.findByRole('button', { name: 'Grade, 7a' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Detail for 7a' })).toBeInTheDocument();
+  });
+
+  it('leaves the go where it was in the evening', async () => {
+    const first = tick(rope('6a'), NOW - 100 * 60_000);
+    const second = tick(rope('6b'), NOW - 95 * 60_000);
+    const third = tick(rope('6c'), NOW - 90 * 60_000);
+    await seed([first, second, third]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6b' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6b' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Grade 7b' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+
+    // Undo-and-relog would have appended it at the end and restamped it. The sequence of the visit is
+    // what this screen exists to show, so a correction may not rewrite it.
+    await screen.findByRole('button', { name: 'Detail for 7b' });
+    const grades = rows().map((row) => within(row).getByText(/^(6a|7b|6c)$/).textContent);
+    expect(grades).toEqual(['6a', '7b', '6c']);
+    expect((await db.ticks.get(second.id))?.created_at).toBe(second.created_at);
+  });
+
+  it('offers nothing that would change a boulder into a roped go', async () => {
+    await seed([tick(boulder('6A'), NOW - 2 * HOUR)]);
+    await open();
+    await screen.findByRole('list', { name: 'Goes' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Detail for 6A' }));
+
+    // The stated limitation: a go logged under the wrong discipline stays wrong, because the scale
+    // travels with the discipline and converting between Font and French is deferred (D17).
+    const sheet = screen.getByRole('region', { name: 'Detail for 6A' });
+    expect(within(sheet).queryByRole('button', { name: /^Protection,/ })).toBeNull();
+    for (const word of [/lead/i, /toprope/i, /autobelay/i, /rope/i]) {
+      expect(within(sheet).queryByRole('button', { name: word })).toBeNull();
+    }
   });
 });

@@ -27,24 +27,24 @@
 
 ## 4. Corrections in the go sheet
 
-- [ ] 4.1 Add a `mode` state to `GoSheet` — `'detail' | 'grade' | 'protection' | 'outcome'`
-- [ ] 4.2 Add the first line: grade verbatim, protection and outcome, each its own target, worded from `format/climbing.ts` (`protectionLabel`, `outcomeWord`) so no fourth vocabulary appears. Omit the protection chip entirely when `protection === 'none'`
-- [ ] 4.3 Render `GradeGrid` for `mode: 'grade'`, with the tick's own scale, `anchor` at its current grade, `selected` on it, and no `range`
-- [ ] 4.4 Render `ProtectionGroup` for `mode: 'protection'` and `OutcomeGrid` for `mode: 'outcome'`, each with a way back to `'detail'`
-- [ ] 4.5 Commit a value → call the matching `correct*`, show the corrected row, return to `'detail'`
-- [ ] 4.6 Tests: the first line states what was recorded; a boulder tick shows no protection chip; tapping a chip opens its control; committing writes and returns to the detail panel; the grade control renders only the tick's own notation
-- [ ] 4.7 Fake-timer test: a sheet opened by a write does not close itself while a correction control is open
+- [x] 4.1 Add a `mode` state to `GoSheet` — `'detail' | 'grade' | 'protection' | 'outcome'`
+- [x] 4.2 Add the first line: grade verbatim, protection and outcome, each its own target, worded from `format/climbing.ts` (`protectionLabel`, `outcomeWord`) so no fourth vocabulary appears. Omit the protection chip entirely when `protection === 'none'`
+- [x] 4.3 Render `GradeGrid` for `mode: 'grade'`, with the tick's own scale, `anchor` at its current grade, `selected` on it, and no `range`
+- [x] 4.4 Render `ProtectionGroup` for `mode: 'protection'` and `OutcomeGrid` for `mode: 'outcome'`, each with a way back to `'detail'`
+- [x] 4.5 Commit a value → call the matching `correct*`, show the corrected row, return to `'detail'`
+- [x] 4.6 Tests: the first line states what was recorded; a boulder tick shows no protection chip; tapping a chip opens its control; committing writes and returns to the detail panel; the grade control renders only the tick's own notation
+- [x] 4.7 Fake-timer test: a sheet opened by a write does not close itself while a correction control is open
 
 ## 5. The hook and both surfaces
 
-- [ ] 5.1 Add a correction path to `useGoSheet` that writes through and replaces `open.tick` with the returned row, preserving `reason` so the sheet does not remount
-- [ ] 5.2 Confirm neither caller's sheet key contains a field a correction changes — remounting would discard `mode` and `engaged`
-- [ ] 5.3 Wire `LoggingScreen`: a correction refreshes the recent-ticks list, as a write already does
-- [ ] 5.4 Wire `SessionDetailScreen`: a correction re-reads on dismiss, as an annotation already does — the row is behind the backdrop until then
-- [ ] 5.5 Screen test through `renderApp()`: correct a grade from the recent-ticks list of an open session; the list and the stored row both show it
-- [ ] 5.6 Screen test through `renderApp()`: correct a grade and an outcome from a **closed** session's detail view; the row's outcome mark and wording follow the new value
-- [ ] 5.7 Screen test: correcting one of several goes logged under the same wrong protection changes only that go
-- [ ] 5.8 Screen test: the sheet shows the corrected grade without being closed and reopened — the stale-snapshot regression
+- [x] 5.1 Add a correction path to `useGoSheet` that writes through and replaces `open.tick` with the returned row, preserving `reason` so the sheet does not remount
+- [x] 5.2 Confirm neither caller's sheet key contains a field a correction changes — remounting would discard `mode` and `engaged`
+- [x] 5.3 Wire `LoggingScreen`: a correction refreshes the recent-ticks list, as a write already does
+- [x] 5.4 Wire `SessionDetailScreen`: a correction re-reads on dismiss, as an annotation already does — the row is behind the backdrop until then
+- [x] 5.5 Screen test through `renderApp()`: correct a grade from the recent-ticks list of an open session; the list and the stored row both show it
+- [x] 5.6 Screen test through `renderApp()`: correct a grade and an outcome from a **closed** session's detail view; the row's outcome mark and wording follow the new value
+- [x] 5.7 Screen test: correcting one of several goes logged under the same wrong protection changes only that go
+- [x] 5.8 Screen test: the sheet shows the corrected grade without being closed and reopened — the stale-snapshot regression
 
 ## 6. Documents
 
