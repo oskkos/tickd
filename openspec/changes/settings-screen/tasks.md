@@ -12,16 +12,16 @@
 
 ## 2. The export and import file
 
-- [ ] 2.1 Add `features/settings/logbookFile.ts` defining the envelope type — `marker`, `exported_at`, `digest`, `payload: { venues, sessions, ticks }` — with the payload typed from the row types so a new field is carried automatically
-- [ ] 2.2 Implement `buildExport(db, now)`: read all three tables, build the payload, digest `JSON.stringify(payload)` with `fingerprint`, return the envelope with the current `SCHEMA_MARKER`
-- [ ] 2.3 Implement `parseImport(text, marker)` returning a discriminated result — `ok` with the payload and its counts, or a refusal of `'unparseable' | 'marker' | 'digest'`. It recomputes the digest from the **parsed** payload, never from the file text, so re-indentation is not modification
-- [ ] 2.4 Document in the module why there is no per-field validation and why the digest is FNV-1a rather than SHA-256: `crypto.subtle` is secure-context-only, the same trap `newId` records, and it would throw on the plain-HTTP dev server the phone tests against
-- [ ] 2.5 Implement `exportFileName(now)` → `tickd-YYYY-MM-DD.json`, reusing `format/time.ts` rather than a second date formatter
-- [ ] 2.6 Implement the download as a `Blob` plus a programmatic `<a download>` click, and the file read as `File.prototype.text`; no File System Access API
-- [ ] 2.7 Tests: round trip — seed a database with rows covering every union arm (both scales, all four protections, all six outcome pairings, every optional annotation field set and unset), export, import into a fresh instance, deep-equal every row
-- [ ] 2.8 Tests for the three refusals, each asserting the refusal reason and that nothing was written
-- [ ] 2.9 Test that a re-indented export still imports, and that changing one field in the payload does not
-- [ ] 2.10 Test that export and import complete with `crypto.subtle` undefined, standing in for a non-secure context
+- [x] 2.1 Add `features/settings/logbookFile.ts` defining the envelope type — `marker`, `exported_at`, `digest`, `payload: { venues, sessions, ticks }` — with the payload typed from the row types so a new field is carried automatically
+- [x] 2.2 Implement `buildExport(db, now)`: read all three tables, build the payload, digest `JSON.stringify(payload)` with `fingerprint`, return the envelope with the current `SCHEMA_MARKER`
+- [x] 2.3 Implement `parseImport(text, marker)` returning a discriminated result — `ok` with the payload and its counts, or a refusal of `'unparseable' | 'marker' | 'digest'`. It recomputes the digest from the **parsed** payload, never from the file text, so re-indentation is not modification
+- [x] 2.4 Document in the module why there is no per-field validation and why the digest is FNV-1a rather than SHA-256: `crypto.subtle` is secure-context-only, the same trap `newId` records, and it would throw on the plain-HTTP dev server the phone tests against
+- [x] 2.5 Implement `exportFileName(now)` → `tickd-YYYY-MM-DD.json`, reusing `localDateOf` from `db/sessions.ts` — the existing authority on `YYYY-MM-DD` — rather than a second date formatter
+- [x] 2.6 Implement the download as a `Blob` plus a programmatic `<a download>` click, and the file read as `File.prototype.text`; no File System Access API
+- [x] 2.7 Tests: round trip — seed a database with rows covering every union arm (both scales, all four protections, all six outcome pairings, every optional annotation field set and unset), export, import into a fresh instance, deep-equal every row
+- [x] 2.8 Tests for the three refusals, each asserting the refusal reason and that nothing was written
+- [x] 2.9 Test that a re-indented export still imports, and that changing one field in the payload does not
+- [x] 2.10 Test that export and import complete with `crypto.subtle` undefined, standing in for a non-secure context
 
 ## 3. Preferences
 
