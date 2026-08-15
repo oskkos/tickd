@@ -6,6 +6,9 @@ import { db } from '../../db/schema.ts';
 import { seedVenues } from '../../db/seed.ts';
 import { startSession } from '../../db/sessions.ts';
 import { logTick } from '../../db/ticks.ts';
+import { localDateOf } from '../../db/sessions.ts';
+import { render } from '@testing-library/react';
+import { SettingsScreen } from './SettingsScreen.tsx';
 
 /** Installs a Storage API whose `persisted` answers as told, and records whether `persist` was called. */
 function withStorage(storage: unknown) {
@@ -134,6 +137,37 @@ describe('the storage state', () => {
 });
 
 describe('export', () => {
+  it('stamps the file when the button is pressed, not when the screen opened', async () => {
+    // Found in a browser: a file exported minutes after opening settings carried the mount's
+    // timestamp. Harmless until a session spans midnight, when the name reads yesterday.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-08-15T23:59:00.000Z'));
+      const names: string[] = [];
+      Object.defineProperty(URL, 'createObjectURL', {
+        value: vi.fn().mockReturnValue('blob:tickd'),
+        configurable: true,
+      });
+      Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement,
+      ) {
+        names.push(this.download);
+      });
+
+      render(<SettingsScreen />);
+      const button = await screen.findByRole('button', { name: /export json/i });
+
+      // Two days later, without remounting.
+      vi.setSystemTime(new Date('2026-08-17T09:00:00.000Z'));
+      await userEvent.click(button);
+
+      expect(names[0]).toBe(`tickd-${localDateOf(new Date('2026-08-17T09:00:00.000Z'))}.json`);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('downloads a dated file', async () => {
     const createObjectURL = vi.fn().mockReturnValue('blob:tickd');
     Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });

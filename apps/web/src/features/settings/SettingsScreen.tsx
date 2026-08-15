@@ -132,7 +132,13 @@ interface PendingImport {
 }
 
 export function SettingsScreen({
-  now = new Date(),
+  /**
+   * Fixed only by tests. Left undefined, the export is stamped **when the button is pressed** rather
+   * than when the screen mounted — measured in a browser, where a file exported minutes after opening
+   * settings carried the mount's timestamp. Harmless until a session spans midnight, at which point the
+   * file is named for yesterday and its `exported_at` disagrees with the day it was taken.
+   */
+  now,
   /**
    * Injected so a test can observe it, and named for what it is rather than hidden behind an effect.
    *
@@ -173,7 +179,8 @@ export function SettingsScreen({
   }, []);
 
   async function onExport() {
-    downloadExport(await buildExport(db, now), exportFileName(now));
+    const at = now ?? new Date();
+    downloadExport(await buildExport(db, at), exportFileName(at));
   }
 
   /**
@@ -324,10 +331,15 @@ export function SettingsScreen({
                 ? ''
                 : `This file holds ${String(pending.counts.ticks)} ${pending.counts.ticks === 1 ? 'go' : 'goes'} in ${String(pending.counts.sessions)} ${pending.counts.sessions === 1 ? 'session' : 'sessions'}, exported ${new Date(pending.exported_at).toLocaleDateString()}.`}
             </p>
+            {/* An empty logbook is the day-one restore — a fresh install, or the new origin after the
+                Phase 1 move (§9.0). "0 ticks will be deleted. There is no undo." is both true and
+                needlessly alarming on the one path where nothing is at stake. */}
             <p>
               {counts === undefined
                 ? 'Everything currently on this phone will be deleted.'
-                : `${countsLabel(counts).replace(', on this phone only', '')} on this phone will be deleted. There is no undo.`}
+                : counts.ticks === 0 && counts.sessions === 0
+                  ? 'There is nothing on this phone to replace.'
+                  : `${countsLabel(counts).replace(', on this phone only', '')} on this phone will be deleted. There is no undo.`}
             </p>
           </>
         }
