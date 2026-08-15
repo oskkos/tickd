@@ -3,7 +3,6 @@ import { ClosedSessionNote } from './components/ClosedSessionNote.tsx';
 import { Logo } from './components/Logo.tsx';
 import { StorageWarning } from './components/StorageWarning.tsx';
 import { TabBar } from './components/TabBar.tsx';
-import { ThemeSwitch } from './components/ThemeSwitch.tsx';
 import { UpdatePrompt } from './components/UpdatePrompt.tsx';
 import { useStartup } from './startupContext.ts';
 
@@ -43,13 +42,16 @@ export function Shell() {
           57px off `main`, the grade grid sits exactly on its floor and everything below it competes for
           what is left — and the shell's own chrome is the right place to find it, ahead of anything the
           climber taps. */}
-      <header className="flex shrink-0 items-center justify-between px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+      {/* The theme control used to sit here and now lives on the settings surface, which is where
+          `ThemeSwitch` always said it belonged. Its `min-h-touch` was what set this header's height, so
+          the header is shorter without it and the grade grid below has more room than the floor it was
+          measured against — re-measured at 412×600 rather than assumed. */}
+      <header className="flex shrink-0 items-center px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
         {/* The wordmark is the heading — the visible name and the accessible one are the same
             string, so `alt="tickd"` inside carries it. */}
         <h1 className="flex">
           <Logo />
         </h1>
-        <ThemeSwitch />
       </header>
 
       {/* `relative` so the update prompt can anchor to the bottom of *this* box rather than to the

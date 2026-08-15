@@ -19,6 +19,29 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180.png" />
     <title>tickd</title>
+    <!--
+      The stored theme, applied before the bundle loads.
+
+      This cannot be a React effect. An effect paints the document's own `data-theme` first and then
+      replaces it, so every cold start on a stored light theme — or on a dark system preference against
+      the attribute below — shows the wrong theme for a frame. In a dim gym that is a flash of white at
+      the moment the app is opened, which is the condition DESIGN.md §3 makes dark mode non-optional for.
+
+      It duplicates `resolveTheme` in `features/settings/preferences.ts` by necessity: nothing is loaded
+      yet. Keep the two in step — the module is the authority, this is its earliest possible echo. A
+      failure here degrades to the attribute above, which React then corrects on mount.
+    -->
+    <script>
+      try {
+        var pref = localStorage.getItem('tickd.theme');
+        var dark =
+          pref === 'dark' ||
+          (pref !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.dataset.theme = dark ? 'dim' : 'winter';
+      } catch (e) {
+        /* No storage, no matchMedia, or both. The markup's own theme stands. */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

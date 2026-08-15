@@ -3,6 +3,7 @@ import Dexie from 'dexie';
 import { createDatabase, newId, SCHEMA_MARKER, type TickdDatabase } from '../../db/schema.ts';
 import { replaceLogbook, type LogbookPayload } from '../../db/logbook.ts';
 import type { Session, Tick, Venue } from '../../db/types.ts';
+import { HAPTIC_KEY, THEME_KEY } from './preferences.ts';
 import {
   buildExport,
   digestOf,
@@ -179,6 +180,18 @@ describe('buildExport', () => {
     expect(file.exported_at).toBe('2026-08-15T10:38:00.000Z');
     expect(file.digest).toBe(digestOf(file.payload));
     expect(file.payload).not.toHaveProperty('digest');
+  });
+
+  it('carries no preferences', async () => {
+    // An export is a logbook, not a device image. Preferences live in localStorage precisely so that
+    // restoring someone's ticks does not also impose the phone they were logged on.
+    globalThis.localStorage.setItem(THEME_KEY, 'light');
+    globalThis.localStorage.setItem(HAPTIC_KEY, 'off');
+
+    const text = JSON.stringify(await buildExport(await populated(), NOW));
+
+    expect(text).not.toContain(THEME_KEY);
+    expect(text).not.toContain(HAPTIC_KEY);
   });
 
   it('holds every row of every table', async () => {

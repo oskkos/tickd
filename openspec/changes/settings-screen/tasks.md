@@ -25,11 +25,11 @@
 
 ## 3. Preferences
 
-- [ ] 3.1 Add `features/settings/preferences.ts` — two keys, typed read/write helpers, an unrecognised or unreadable stored value falling back to the default rather than throwing
-- [ ] 3.2 Add the pre-paint theme script to `apps/web/index.html`: read the key, resolve `follow system` through `prefers-color-scheme`, set `data-theme` on `<html>` before the bundle loads. Keep it to a few lines with no dependencies
-- [ ] 3.3 Rewrite `ThemeSwitch` as the settings control: three-valued (follow system / dark / light), persisting through `preferences.ts`, and subscribing to `matchMedia('(prefers-color-scheme: dark)')` so *follow system* tracks a system change without a reload
-- [ ] 3.4 Remove the theme control from `Shell.tsx`'s header
-- [ ] 3.5 Tests: a stored choice survives a remount; *follow system* follows a simulated `matchMedia` change; an explicit choice ignores the system; a corrupt stored value renders the default; the export contains no preference values
+- [x] 3.1 Add `features/settings/preferences.ts` — two keys, typed read/write helpers, an unrecognised or unreadable stored value falling back to the default rather than throwing
+- [x] 3.2 Add the pre-paint theme script to `apps/web/index.html`: read the key, resolve `follow system` through `prefers-color-scheme`, set `data-theme` on `<html>` before the bundle loads. Keep it to a few lines with no dependencies
+- [x] 3.3 Rewrite `ThemeSwitch` as the settings control — it becomes `features/settings/ThemeControl.tsx`, since it is now used by one surface rather than shared: three-valued (follow system / dark / light), persisting through `preferences.ts`, and subscribing to `matchMedia('(prefers-color-scheme: dark)')` so *follow system* tracks a system change without a reload
+- [x] 3.4 Remove the theme control from `Shell.tsx`'s header, and replace `App.test.tsx`'s "offers a theme switch" with the assertion that the header now carries no button at all
+- [x] 3.5 Tests: a stored choice survives a remount; *follow system* follows a simulated `matchMedia` change; an explicit choice ignores the system; a corrupt stored value renders the default; the export contains no preference values
 
 ## 4. The settings surface
 
