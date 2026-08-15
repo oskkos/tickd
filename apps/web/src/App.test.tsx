@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 
 import { renderApp } from './testing/renderApp.tsx';
 
@@ -9,9 +9,13 @@ describe('App shell', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'tickd' })).toBeInTheDocument();
   });
 
-  it('offers a theme switch', async () => {
+  it('keeps no theme control in the header', async () => {
+    // The theme moved to the settings surface, which is where `ThemeSwitch` always said it belonged.
+    // Asserted rather than merely deleted: the button's `min-h-touch` was what set the header's height,
+    // and the grade grid's floor below it was won by arguing over eight pixels in this header.
     await renderApp();
-    expect(screen.getByRole('button', { name: /switch to light theme/i })).toBeInTheDocument();
+    const header = screen.getByRole('banner');
+    expect(within(header).queryByRole('button')).toBeNull();
   });
 
   it('shows the logging flow rather than a placeholder', async () => {

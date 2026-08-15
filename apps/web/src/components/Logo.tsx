@@ -8,9 +8,9 @@ import lightLogo from '../assets/brand/logo-inline-light.svg';
  * two different colours, so one paintable path was never an option (`ICONS.md`). Switching themes
  * therefore means switching files, not recolouring one.
  *
- * The swap is CSS rather than React state. `data-theme` lives on `<html>` and is owned by
- * `ThemeSwitch`, so reading it in React would mean lifting that state or subscribing to a mutation
- * observer — for a logo. A descendant selector costs nothing and cannot fall out of step with the
+ * The swap is CSS rather than React state. `data-theme` lives on `<html>` and is owned by the settings
+ * screen's `ThemeControl` — and, before it, by the pre-paint script in `index.html` — so reading it in
+ * React would mean lifting that state or subscribing to a mutation observer — for a logo. A descendant selector costs nothing and cannot fall out of step with the
  * attribute it keys on.
  *
  * Per `ICONS.md`, the unsuffixed file is the **dark** variant: `dim` ships by default and dark is not
