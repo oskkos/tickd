@@ -1,9 +1,18 @@
 import { useEffect, useState } from 'react';
 import { db } from '../../db/schema.ts';
 import { currentPersistence, type PersistState } from '../../db/persist.ts';
+import { deleteLogbook, replaceLogbook, type LogbookPayload } from '../../db/logbook.ts';
 import { ThemeControl } from './ThemeControl.tsx';
 import { HapticControl } from './HapticControl.tsx';
-import { buildExport, downloadExport, exportFileName, type LogbookCounts } from './logbookFile.ts';
+import { ConfirmDialog } from './ConfirmDialog.tsx';
+import {
+  buildExport,
+  downloadExport,
+  exportFileName,
+  parseImport,
+  type ImportRefusal,
+  type LogbookCounts,
+} from './logbookFile.ts';
 
 /**
  * Appearance, then the logbook, then the one irreversible thing.
@@ -91,15 +100,60 @@ function storageMessage(state: PersistState): { headline: string; detail: string
   }
 }
 
+/**
+ * Why a file was refused, in words that name the cause rather than the category.
+ *
+ * "Invalid file" would be true of all three and useful for none. A marker mismatch is a version
+ * difference and the file is fine; a digest mismatch means the file was edited and *that* is the thing
+ * to know; an unparseable file is usually the wrong file entirely.
+ */
+function refusalMessage(refusal: ImportRefusal): string {
+  switch (refusal) {
+    case 'unparseable':
+      return 'That is not a tickd export.';
+    case 'marker':
+      return 'That export came from a different version of tickd. Exports are never upgraded — a schema change means starting fresh, which is why this phase keeps no migrations.';
+    case 'digest':
+      return 'That file has been modified since it was exported, so tickd will not import it.';
+  }
+}
+
 function countsLabel(counts: LogbookCounts): string {
   const ticks = `${String(counts.ticks)} ${counts.ticks === 1 ? 'tick' : 'ticks'}`;
   const sessions = `${String(counts.sessions)} ${counts.sessions === 1 ? 'session' : 'sessions'}`;
   return `${ticks} in ${sessions}, on this phone only`;
 }
 
-export function SettingsScreen({ now = new Date() }: { now?: Date }) {
+/** A file that has passed every check and is waiting to be confirmed. */
+interface PendingImport {
+  readonly payload: LogbookPayload;
+  readonly counts: LogbookCounts;
+  readonly exported_at: string;
+}
+
+export function SettingsScreen({
+  now = new Date(),
+  /**
+   * Injected so a test can observe it, and named for what it is rather than hidden behind an effect.
+   *
+   * **The reload is load-bearing twice over.** Every screen in this app reads into `useState` in an
+   * effect — there is no `useLiveQuery` anywhere — so after the database is replaced or emptied, the
+   * mounted surfaces are showing rows that no longer exist and nothing invalidates them. And the reload
+   * re-runs `initialiseStorage`, which re-applies `seedVenues` over whatever venues the file carried,
+   * so the current seed set reasserts itself without an import-specific reseed step.
+   */
+  reload = () => {
+    globalThis.location.reload();
+  },
+}: {
+  now?: Date;
+  reload?: () => void;
+}) {
   const [storage, setStorage] = useState<PersistState | undefined>();
   const [counts, setCounts] = useState<LogbookCounts | undefined>();
+  const [pending, setPending] = useState<PendingImport | undefined>();
+  const [refusal, setRefusal] = useState<ImportRefusal | undefined>();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     void currentPersistence().then(setStorage);
@@ -120,6 +174,32 @@ export function SettingsScreen({ now = new Date() }: { now?: Date }) {
 
   async function onExport() {
     downloadExport(await buildExport(db, now), exportFileName(now));
+  }
+
+  /**
+   * Validate, then confirm — never the other way round.
+   *
+   * A refused file must not reach a dialog. Ordering it the other way produces the worst version of this
+   * screen: a confirmation promising to replace 412 ticks, followed by a failure.
+   */
+  async function onFileChosen(file: File) {
+    setRefusal(undefined);
+    const result = parseImport(await file.text());
+    if (!result.ok) {
+      setRefusal(result.refusal);
+      return;
+    }
+    setPending({ payload: result.payload, counts: result.counts, exported_at: result.exported_at });
+  }
+
+  async function onConfirmImport(accepted: PendingImport) {
+    await replaceLogbook(db, accepted.payload);
+    reload();
+  }
+
+  async function onConfirmDelete() {
+    await deleteLogbook(db);
+    reload();
   }
 
   const storageState = storage === undefined ? undefined : storageMessage(storage);
@@ -164,8 +244,94 @@ export function SettingsScreen({ now = new Date() }: { now?: Date }) {
           >
             Export JSON
           </button>
+
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs opacity-70">
+              Import replaces this logbook with the file&apos;s. It is a restore, not a merge.
+            </span>
+            <input
+              type="file"
+              accept="application/json,.json"
+              aria-label="Import JSON"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // The value is cleared so that choosing the same file twice fires `change` both times —
+                // otherwise a refused file cannot be re-chosen after being edited back.
+                event.target.value = '';
+                if (file) void onFileChosen(file);
+              }}
+              className="file-input file-input-bordered min-h-touch w-full"
+            />
+          </label>
+
+          {refusal !== undefined && (
+            <p role="alert" className="mt-2 text-sm text-error">
+              {refusalMessage(refusal)}
+            </p>
+          )}
         </div>
       </Section>
+
+      <Section title="Starting over">
+        <button
+          type="button"
+          onClick={() => {
+            setConfirmingDelete(true);
+          }}
+          className="btn btn-outline btn-error min-h-touch w-full"
+        >
+          Delete my logbook
+        </button>
+      </Section>
+
+      {/* Not "delete everything": the seed venues come back on the next launch and the preferences are
+          untouched, so "everything" would be a claim the app then visibly contradicts. What it deletes is
+          exactly what an export captures — one sentence covering both operations. */}
+      <ConfirmDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        title="Delete my logbook?"
+        confirmLabel="Delete"
+        onExportFirst={() => void onExport()}
+        onConfirm={() => void onConfirmDelete()}
+        body={
+          <>
+            <p>
+              {counts === undefined
+                ? 'Every session and go on this phone will be deleted.'
+                : `${countsLabel(counts).replace(', on this phone only', '')} will be deleted. There is no undo.`}
+            </p>
+            <p>The gyms come back on the next launch, and your settings are kept.</p>
+          </>
+        }
+      />
+
+      <ConfirmDialog
+        open={pending !== undefined}
+        onOpenChange={(open) => {
+          if (!open) setPending(undefined);
+        }}
+        title="Replace your logbook?"
+        confirmLabel="Replace"
+        onExportFirst={() => void onExport()}
+        onConfirm={() => {
+          if (pending) void onConfirmImport(pending);
+        }}
+        body={
+          <>
+            <p>
+              {pending === undefined
+                ? ''
+                : `This file holds ${String(pending.counts.ticks)} ${pending.counts.ticks === 1 ? 'go' : 'goes'} in ${String(pending.counts.sessions)} ${pending.counts.sessions === 1 ? 'session' : 'sessions'}, exported ${new Date(pending.exported_at).toLocaleDateString()}.`}
+            </p>
+            <p>
+              {counts === undefined
+                ? 'Everything currently on this phone will be deleted.'
+                : `${countsLabel(counts).replace(', on this phone only', '')} on this phone will be deleted. There is no undo.`}
+            </p>
+          </>
+        }
+      />
     </div>
   );
 }

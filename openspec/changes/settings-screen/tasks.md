@@ -42,12 +42,12 @@
 
 ## 5. The destructive paths
 
-- [ ] 5.1 Add the import flow: choose file → `parseImport` → on refusal show the reason and stop → on success open the confirmation
-- [ ] 5.2 Build the import confirmation with Base UI, stating what the file holds, when it was exported, and what will be deleted, with **Export mine first** beside **Replace**. Plain utility classes over daisyUI tokens — no `modal-box`
-- [ ] 5.3 Commit an accepted import through `replaceLogbook`, then `location.reload()`, and document at the call site that the reload also re-runs seeding and so restores the current venues
-- [ ] 5.4 Add the delete flow with its own confirmation, stating the counts, that seed venues return and that preferences are kept, with **Export first** beside **Delete**
-- [ ] 5.5 Tests: a refused file never opens a dialog; a cancelled confirmation writes nothing; a confirmed import replaces and triggers the reload; a confirmed delete empties all three tables
-- [ ] 5.6 Test that both confirmations state counts read from the database and the file rather than placeholders, and that `App.test.tsx`'s `modal-box` guard still passes with two new dialogs present
+- [x] 5.1 Add the import flow: choose file → `parseImport` → on refusal show the reason and stop → on success open the confirmation
+- [x] 5.2 Build the import confirmation with Base UI's `AlertDialog` — the dependency's first use — stating what the file holds, when it was exported, and what will be deleted, with **Export first** above **Replace**. Plain utility classes over daisyUI tokens, and none of its modal classes
+- [x] 5.3 Commit an accepted import through `replaceLogbook`, then `location.reload()`, and document at the call site that the reload also re-runs seeding and so restores the current venues
+- [x] 5.4 Add the delete flow with its own confirmation, stating the counts, that seed venues return and that preferences are kept, with **Export first** beside **Delete**
+- [x] 5.5 Tests: a refused file never opens a dialog; a cancelled confirmation writes nothing; a confirmed import replaces and triggers the reload; a confirmed delete empties all three tables
+- [x] 5.6 Test that both confirmations state counts read from the database and the file rather than placeholders, and that `App.test.tsx`'s daisyUI popup-class guard still passes with two new dialogs present — it caught this change's comment quoting the class name, which is the guard working
 
 ## 6. The haptic
 
