@@ -67,4 +67,4 @@
 - [x] 8.3 Exercise export and import against a real browser: export a populated logbook, delete it, import the file back, and confirm the sessions and their goes read identically on the sessions surface
 - [x] 8.4 Confirm a marker refusal in a real browser by editing the marker in an exported file, and a digest refusal by editing a tick's grade — both must refuse, and the logbook must be unchanged afterwards
 - [x] 8.5 Confirm the theme has no flash on a cold start with a stored light theme, and that the choice survives a reload
-- [ ] 8.6 **Needs the phone — cannot be done from here.** Confirm on the trial device that export downloads and import selects a file from an installed PWA, and note what the persistence state reports there
+- [x] 8.6 Confirmed on the trial device: export downloads, import selects a file, delete works. The storage state reads **Protected from automatic cleanup** — persistence granted, where headless Chromium on the same preview origin is denied
