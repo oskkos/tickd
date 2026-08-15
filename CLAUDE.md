@@ -16,7 +16,7 @@ or test commands. Everything under "Planned architecture" below is specification
   stack choices, hosting, risks.
 - **`docs/DESIGN.md`** — owns *how it looks*: logo, typography, colour, the logging screen layout, the
   component-library decision.
-- **`docs/decision-log/`** — one file per decision, `D1`–`D23`. See below.
+- **`docs/decision-log/`** — one file per decision, `D1`–`D24`. See below.
 - **`docs/DEPLOY.md`** and **`docs/ICONS.md`** — operational notes: the Cloudflare Pages setup, and the
   icon/asset catalogue that `docs/DESIGN.md` §1 defers the detail to.
 
@@ -122,7 +122,7 @@ the hook as the fast feedback loop.
 ## Working with the documents
 
 **`docs/decision-log/` records positions that were argued through and changed — one file per decision,
-`D1`–`D23`.** Read the relevant entry before proposing an alternative: most obvious-seeming suggestions
+`D1`–`D24`.** Read the relevant entry before proposing an alternative: most obvious-seeming suggestions
 (a `route` table, colour-coded grades, one flat style enum, an always-on VPS, Quarkus, GraalVM,
 Terraform, 8a.nu CSV import, a native mobile app, `react-router`, TanStack Query) were already
 considered and rejected there, with reasoning. `docs/CONCEPT.md`'s own **Decision log** section is the
@@ -245,7 +245,13 @@ Phase 0 discipline is the stated main risk. Do not build Phase 1+ concerns into 
   subdomain — a throwaway origin the app leaves at Phase 1 (CONCEPT §9.0, D16).
   **The importer replaces rather than merges, and refuses a schema-marker mismatch instead of
   upgrading it** — merging would invent Phase 1's conflict rules, and upgrading would be a Dexie
-  migration by another name.
+  migration by another name. **It also refuses a file whose digest does not match its payload** (D24):
+  the marker says a file came from this schema, not that it is true to it, and JSON can express rows the
+  type system forbids. Do not add per-field validation to the importer — a validator would be a second
+  copy of the row invariants, free to drift. **Do not reach for `crypto.subtle`** for the digest either;
+  it is secure-context-only, so it would throw on the plain-HTTP dev server the phone tests against.
+  Deleting the logbook is offered too, and **removes exactly what an export captures** — so the seed
+  venues return on the next launch and the `localStorage` preferences survive.
   **Four surfaces, on a bottom tab bar:** logging (venue picker and end-of-session summary live
   inside it), the session list plus its per-session detail, the flash-rate chart, and settings
   (which is where export/import live). The session detail is not optional garnish — it is the only
