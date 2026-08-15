@@ -62,9 +62,9 @@
 
 ## 8. Verify
 
-- [ ] 8.1 Run the full gate — `just check` — and confirm codegen, format, typecheck, lint and the whole suite pass
-- [ ] 8.2 Re-measure the shell in a real browser at 412×600 with the theme control gone: the grade grid still scrolls within its own bounds, the page does not scroll, and record the new numbers against the old ones
-- [ ] 8.3 Exercise export and import against a real browser: export a populated logbook, delete it, import the file back, and confirm the sessions and their goes read identically on the sessions surface
-- [ ] 8.4 Confirm a marker refusal in a real browser by editing the marker in an exported file, and a digest refusal by editing a tick's grade — both must refuse, and the logbook must be unchanged afterwards
-- [ ] 8.5 Confirm the theme has no flash on a cold start with a stored light theme, and that the choice survives a reload
-- [ ] 8.6 Confirm on the trial device that export downloads and import selects a file from an installed PWA, and note what the persistence state reports there
+- [x] 8.1 Run the full gate — `just check` — and confirm codegen, format, typecheck, lint and the whole suite pass
+- [x] 8.2 Re-measure the shell in a real browser at 412×600 with the theme control gone: header 64→44px, grade grid scroller 228→248px (4.07→4.43 rows against a 3-row floor), scrollHeight 496, page does not scroll
+- [x] 8.3 Exercise export and import against a real browser: export a populated logbook, delete it, import the file back, and confirm the sessions and their goes read identically on the sessions surface
+- [x] 8.4 Confirm a marker refusal in a real browser by editing the marker in an exported file, and a digest refusal by editing a tick's grade — both must refuse, and the logbook must be unchanged afterwards
+- [x] 8.5 Confirm the theme has no flash on a cold start with a stored light theme, and that the choice survives a reload
+- [ ] 8.6 **Needs the phone — cannot be done from here.** Confirm on the trial device that export downloads and import selects a file from an installed PWA, and note what the persistence state reports there

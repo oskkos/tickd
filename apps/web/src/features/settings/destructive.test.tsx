@@ -126,6 +126,22 @@ describe('importing', () => {
     expect(dialog).toHaveTextContent(/2 ticks in 1 session on this phone will be deleted/i);
   });
 
+  it('does not threaten a loss when there is nothing to lose', async () => {
+    // The day-one restore: a fresh install, or the new origin after the Phase 1 move. Found in a
+    // browser, where the dialog read "0 ticks in 0 sessions will be deleted. There is no undo."
+    await seedOneGo();
+    const file = await exportedFile();
+    await db.ticks.clear();
+    await db.sessions.clear();
+    renderSettings();
+
+    await userEvent.upload(await screen.findByLabelText('Import JSON'), file);
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent(/nothing on this phone to replace/i);
+    expect(dialog).not.toHaveTextContent(/no undo/i);
+  });
+
   it('writes nothing when the confirmation is cancelled', async () => {
     await seedOneGo();
     const file = await exportedFile();
