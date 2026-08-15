@@ -29,7 +29,8 @@
 
       It duplicates `resolveTheme` in `features/settings/preferences.ts` by necessity: nothing is loaded
       yet. Keep the two in step — the module is the authority, this is its earliest possible echo. A
-      failure here degrades to the attribute above, which React then corrects on mount.
+      failure here degrades to the attribute above, and `main.tsx` re-applies the resolved theme once
+      the bundle is up, so a blocked `localStorage` costs a frame rather than the preference.
     -->
     <script>
       try {

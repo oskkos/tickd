@@ -124,6 +124,20 @@ function countsLabel(counts: LogbookCounts): string {
   return `${ticks} in ${sessions}, on this phone only`;
 }
 
+/**
+ * An operation that threw, and where its message belongs.
+ *
+ * Every button on this surface hands its promise to `void`, which is what turns a rejected export or a
+ * quota-exhausted replace into a tap that does nothing at all — the worst outcome on the one surface
+ * whose whole purpose is being reliable. The message is placed next to the control that failed rather
+ * than in one shared slot, since the delete button sits a section below the data card and an alert
+ * scrolled off screen is the same as no alert.
+ */
+interface Failure {
+  readonly where: 'data' | 'delete';
+  readonly message: string;
+}
+
 /** A file that has passed every check and is waiting to be confirmed. */
 interface PendingImport {
   readonly payload: LogbookPayload;
@@ -159,6 +173,7 @@ export function SettingsScreen({
   const [counts, setCounts] = useState<LogbookCounts | undefined>();
   const [pending, setPending] = useState<PendingImport | undefined>();
   const [refusal, setRefusal] = useState<ImportRefusal | undefined>();
+  const [failure, setFailure] = useState<Failure | undefined>();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
@@ -179,8 +194,17 @@ export function SettingsScreen({
   }, []);
 
   async function onExport() {
+    setFailure(undefined);
     const at = now ?? new Date();
-    downloadExport(await buildExport(db, at), exportFileName(at));
+    try {
+      downloadExport(await buildExport(db, at), exportFileName(at));
+    } catch (error: unknown) {
+      console.error('[tickd] the export failed', error);
+      setFailure({
+        where: 'data',
+        message: 'The export could not be written. Nothing was changed — try again.',
+      });
+    }
   }
 
   /**
@@ -191,7 +215,19 @@ export function SettingsScreen({
    */
   async function onFileChosen(file: File) {
     setRefusal(undefined);
-    const result = parseImport(await file.text());
+    setFailure(undefined);
+    let text: string;
+    try {
+      // Reading is separate from refusing: a file the picker handed over and the disk then could not
+      // produce — Android revokes a content URI freely — is not a file this app rejected, and saying
+      // "that is not a tickd export" about it would send the user looking for a different file.
+      text = await file.text();
+    } catch (error: unknown) {
+      console.error('[tickd] could not read the chosen file', error);
+      setFailure({ where: 'data', message: 'That file could not be read. Try choosing it again.' });
+      return;
+    }
+    const result = parseImport(text);
     if (!result.ok) {
       setRefusal(result.refusal);
       return;
@@ -200,12 +236,34 @@ export function SettingsScreen({
   }
 
   async function onConfirmImport(accepted: PendingImport) {
-    await replaceLogbook(db, accepted.payload);
+    try {
+      await replaceLogbook(db, accepted.payload);
+    } catch (error: unknown) {
+      // The transaction is all-or-nothing, so the previous logbook is still there. Saying so is the
+      // point: without it the dialog just sits open and the obvious next move is to press Replace again.
+      console.error('[tickd] the import failed', error);
+      setPending(undefined);
+      setFailure({
+        where: 'data',
+        message: 'The import failed. Your logbook was left exactly as it was.',
+      });
+      return;
+    }
     reload();
   }
 
   async function onConfirmDelete() {
-    await deleteLogbook(db);
+    try {
+      await deleteLogbook(db);
+    } catch (error: unknown) {
+      console.error('[tickd] the deletion failed', error);
+      setConfirmingDelete(false);
+      setFailure({
+        where: 'delete',
+        message: 'Deleting failed. Your logbook was left exactly as it was.',
+      });
+      return;
+    }
     reload();
   }
 
@@ -276,6 +334,12 @@ export function SettingsScreen({
               {refusalMessage(refusal)}
             </p>
           )}
+
+          {failure?.where === 'data' && (
+            <p role="alert" className="mt-2 text-sm text-error">
+              {failure.message}
+            </p>
+          )}
         </div>
       </Section>
 
@@ -289,6 +353,12 @@ export function SettingsScreen({
         >
           Delete my logbook
         </button>
+
+        {failure?.where === 'delete' && (
+          <p role="alert" className="text-sm text-error">
+            {failure.message}
+          </p>
+        )}
       </Section>
 
       {/* Not "delete everything": the seed venues come back on the next launch and the preferences are
@@ -303,10 +373,15 @@ export function SettingsScreen({
         onConfirm={() => void onConfirmDelete()}
         body={
           <>
+            {/* Same rule as the import confirmation below: an empty logbook has nothing at stake, and
+                "0 ticks in 0 sessions will be deleted. There is no undo." is both true and alarming
+                about nothing. A fresh install is exactly where someone presses this to be sure. */}
             <p>
               {counts === undefined
                 ? 'Every session and go on this phone will be deleted.'
-                : `${countsLabel(counts).replace(', on this phone only', '')} will be deleted. There is no undo.`}
+                : counts.ticks === 0 && counts.sessions === 0
+                  ? 'There is nothing on this phone to delete.'
+                  : `${countsLabel(counts).replace(', on this phone only', '')} will be deleted. There is no undo.`}
             </p>
             <p>The gyms come back on the next launch, and your settings are kept.</p>
           </>

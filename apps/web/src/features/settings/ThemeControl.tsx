@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
   applyTheme,
-  darkMediaQuery,
   readThemePreference,
   resolveTheme,
   systemPrefersDark,
+  watchSystemTheme,
   writeThemePreference,
   type ThemePreference,
 } from './preferences.ts';
@@ -25,8 +25,11 @@ import {
  * a segmented row at full touch size. Consistency with the app's other three-way choice beats consistency
  * with a table written before either existed.
  *
- * The first paint is not this component's job — `index.html` has already applied the stored theme, because
- * an effect would flash the wrong one. This keeps it in step from mount onwards.
+ * **Neither the first paint nor the system watch is this component's job**, and both used to look as if
+ * they were. `index.html` applies the stored theme before the bundle loads, because an effect would flash
+ * the wrong one; `main.tsx` re-applies it and then subscribes to the system for the lifetime of the app.
+ * This control is mounted only while `/settings` is on screen, so a subscription owned by it followed the
+ * system on the one surface nobody is on. What is left here is applying a *choice* the moment it is made.
  */
 const OPTIONS: readonly { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -39,24 +42,10 @@ export function ThemeControl() {
 
   useEffect(() => {
     applyTheme(resolveTheme(preference, systemPrefersDark()));
-
-    if (preference !== 'system') {
-      return;
-    }
-
-    // Only *follow system* subscribes. An explicit choice must not move when the phone's own schedule
-    // flips at sunset — that is the difference between choosing a theme and choosing to follow one.
-    const query = darkMediaQuery();
-    if (!query) {
-      return;
-    }
-    const onChange = (event: MediaQueryListEvent) => {
-      applyTheme(resolveTheme('system', event.matches));
-    };
-    query.addEventListener('change', onChange);
-    return () => {
-      query.removeEventListener('change', onChange);
-    };
+    // The same watcher `main.tsx` starts at boot, which is where following the system actually lives —
+    // this control is unmounted the moment the user leaves settings. Subscribing here too costs one
+    // idempotent listener and keeps the component correct when it is rendered on its own.
+    return watchSystemTheme();
   }, [preference]);
 
   return (

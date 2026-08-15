@@ -101,3 +101,30 @@ export function systemPrefersDark(): boolean {
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
 }
+
+/**
+ * Keeps `data-theme` in step with the system, and returns the unsubscribe.
+ *
+ * **It reads the preference inside the handler rather than capturing it when subscribing**, so one
+ * subscription is correct for all three values: an explicit dark or light resolves to itself and the
+ * event changes nothing, while *follow system* tracks it. That is the difference between choosing a
+ * theme and choosing to follow one, expressed once instead of as a conditional subscription.
+ *
+ * **Started at boot, not by `ThemeControl`.** The control is mounted only while the settings screen is
+ * on screen, and a phone whose schedule flips at sunset does it while the climber is looking at the
+ * logging screen — so a subscription tied to the control satisfies the spec's "without a reload" only
+ * on the one surface nobody is on.
+ */
+export function watchSystemTheme(): () => void {
+  const query = darkMediaQuery();
+  if (!query) {
+    return () => undefined;
+  }
+  const onChange = (event: MediaQueryListEvent) => {
+    applyTheme(resolveTheme(readThemePreference(), event.matches));
+  };
+  query.addEventListener('change', onChange);
+  return () => {
+    query.removeEventListener('change', onChange);
+  };
+}

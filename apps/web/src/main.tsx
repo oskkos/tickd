@@ -3,6 +3,13 @@ import { createRoot } from 'react-dom/client';
 
 import { App } from './App.tsx';
 import { initialiseStorage } from './db/startup.ts';
+import {
+  applyTheme,
+  readThemePreference,
+  resolveTheme,
+  systemPrefersDark,
+  watchSystemTheme,
+} from './features/settings/preferences.ts';
 import './index.css';
 
 const root = document.getElementById('root');
@@ -19,6 +26,16 @@ if (!root) {
 // The status is passed down rather than logged: when storage is unusable the app must say so, or an
 // empty venue picker reads as data loss.
 const startup = await initialiseStorage();
+
+// The theme, for the whole app rather than for the one screen that can change it.
+//
+// `index.html` applies the stored theme before first paint and is the only reason there is no flash;
+// this re-applies it in case that script could not run (storage blocked, `matchMedia` absent), and then
+// keeps *follow system* tracking the system for as long as the app is open. `ThemeControl` is mounted
+// only on `/settings`, so a subscription owned by it would stop following the moment the user navigates
+// away — which is every moment they are actually logging.
+applyTheme(resolveTheme(readThemePreference(), systemPrefersDark()));
+watchSystemTheme();
 
 createRoot(root).render(
   <StrictMode>
