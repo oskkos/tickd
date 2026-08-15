@@ -53,14 +53,14 @@ describe('the settings surface', () => {
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument();
   });
 
-  it('orders appearance above the data section, with nothing after the data section but its actions', async () => {
+  it('puts appearance first and the irreversible action last', async () => {
     // Frequently touched above rarely touched, and the irreversible action last — on a surface used
     // one-handed, adjacency is the risk.
     await renderApp({ initialPath: '/settings' });
     await screen.findByRole('heading', { name: 'Settings' });
 
     const headings = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
-    expect(headings).toEqual(['Appearance', 'Feedback', 'Your data']);
+    expect(headings).toEqual(['Appearance', 'Feedback', 'Your data', 'Starting over']);
   });
 
   it('offers the theme and haptic controls', async () => {
