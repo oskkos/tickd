@@ -101,8 +101,20 @@ const STORED_FIELDS = {
   ended_at: true,
 } satisfies Record<StoredField, true>;
 
-/** FNV-1a, 32-bit. Not cryptographic — it only has to change when its input does. */
-function fingerprint(input: string): string {
+/**
+ * FNV-1a, 32-bit. Not cryptographic — it only has to change when its input does.
+ *
+ * **Exported, and used twice: for the schema marker below and for the export file's digest.** One
+ * function rather than two, so a digest cannot disagree with the marker about what hashing means.
+ *
+ * The obvious upgrade — `crypto.subtle.digest('SHA-256', …)` — is the wrong call here for the same
+ * reason `newId` documents: `SubtleCrypto` is **secure-context-only**, so it is absent over plain
+ * http, which is exactly the stated device-testing route (a phone against the Vite dev server at
+ * `http://192.168.x.x:5173`). Export and import would throw there while working in production. The
+ * threat model is a user who opened their own export in a text editor, not an attacker, and 32 bits
+ * detects that with room to spare.
+ */
+export function fingerprint(input: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i++) {
     hash ^= input.charCodeAt(i);
