@@ -102,6 +102,37 @@ describe('importing', () => {
     expect((await db.ticks.toArray())[0]?.grade_raw).toBe('6a');
   });
 
+  it('says a file could not be read rather than calling it a bad export', async () => {
+    // Android revokes a content URI freely, so the picker can hand over a file the disk then will not
+    // produce. Calling that "not a tickd export" sends the user looking for a different file.
+    await seedOneGo();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(File.prototype, 'text').mockRejectedValue(new Error('gone'));
+    renderSettings();
+
+    await userEvent.upload(await screen.findByLabelText('Import JSON'), new File(['{}'], 'x.json'));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not be read/i);
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+    expect(await db.ticks.count()).toBe(1);
+  });
+
+  it('says the logbook survived when the replace itself fails', async () => {
+    // The transaction is all-or-nothing, so the previous logbook is still there. Without saying so the
+    // dialog just sits open and the obvious next move is to press Replace again.
+    await seedOneGo();
+    const file = await exportedFile();
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    vi.spyOn(db, 'transaction').mockRejectedValue(new Error('quota exhausted'));
+    const reload = renderSettings();
+
+    await userEvent.upload(await screen.findByLabelText('Import JSON'), file);
+    await userEvent.click(await screen.findByRole('button', { name: 'Replace' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/left exactly as it was/i);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
   it('confirms with counts from both the file and the database', async () => {
     await seedOneGo();
     const file = await exportedFile();
@@ -204,6 +235,20 @@ describe('deleting', () => {
     expect(dialog).toHaveTextContent(/1 tick in 1 session will be deleted/i);
     expect(dialog).toHaveTextContent(/gyms come back on the next launch/i);
     expect(dialog).toHaveTextContent(/settings are kept/i);
+  });
+
+  it('does not threaten a loss when there is nothing to lose', async () => {
+    // The same rule the import confirmation follows. A fresh install is exactly where someone presses
+    // this to be sure, and "0 ticks in 0 sessions will be deleted. There is no undo." is both true and
+    // alarming about nothing.
+    await seedVenues(db);
+    renderSettings();
+
+    await userEvent.click(await screen.findByRole('button', { name: /delete my logbook/i }));
+
+    const dialog = await screen.findByRole('alertdialog');
+    expect(dialog).toHaveTextContent(/nothing on this phone to delete/i);
+    expect(dialog).not.toHaveTextContent(/no undo/i);
   });
 
   it('writes nothing when cancelled', async () => {

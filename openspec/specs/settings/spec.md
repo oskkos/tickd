@@ -214,6 +214,44 @@ screen, where a typed gate is a worse experience than the risk it mitigates.
 - **WHEN** a confirmation is dismissed
 - **THEN** no rows are written or deleted
 
+### Requirement: An operation that fails says so, and says what survived it
+
+Every action on this surface — export, reading a chosen file, replacing, deleting — SHALL report a
+failure next to the control that failed, rather than completing silently or leaving a dialog open with
+no explanation.
+
+A tap that does nothing is the worst available outcome on the surface whose whole purpose is being
+reliable, and it is the default outcome: each of these handlers hands a promise to `void`, so a rejected
+export or a quota-exhausted replace produces an unhandled rejection and no feedback at all.
+
+A failed **replace** or **delete** SHALL state that the logbook was left as it was. Both run in one
+all-or-nothing transaction, so that is true — and saying it is what stops the obvious next move being to
+press the destructive button a second time.
+
+A file that could not be **read** SHALL be distinguished from a file that was **refused**. Android
+revokes content URIs freely, so a picker can hand over a file the disk then will not produce; calling
+that "not a tickd export" sends the user looking for a different file that does not exist.
+
+#### Scenario: A failed export is reported
+
+- **WHEN** building or writing the export throws
+- **THEN** a message appears beside the export control and nothing is silently discarded
+
+#### Scenario: A failed replace states what survived
+
+- **WHEN** replacing the logbook throws
+- **THEN** the message says the logbook was left exactly as it was
+
+#### Scenario: A failed delete states what survived
+
+- **WHEN** deleting the logbook throws
+- **THEN** the message appears beside the delete control and says the logbook was left as it was
+
+#### Scenario: An unreadable file is not reported as a refusal
+
+- **WHEN** the chosen file cannot be read
+- **THEN** the message says it could not be read, rather than that it is not a tickd export
+
 ### Requirement: Deleting removes exactly what an export captures
 
 The surface SHALL offer deleting the logbook, removing every `venue`, `session` and `tick` row in one
@@ -317,7 +355,11 @@ or a dark system preference against the app's own default — flashes the wrong 
 flash of white at the moment the app is opened, which is exactly the condition `DESIGN.md` §3 makes dark
 mode non-optional for.
 
-Following the system SHALL track a later change of the system preference without a reload.
+Following the system SHALL track a later change of the system preference without a reload, **on every
+surface rather than on this one**. The control that changes the theme is mounted only while settings is
+open, so tracking owned by that control follows the system on the one screen nobody is looking at — a
+phone whose schedule flips at sunset does it while the climber is on the logging screen. Tracking
+therefore belongs to the app's lifetime, not to a component's.
 
 #### Scenario: The stored theme is applied before first paint
 
@@ -328,6 +370,11 @@ Following the system SHALL track a later change of the system preference without
 
 - **WHEN** the preference is *follow system* and the system switches to dark
 - **THEN** the app switches to dark without a reload
+
+#### Scenario: Tracking does not depend on the settings surface being open
+
+- **WHEN** the preference is *follow system*, another surface is showing, and the system switches
+- **THEN** the app follows it
 
 #### Scenario: An explicit choice overrides the system
 

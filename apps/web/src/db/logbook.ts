@@ -30,14 +30,22 @@ export interface LogbookPayload {
   readonly ticks: readonly Tick[];
 }
 
-/** Reads the whole database, in the shape an export writes and an import consumes. */
+/**
+ * Reads the whole database, in the shape an export writes and an import consumes.
+ *
+ * **One read transaction over all three tables**, for the same reason the replace below is one write
+ * transaction: three independent reads can straddle a write, and an export whose sessions and ticks
+ * come from different moments restores a tick pointing at a session that is not in the file.
+ */
 export async function readLogbook(db: TickdDatabase): Promise<LogbookPayload> {
-  const [venues, sessions, ticks] = await Promise.all([
-    db.venues.toArray(),
-    db.sessions.toArray(),
-    db.ticks.toArray(),
-  ]);
-  return { venues, sessions, ticks };
+  return db.transaction('r', db.venues, db.sessions, db.ticks, async () => {
+    const [venues, sessions, ticks] = await Promise.all([
+      db.venues.toArray(),
+      db.sessions.toArray(),
+      db.ticks.toArray(),
+    ]);
+    return { venues, sessions, ticks };
+  });
 }
 
 /**

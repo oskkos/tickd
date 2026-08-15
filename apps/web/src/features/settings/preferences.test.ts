@@ -6,6 +6,7 @@ import {
   resolveTheme,
   systemPrefersDark,
   THEME_KEY,
+  watchSystemTheme,
   writeHapticPreference,
   writeThemePreference,
 } from './preferences.ts';
@@ -95,5 +96,68 @@ describe('systemPrefersDark', () => {
     // Dark is the safer assumption: DESIGN.md §3 makes it the non-optional one, and gyms are dim.
     vi.stubGlobal('matchMedia', undefined);
     expect(systemPrefersDark()).toBe(true);
+  });
+});
+
+describe('watchSystemTheme', () => {
+  /** A `matchMedia` whose `change` listener the test can fire, standing in for the phone at sunset. */
+  function stubMatchMedia() {
+    const listeners = new Set<(event: MediaQueryListEvent) => void>();
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockReturnValue({
+        matches: true,
+        addEventListener: (_: string, l: (event: MediaQueryListEvent) => void) => {
+          listeners.add(l);
+        },
+        removeEventListener: (_: string, l: (event: MediaQueryListEvent) => void) => {
+          listeners.delete(l);
+        },
+      }),
+    );
+    return {
+      change(dark: boolean) {
+        for (const listener of listeners) listener({ matches: dark } as MediaQueryListEvent);
+      },
+      get listenerCount() {
+        return listeners.size;
+      },
+    };
+  }
+
+  it('follows a system change with no screen mounted', () => {
+    // The reason this lives here rather than in `ThemeControl`: the control is mounted only on
+    // `/settings`, and a phone flips to light while the climber is looking at the logging screen.
+    const media = stubMatchMedia();
+    document.documentElement.dataset.theme = 'dim';
+
+    watchSystemTheme();
+    media.change(false);
+
+    expect(document.documentElement.dataset.theme).toBe('winter');
+  });
+
+  it('leaves an explicit choice alone', () => {
+    // The preference is read inside the handler, so one subscription is correct for all three values.
+    const media = stubMatchMedia();
+    writeThemePreference('dark');
+
+    watchSystemTheme();
+    media.change(false);
+
+    expect(document.documentElement.dataset.theme).toBe('dim');
+  });
+
+  it('unsubscribes, and is a no-op where there is no matchMedia', () => {
+    const media = stubMatchMedia();
+    const stop = watchSystemTheme();
+    expect(media.listenerCount).toBe(1);
+    stop();
+    expect(media.listenerCount).toBe(0);
+
+    vi.stubGlobal('matchMedia', undefined);
+    expect(() => {
+      watchSystemTheme()();
+    }).not.toThrow();
   });
 });

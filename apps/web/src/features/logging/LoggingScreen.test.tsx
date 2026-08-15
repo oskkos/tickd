@@ -36,6 +36,9 @@ describe('the haptic on a written go', () => {
       await startAt(/Kiipeilyareena Salmisaari/);
       await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
       await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+      // The buzz fires after `logTick` resolves, so waiting for the sheet the same write opens is what
+      // separates "did not buzz" from "has not finished writing yet".
+      await screen.findByRole('region', { name: 'Detail for 6c+' });
 
       expect(vibrate).toHaveBeenCalledTimes(1);
       expect(await db.ticks.count()).toBe(1);
@@ -51,6 +54,7 @@ describe('the haptic on a written go', () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+    await screen.findByRole('region', { name: 'Detail for 6c+' });
 
     expect(await db.ticks.count()).toBe(1);
   });
@@ -280,7 +284,14 @@ describe('reopening a go from the recent list', () => {
 
     // The sheet that follows the write says "Logged" and counts down, which is correct: it is an
     // interruption of the two-tap path that nobody asked for.
-    expect(screen.getByRole('region', { name: 'Detail for 6c+' })).toHaveTextContent(/logged/i);
+    //
+    // `findBy`, not `getBy`: the sheet opens *after* `logTick` resolves, and an IndexedDB round trip
+    // outlives the act() that `userEvent.click` wraps the tap in. Every query below that depends on the
+    // sheet having opened is awaited for the same reason — a synchronous one loses this race roughly
+    // once in six full runs.
+    expect(await screen.findByRole('region', { name: 'Detail for 6c+' })).toHaveTextContent(
+      /logged/i,
+    );
     expect(screen.getByTestId('sheet-countdown')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -297,7 +308,7 @@ describe('reopening a go from the recent list', () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'overhang' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'overhang' }));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
 
     await userEvent.click(screen.getByRole('button', { name: /detail for 6c\+/i }));
@@ -318,7 +329,7 @@ describe('the sticky discipline across a remount', () => {
     // this bug was invisible — the grid looks identical whichever discipline is selected.
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
 
     // A tab navigation unmounts this screen; so does a reload. Both used to reset the toggle to Rope,
     // and at Nekala — which grades both disciplines in French — the grid renders identical labels either
@@ -326,10 +337,10 @@ describe('the sticky discipline across a remount', () => {
     cleanup();
     render(<LoggingScreen />);
 
-    expect(await screen.findByRole('button', { name: 'Boulder' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    );
+    // Queried *by* its pressed state, not queried and then asserted on: the toggle renders unpressed
+    // and is corrected once the session's newest tick has been read back, so `findByRole` on the name
+    // alone resolves against the intermediate state.
+    await screen.findByRole('button', { name: 'Boulder', pressed: true });
 
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6b' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
@@ -345,15 +356,16 @@ describe('the sticky discipline across a remount', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'toprope' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6a' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
 
     cleanup();
     render(<LoggingScreen />);
     await screen.findByRole('button', { name: 'Grade 6a' });
 
     // `protection` is sticky *and visible*, which is the condition DESIGN.md attaches to allowing it —
-    // so coming back to a screen that silently says `lead` breaks the deal.
-    expect(screen.getByRole('button', { name: 'toprope' })).toHaveAttribute('aria-pressed', 'true');
+    // so coming back to a screen that silently says `lead` breaks the deal. Queried by its pressed
+    // state for the same reason as the discipline above: the read-back lands after the first render.
+    await screen.findByRole('button', { name: 'toprope', pressed: true });
   });
 });
 
@@ -364,7 +376,7 @@ describe('correcting a go mid-session', () => {
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
 
     // The sheet is already open from the write, so a mis-tap is correctable without even reopening it.
-    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade, 6c+' }));
     // Scoped to the sheet: the logging screen's own grid is still mounted behind the backdrop, so
     // `Grade 6c` matches twice. The backdrop covers it, but it is not removed from the accessibility
     // tree — the sheet traps no focus, which this file's other tests rely on to reach it by keyboard.
@@ -382,7 +394,7 @@ describe('correcting a go mid-session', () => {
     await startAt(/Kiipeilyareena Salmisaari/);
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
-    await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Done' }));
 
     // Reached from the row rather than the fresh sheet — the case where the mistake is noticed a climb
     // or two later, which is when undoing from the middle stops being acceptable.
@@ -426,7 +438,7 @@ describe('correcting a go mid-session', () => {
       .map((b) => b.textContent);
     expect(dimmedBefore).toContain('9a');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Grade, 6c+' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade, 6c+' }));
     const sheet = screen.getByRole('region', { name: 'Detail for 6c+' });
     await userEvent.click(within(sheet).getByRole('button', { name: 'Grade 9a' }));
     await userEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -448,7 +460,7 @@ describe('correcting a go mid-session', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Grade 6A' }));
     await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
 
-    const sheet = screen.getByRole('region', { name: 'Detail for 6A' });
+    const sheet = await screen.findByRole('region', { name: 'Detail for 6A' });
     expect(within(sheet).queryByRole('button', { name: /^Protection,/ })).toBeNull();
     expect(within(sheet).getByRole('group', { name: 'Recorded as' })).toHaveTextContent('boulder');
   });
