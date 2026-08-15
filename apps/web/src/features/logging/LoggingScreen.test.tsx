@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { db } from '../../db/schema.ts';
@@ -23,6 +23,38 @@ async function startAt(name: string | RegExp) {
   await userEvent.click(await screen.findByRole('button', { name }));
   await userEvent.click(screen.getByRole('button', { name: /start session/i }));
 }
+
+describe('the haptic on a written go', () => {
+  it('buzzes once when the preference is on, and writes the go either way', async () => {
+    const vibrate = vi.fn();
+    Object.defineProperty(globalThis.navigator, 'vibrate', {
+      value: vibrate,
+      configurable: true,
+      writable: true,
+    });
+    try {
+      await startAt(/Kiipeilyareena Salmisaari/);
+      await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+      await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+      expect(vibrate).toHaveBeenCalledTimes(1);
+      expect(await db.ticks.count()).toBe(1);
+    } finally {
+      Reflect.deleteProperty(globalThis.navigator, 'vibrate');
+    }
+  });
+
+  it('writes the go where the device cannot vibrate at all', async () => {
+    // The signal is a bonus (`DESIGN.md` §4). Nothing about writing a tick may depend on it.
+    expect(Reflect.get(globalThis.navigator, 'vibrate')).toBeUndefined();
+
+    await startAt(/Kiipeilyareena Salmisaari/);
+    await userEvent.click(await screen.findByRole('button', { name: 'Grade 6c+' }));
+    await userEvent.click(screen.getByRole('button', { name: /first go, flash/i }));
+
+    expect(await db.ticks.count()).toBe(1);
+  });
+});
 
 describe('a full session', () => {
   it('logs a flash in two taps and shows it in the list', async () => {

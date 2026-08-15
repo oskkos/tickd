@@ -4,6 +4,7 @@ import { db } from '../../db/schema.ts';
 import { workingRange, type WorkingRange } from '../../db/range.ts';
 import { endSession, lastVenueId, openSession, startSession } from '../../db/sessions.ts';
 import { gradeOf, logTick, recentTicks, removeTick } from '../../db/ticks.ts';
+import { buzz } from '../settings/haptics.ts';
 import type {
   Discipline,
   RopedProtection,
@@ -188,6 +189,7 @@ export function LoggingScreen() {
       ...pendingGrade,
       outcome,
     });
+    buzz();
     setPendingGrade(undefined);
     sheet.openForNew(tick);
     await refreshTicks(session.id);

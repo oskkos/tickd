@@ -51,8 +51,8 @@
 
 ## 6. The haptic
 
-- [ ] 6.1 Fire `navigator.vibrate?.(…)` once where a tick is written in `LoggingScreen`, gated by the preference, with a comment that it is a bonus signal and an absent API is a no-op rather than a branch
-- [ ] 6.2 Tests: a written tick requests one vibration with the preference on, none with it off, and writes normally where `navigator.vibrate` is undefined
+- [x] 6.1 Fire the vibration once where a tick is written in `LoggingScreen`, through a `buzz()` in `features/settings/haptics.ts` that owns the preference read and the widened `navigator.vibrate` guard, with a comment that it is a bonus signal and an absent API is a no-op rather than a branch
+- [x] 6.2 Tests: a written tick requests one vibration with the preference on, none with it off, and writes normally where `navigator.vibrate` is undefined
 
 ## 7. The documents
 
