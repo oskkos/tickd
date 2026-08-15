@@ -45,3 +45,46 @@ export async function requestPersistence(): Promise<PersistOutcome> {
     return 'errored';
   }
 }
+
+/**
+ * What the settings screen reports: is the logbook protected *right now*.
+ *
+ * **Reading and requesting are deliberately separate calls, and this one never requests.** Requesting
+ * is a startup concern and `initialiseStorage` does it on every launch, so a refusal retries itself
+ * without anyone pressing anything — Chromium's heuristic grants persistence once the PWA is installed
+ * to the home screen, and the app therefore self-heals. A "request again" button would repeat what boot
+ * did moments earlier and imply the user's inaction was the problem.
+ *
+ * Reporting is the other question, and it needs an answer available at any moment rather than a
+ * snapshot taken during boot. So this reads the current state instead of retaining `requestPersistence`'s
+ * outcome — which also means settings needs to know nothing about the startup sequence.
+ *
+ * The three outcomes are distinguished because **the advice differs**, not for completeness:
+ * `unpersisted` is fixed by installing to the home screen, and `unsupported` is Safari, where the
+ * protection is instead that an installed PWA escapes the seven-day unused-data clear (§7.6). What is
+ * *not* distinguished is refused-versus-never-asked: both produce the same advice, so the distinction
+ * would be inert.
+ *
+ * It lives beside `requestPersistence` so the guard against an environment with no `navigator.storage`
+ * at all — jsdom, and therefore every test — is written once.
+ */
+export type PersistState = 'persisted' | 'unpersisted' | 'unsupported' | 'unknown';
+
+/** Reads the current persistence state. Never requests, never throws. */
+export async function currentPersistence(): Promise<PersistState> {
+  // Same widening as above, and for the same reason: the DOM lib says `navigator.storage` is always
+  // there and `persisted` is always callable, and both overstate reality.
+  const { storage } = globalThis.navigator as Omit<Navigator, 'storage'> & {
+    storage?: StorageManager;
+  };
+  if (typeof storage?.persisted !== 'function') {
+    return 'unsupported';
+  }
+
+  try {
+    return (await storage.persisted()) ? 'persisted' : 'unpersisted';
+  } catch {
+    // Reporting cannot be allowed to break the screen that reports it.
+    return 'unknown';
+  }
+}

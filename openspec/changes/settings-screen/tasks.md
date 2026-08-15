@@ -1,14 +1,14 @@
 ## 1. The whole-database write paths
 
-- [ ] 1.1 Export `fingerprint` from `db/schema.ts`, keeping the FNV-1a implementation where it is, and note in its comment that it now serves both the schema marker and the export digest — one function, so a digest cannot drift from the marker's notion of hashing
-- [ ] 1.2 Add `db/logbook.ts` with `replaceLogbook(db, payload)` — one `db.transaction('rw', venues, sessions, ticks, …)` doing `clear()` on all three then `bulkPut` on all three, writing rows verbatim with no re-stamping
-- [ ] 1.3 Add `deleteLogbook(db)` to the same module, one transaction, all three tables cleared, with a comment stating that venues go too because seeding restores them and they are not user data
-- [ ] 1.4 Add `currentPersistence()` to `db/persist.ts` returning `'persisted' | 'unpersisted' | 'unsupported' | 'unknown'`, guarding `navigator.storage?.persisted` at both levels as `requestPersistence` already does, never requesting and never throwing
-- [ ] 1.5 Document in `persist.ts` why reading and requesting are separate: requesting is a startup concern that repeats every launch and therefore self-heals, reading answers "is the logbook protected right now" and must be answerable without a second request
-- [ ] 1.6 Tests in `db/logbook.test.ts`: a replace leaves exactly the supplied rows in all three tables; rows local-only before the call are gone; identifiers and timestamps are written verbatim
-- [ ] 1.7 Test that a failure during the replace leaves the previous logbook intact — force it by supplying a row that violates the key constraint, and assert the pre-call rows are all still readable
-- [ ] 1.8 Tests for `deleteLogbook`: all three tables empty afterwards; running `seedVenues` after it restores the seed set
-- [ ] 1.9 Tests for `currentPersistence`: persisted, unpersisted, an absent `persisted` method reading as `unsupported`, a throwing call reading as `unknown`, and that no call to `persist()` is made in any of them
+- [x] 1.1 Export `fingerprint` from `db/schema.ts`, keeping the FNV-1a implementation where it is, and note in its comment that it now serves both the schema marker and the export digest — one function, so a digest cannot drift from the marker's notion of hashing
+- [x] 1.2 Add `db/logbook.ts` with `replaceLogbook(db, payload)` — one `db.transaction('rw', venues, sessions, ticks, …)` doing `clear()` on all three then `bulkPut` on all three, writing rows verbatim with no re-stamping
+- [x] 1.3 Add `deleteLogbook(db)` to the same module, one transaction, all three tables cleared, with a comment stating that venues go too because seeding restores them and they are not user data
+- [x] 1.4 Add `currentPersistence()` to `db/persist.ts` returning `'persisted' | 'unpersisted' | 'unsupported' | 'unknown'`, guarding `navigator.storage?.persisted` at both levels as `requestPersistence` already does, never requesting and never throwing
+- [x] 1.5 Document in `persist.ts` why reading and requesting are separate: requesting is a startup concern that repeats every launch and therefore self-heals, reading answers "is the logbook protected right now" and must be answerable without a second request
+- [x] 1.6 Tests in `db/logbook.test.ts`: a replace leaves exactly the supplied rows in all three tables; rows local-only before the call are gone; identifiers and timestamps are written verbatim
+- [x] 1.7 Test that a failure during the replace leaves the previous logbook intact — force it by supplying a row that violates the key constraint, and assert the pre-call rows are all still readable
+- [x] 1.8 Tests for `deleteLogbook`: all three tables empty afterwards; running `seedVenues` after it restores the seed set
+- [x] 1.9 Tests for `currentPersistence`: persisted, unpersisted, an absent `persisted` method reading as `unsupported`, a throwing call reading as `unknown`, and that no call to `persist()` is made in any of them
 
 ## 2. The export and import file
 
