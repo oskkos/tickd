@@ -56,9 +56,9 @@
 
 ## 7. The documents
 
-- [ ] 7.1 Update `CONCEPT.md` §7.6 to name what shipped: the digest and the three refusals, and deleting the logbook as the on-device answer to wipe-and-restart. Move its `Last updated:` line
-- [ ] 7.2 Add a decision-log entry for the export's integrity model — digest over per-field validation, FNV-1a over SHA-256 for the secure-context reason, and deletion having the same reach as export — and index it from `CONCEPT.md`'s decision log section
-- [ ] 7.3 Record in the same entry, or beside it, that the settings mock's grade-order, send-style and default-protection rows are deliberately unimplemented, so the mock is not read as a backlog
+- [x] 7.1 Update `CONCEPT.md` §7.6 to name what shipped: the digest and the three refusals, and deleting the logbook as the on-device answer to wipe-and-restart. Move its `Last updated:` line
+- [x] 7.2 Add a decision-log entry for the export's integrity model — digest over per-field validation, FNV-1a over SHA-256 for the secure-context reason, and deletion having the same reach as export — and index it from `CONCEPT.md`'s decision log section
+- [x] 7.3 Record in `DESIGN.md` §5, beside the mockup paragraph, that the settings mock's grade-order, send-style and default-protection rows are deliberately unimplemented, so the mock is not read as a backlog. Also note `CLAUDE.md`'s D-range and the importer rules
 
 ## 8. Verify
 

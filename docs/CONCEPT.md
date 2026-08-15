@@ -4,7 +4,7 @@
 secondary.
 
 Status: shaping. Nothing built yet.
-Last updated: 2026-08-13
+Last updated: 2026-08-15
 
 The main body describes the current design only. Reasoning that was argued through and changed
 along the way is in the **[decision log](decision-log/)** — one file per decision, indexed at the end
@@ -496,6 +496,25 @@ Two things stay, because they're nearly free:
     writes no Dexie migrations (D7); silently accepting an older export would smuggle
     migration logic in through the back door. Refusing is correct: the file stays readable, and a
     schema change during Phase 0 already means wipe-and-restart.
+
+  A third rule was added when the pair was built, and it is the one that does the unobvious work:
+
+  - **The file carries a digest of its payload, and an edited file is refused too** (D24). The marker
+    answers whether a file came from this schema; it cannot answer whether the file is *true* to it,
+    because JSON expresses rows the type system forbids — a boulder carrying `protection: 'lead'`
+    passes the marker check and then corrupts the `(discipline, grade_scale)` key every metric groups
+    by (§7.4). Import is the one write path with no compiler behind it, and a digest closes it without
+    a second copy of the row invariants to drift from the first. The cost is that an export can no
+    longer be hand-repaired, which is close to the point: hand-editing a marker is how migration would
+    otherwise re-enter through the back door.
+
+- **A "delete my logbook" button, also in Phase 0** (D24). Wipe-and-restart is this phase's answer to a
+  schema change, and until this existed, performing it meant browser DevTools — which an installed PWA
+  on a phone does not have, so a marker refusal on the trial device had no recovery short of
+  uninstalling. It **removes exactly what an export captures**, which is one sentence covering both
+  operations and has two visible consequences the confirmation states: the seed venues return on the
+  next launch, and the theme and haptic preferences survive, because those live in `localStorage` and
+  were never part of the logbook.
 
 Two consequences, accepted knowingly:
 
@@ -1149,6 +1168,7 @@ renumbered. Filenames carry the number and the subject, so the folder reads as a
 | **D21** | [The provisional fields resolved; `tags` becomes `angle` and `holds`](decision-log/21-tags-becomes-angle-and-holds.md) |
 | **D22** | [TanStack Router in Phase 0; the family is the lean, but not TanStack Query](decision-log/22-tanstack-router-in-phase-0.md) |
 | **D23** | [A written tick is correctable, per go, and never across a discipline](decision-log/23-a-written-tick-is-correctable.md) |
+| **D24** | [The export is checked whole, and deleting reaches exactly as far as it](decision-log/24-the-export-is-checked-whole.md) |
 
 ### A note on cost estimates in this document
 

@@ -8,7 +8,7 @@ the two don't drift apart.
 
 Status: first draft. Logo, icon set and fonts are production assets; UI stack chosen; screen-level
 visual details open.
-Last updated: 2026-08-13
+Last updated: 2026-08-15
 
 ---
 
@@ -272,6 +272,21 @@ The most important screen in Phase 0, and the hardest layout problem.
 logging, tick sheet, session start, flash rate, flash rate on day one, history, settings. They are
 reference images rather than a specification: where a mock and this document disagree, this document
 wins, because the mocks predate several decisions recorded here.
+
+**`7-settings.png` is the clearest case, and three of its rows are deliberately unbuilt.** Stated here
+so the mock is not read as a backlog:
+
+- **Grade grid runs — "Easiest at top."** Settled below, and `packages/grade-spec` stores labels
+  easiest-first so the grid renders storage order. A control would re-open a closed decision per user.
+- **Send style.** The mock renders this toggle disabled and explains why; that explanation became the
+  model (D20). `send_style` is derived, so there is nothing to set.
+- **Defaults — Protection.** Obsoleted by the logging screen, which seeds discipline and protection from
+  the session's own newest tick. A preference would govern only the first go of a session, and the better
+  fix — seeding that first go from the last go anywhere — needs no setting at all.
+
+The mock is also missing the import button, which §7.6 of `CONCEPT.md` added later, and its data panel
+asserts *"storage is persisted"* as static copy where the built screen reports the three real states,
+because the advice differs by state (D24).
 
 ### The grade grid
 
