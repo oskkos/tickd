@@ -7,9 +7,9 @@ import { Link } from '@tanstack/react-router';
  * thumb-reachable third: this app is used one-handed while tied in or holding a drink, and a top
  * navigation bar is the one place a thumb cannot go.
  *
- * **Only the tabs that exist.** `Flash` and `Settings` are Phase 0 surfaces that have not shipped, and
- * they are absent rather than disabled — a greyed-out tab says the surface exists and is being withheld,
- * which is a worse lie than saying nothing. Adding one is one entry in `TABS`.
+ * **Only the tabs that exist.** `Flash` is the one Phase 0 surface still unshipped, and it is absent
+ * rather than disabled — a greyed-out tab says the surface exists and is being withheld, which is a worse
+ * lie than saying nothing. Adding it is one entry in `TABS`.
  *
  * The active tab is marked three ways over: `aria-current`, a weight change, and an indicator rule
  * above it. `DESIGN.md` §3 requires colour never to be the only signal, and this bar is read at a
@@ -34,6 +34,16 @@ function SessionsIcon() {
   );
 }
 
+/** A sliders outline — the settings surface is a short list of controls. */
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="currentColor">
+      <path d="M3 5.5h9V8H3zM16 5.5h5V8h-5zM3 15.5h5V18H3zM12 15.5h9V18h-9z" />
+      <path d="M12.5 3.5h2.75v6.5H12.5zM8.25 13.5H11V20H8.25z" />
+    </svg>
+  );
+}
+
 /**
  * The shipped surfaces, in flow order.
  *
@@ -50,6 +60,7 @@ function SessionsIcon() {
 const TABS = [
   { to: '/', label: 'Log', Icon: LogIcon, exact: true },
   { to: '/sessions', label: 'Sessions', Icon: SessionsIcon, exact: false },
+  { to: '/settings', label: 'Settings', Icon: SettingsIcon, exact: true },
 ] as const;
 
 export function TabBar() {

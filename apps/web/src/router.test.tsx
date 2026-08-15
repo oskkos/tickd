@@ -13,9 +13,9 @@ describe('the tab bar', () => {
   it('shows exactly the surfaces that exist', async () => {
     await renderApp();
 
-    // Not `Flash`, not `Settings`. They are Phase 0 surfaces that have not shipped, and a disabled tab
-    // would claim the surface exists and is being withheld.
-    expect(tabs().map((t) => t.textContent)).toEqual(['Log', 'Sessions']);
+    // Not `Flash`: it is the one Phase 0 surface still unshipped, and a disabled tab would claim the
+    // surface exists and is being withheld.
+    expect(tabs().map((t) => t.textContent)).toEqual(['Log', 'Sessions', 'Settings']);
   });
 
   it('offers nothing disabled or inert', async () => {

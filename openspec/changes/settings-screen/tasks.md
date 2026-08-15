@@ -33,12 +33,12 @@
 
 ## 4. The settings surface
 
-- [ ] 4.1 Add `features/settings/SettingsScreen.tsx` with the three sections in order — appearance, data, and the destructive action last — and register `/settings` in `router.tsx`
-- [ ] 4.2 Add the `Settings` tab to `TabBar.tsx` with its own icon, and update the comment that currently names both `Flash` and `Settings` as unshipped
-- [ ] 4.3 Render the storage state from `currentPersistence()`, with the three messages and the action each implies: protected; not protected, install to the home screen; unsupported, staying on the home screen is what stops the seven-day clear
-- [ ] 4.4 Render the data section: the tick and session counts, the export button, and the import file input
-- [ ] 4.5 Tests: the sections render in order; each persistence state renders its own message and its action; opening the screen issues no persistence request; the shell header no longer carries a theme control
-- [ ] 4.6 Test that `/settings` is reachable by URL and that the tab marks itself current, per `app-shell`'s existing tab scenarios
+- [x] 4.1 Add `features/settings/SettingsScreen.tsx` with the three sections in order — appearance, data, and the destructive action last — and register `/settings` in `router.tsx`
+- [x] 4.2 Add the `Settings` tab to `TabBar.tsx` with its own icon, and update the comment that currently names both `Flash` and `Settings` as unshipped
+- [x] 4.3 Render the storage state from `currentPersistence()`, with the three messages and the action each implies: protected; not protected, install to the home screen; unsupported, staying on the home screen is what stops the seven-day clear
+- [x] 4.4 Render the data section: the tick and session counts, the storage state and the export button. The import file input lands with its flow in group 5 — a picker wired to nothing would be a control that lies
+- [x] 4.5 Tests: the sections render in order; each persistence state renders its own message and its action; opening the screen issues no persistence request; the shell header no longer carries a theme control (asserted in `App.test.tsx` with group 3)
+- [x] 4.6 Test that `/settings` is reachable by URL and that the tab marks itself current, per `app-shell`'s existing tab scenarios
 
 ## 5. The destructive paths
 
