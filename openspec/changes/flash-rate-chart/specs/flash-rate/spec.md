@@ -267,38 +267,42 @@ exist. The pyramid's rolling twelve months belongs to a later phase, which needs
 - **WHEN** the surface is opened
 - **THEN** no control filters the data by date, and every tick in the logbook is counted
 
-### Requirement: An unreadable grade is skipped rather than failing the surface
+### Requirement: A tick this build cannot read is skipped rather than failing the surface
 
-A tick whose `grade_raw` is not a label of its `grade_scale` under the current grade spec SHALL be excluded
-from both counts and from the span, and SHALL NOT cause the surface to fail to render.
+A tick SHALL be excluded from both counts and from the span, and SHALL NOT cause the surface to fail to
+render, whenever any of these is not a value the current build recognises: its `grade_raw` as a label of its
+`grade_scale`, its `grade_scale`, its `discipline`, or its `protection`.
 
-Phase 0 has no migrations, so a label the current spec no longer recognises is permanent on disk. The grade
+Phase 0 has no migrations, so a value the current build does not recognise is permanent on disk. The grade
 grid's working range carries the incident this rule comes from: one such row inside a mapping operation
-rejected the whole query and left a discipline with no range for ninety days. Excluding the row from the span
-as well as the counts prevents it from silently reappearing as an unmet grade.
+rejected the whole query and left a discipline with no range for ninety days.
 
-#### Scenario: One bad row does not break the chart
+The rule covers four fields rather than the grade alone because each is read as a key or an index, and they
+fail in different ways. An unrecognised `grade_scale` reaches the ordinal lookup and throws, which is that
+same promise-rejecting failure. An unrecognised `protection` is worse precisely because it does *not* throw:
+it becomes a further group whose place in the fixed order is "not found", so it sorts ahead of lead and
+becomes the default pane — a surface silently reorganised around a row nothing can count. A row that cannot
+be assigned to a pane cannot be counted in one, so skipping is the only honest option.
+
+**The schema marker does not make this unnecessary.** It hashes the store definitions and the field *names*,
+not the value domains of the enums — so an export from a build whose `Protection` or `Discipline` union
+differed carries the same marker and imports cleanly. Excluding the row from the span as well as the counts
+prevents it from reappearing as an unmet grade, which is the same false claim in quieter form.
+
+#### Scenario: One bad grade label does not break the chart
 
 - **WHEN** the logbook contains a tick whose grade label is not in its scale
 - **THEN** the remaining ticks are aggregated and rendered, and that tick appears in no count
 
-### Requirement: The empty state explains what will appear
+#### Scenario: An unrecognised scale does not break the chart
 
-When no first encounters exist, the surface SHALL show prose explaining what will appear and roughly when, and
-SHALL NOT render an axis, a chart with no rows, a reference rule, or a selector.
+- **WHEN** the logbook contains a tick whose `grade_scale` is not a scale this build knows
+- **THEN** the remaining ticks are aggregated and rendered, and no ordinal lookup is attempted for it
 
-`DESIGN.md` asks for exactly this and names this surface as the case: the flash-rate view needs weeks of ticks
-before it says anything, so an empty axis presents itself as a broken chart rather than as a young logbook.
+#### Scenario: An unrecognised protection does not become a pane
 
-#### Scenario: A fresh logbook shows prose
-
-- **WHEN** the surface is opened with no ticks
-- **THEN** it explains what will appear and roughly when, and renders no axis or empty chart
-
-#### Scenario: Ticks without first encounters are still empty
-
-- **WHEN** the logbook holds ticks but none with `prior_experience = 'none'`
-- **THEN** the empty state is shown rather than a chart of zero rates
+- **WHEN** the logbook contains a tick whose `protection` is not one this build knows
+- **THEN** no group is produced for it, and it does not become the default pane
 
 ### Requirement: The surface shows one analytic and reads only
 
