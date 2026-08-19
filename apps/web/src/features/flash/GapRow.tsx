@@ -18,7 +18,12 @@
  * claim about the climber's range where there is no data at all.
  *
  * Deliberately carries no track and no fill, so it cannot be mistaken for a bar of length zero.
+ *
+ * Its columns come from `columns.ts` for the reason `RateRow`'s do: this row shares the grade column with
+ * every rate row, so the axis has one left edge, and it shares the gap with the rule's overlay.
  */
+
+import { ROW_COLUMNS } from './columns.ts';
 
 export function GapRow({ labels }: { labels: readonly string[] }) {
   // A run of one names that grade; a run of many names its ends. The `–` is an en dash: it is a range,
@@ -35,12 +40,15 @@ export function GapRow({ labels }: { labels: readonly string[] }) {
       : `${range}, none yet, ${String(labels.length)} grades`;
 
   return (
-    <li aria-label={label} className="flex items-center gap-2 py-1 text-xs opacity-50">
+    <li
+      aria-label={label}
+      className={`flex items-center ${ROW_COLUMNS.gap} py-1 text-xs opacity-50`}
+    >
       {/* Verbatim and tabular, matching `RateRow` so the grade column stays a single straight column
           down the axis even where a row is a gap (§7.3, `DESIGN.md` §2). */}
-      <span className="tabular w-[var(--fr-label-w)] shrink-0">{range}</span>
+      <span className={`tabular ${ROW_COLUMNS.label}`}>{range}</span>
       <span aria-hidden="true" className="flex-1 border-t border-dotted border-base-content/30" />
-      <span className="w-[var(--fr-counts-w)] shrink-0 text-right">
+      <span className={`${ROW_COLUMNS.counts} text-right`}>
         none yet
         {labels.length > 1 && <> · {labels.length}</>}
       </span>

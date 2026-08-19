@@ -306,7 +306,7 @@ export function GoSheet({
             */}
             {tick.protection === 'none' ? (
               <span className="min-h-touch rounded-box flex items-center px-3 text-sm opacity-60">
-                {protectionLabel(tick)}
+                {protectionLabel(tick.protection)}
               </span>
             ) : (
               <Fact
@@ -314,7 +314,7 @@ export function GoSheet({
                 // Through `protectionLabel` like the boulder branch above it, so the claim that every
                 // value on this row is worded from `format/climbing.ts` holds for all three of them —
                 // printing the stored value here would put the second phrasing one line from the first.
-                value={protectionLabel(tick)}
+                value={protectionLabel(tick.protection)}
                 open={mode === 'protection'}
                 onOpen={() => {
                   setMode(mode === 'protection' ? 'detail' : 'protection');

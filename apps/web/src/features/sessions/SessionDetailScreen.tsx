@@ -83,7 +83,7 @@ function GoRow({ tick, onOpen }: { tick: Tick; onOpen: (tick: Tick) => void }) {
         <span className="flex-1">
           <span className="block">
             {/* `protection: 'none'` prints as `boulder`, because that is what it means (§7.4). */}
-            {protectionLabel(tick)} · {priorLabel(tick.prior_experience)}
+            {protectionLabel(tick.protection)} · {priorLabel(tick.prior_experience)}
           </span>
           {characteristics.length > 0 && (
             <span className="block opacity-60">{characteristics.join(' · ')}</span>

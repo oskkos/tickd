@@ -38,6 +38,26 @@ describe('RecentTicks', () => {
     expect(row).toHaveTextContent(/first go/);
   });
 
+  it('calls a boulder go a boulder, never `none`', () => {
+    render(
+      <RecentTicks
+        ticks={[
+          tick({ discipline: 'boulder', protection: 'none', grade_scale: 'font', grade_raw: '6A' }),
+        ]}
+        onRemove={vi.fn()}
+        onAnnotate={vi.fn()}
+      />,
+    );
+
+    // `protection: 'none'` *means* boulder (§7.4). Printing the stored value put the literal word "none"
+    // in front of the climber — `none · flashed · first go` — which offers "no protection" as a fourth way
+    // of being roped. The other three surfaces that show a go each pin this; this row did not, so the
+    // wording could be dropped here alone and the whole logging suite stayed green.
+    const row = screen.getByRole('listitem');
+    expect(row).toHaveTextContent(/boulder/);
+    expect(row).not.toHaveTextContent(/none/);
+  });
+
   it('says a go was not sent rather than inventing a style for it', () => {
     render(
       <RecentTicks

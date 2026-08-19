@@ -1,5 +1,5 @@
 import type { GoOutcome } from '../db/style.ts';
-import type { PriorExperience, Tick } from '../db/types.ts';
+import type { PriorExperience, Protection } from '../db/types.ts';
 
 /**
  * The words for a tick's stored values, in one place.
@@ -30,9 +30,14 @@ export function priorLabel(prior: PriorExperience): string {
  * `none · flash · first go` — which offers "no protection" as a fourth way of being roped rather than
  * naming the discipline. It also disambiguates the notation for free: `6a+ toprope` and `6A boulder`
  * cannot be mistaken for each other, so no scale label is needed on a row.
+ *
+ * **Takes the field, not the row.** It read `tick.protection` and nothing else, and the flash-rate
+ * selector names a protection that belongs to an aggregate rather than to any one go — there is no tick
+ * to hand it. The alternative was a second function for the bare value, which is how a module that
+ * exists to be the single authority on *`none` reads as boulder* acquires a second answer to it.
  */
-export function protectionLabel(tick: Tick): string {
-  return tick.protection === 'none' ? 'boulder' : tick.protection;
+export function protectionLabel(protection: Protection): string {
+  return protection === 'none' ? 'boulder' : protection;
 }
 
 /**

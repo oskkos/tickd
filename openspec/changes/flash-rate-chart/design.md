@@ -145,7 +145,8 @@ a group heading that never varies.
 
 **Why boulder is in the selector at all.** `protection = 'none'` *means* boulder (§7.4), so the control is
 over the four ways a go is protected, one of which is not being protected. It is labelled `Boulder`, never
-`None` — `groups.ts:64` already resolves it that way, "because that is what it means."
+`None` — `format/climbing.ts`'s `protectionLabel` already resolves it that way, "because that is what it
+means", and is the one place that does.
 
 **Why the default is conditional.** §4.2 names lead as the default view. Applied literally, a climber who
 only boulders opens the screen onto an empty pane with their data one tap away. So: lead when lead has data,
