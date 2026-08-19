@@ -4,7 +4,7 @@
 secondary.
 
 Status: shaping. Nothing built yet.
-Last updated: 2026-08-15
+Last updated: 2026-08-19
 
 The main body describes the current design only. Reasoning that was argued through and changed
 along the way is in the **[decision log](decision-log/)** — one file per decision, indexed at the end
@@ -124,9 +124,14 @@ pyramids.
   exactly the limit grade the metric exists to locate (D14). Shown with its raw counts
   (`7a — 1/10`); you read the crossing yourself rather than being handed a headline grade.
 - **Segment, never exclude.** Every metric breaks down by `protection` (lead / toprope /
-  auto-belay) *and* `send_style`, with lead as the default view. Auto-belay laps get their own
+  auto-belay), with lead as the default view *where lead has data*. Auto-belay laps get their own
   numbers rather than being hidden or discounted — aggregating across categories is what misleads,
-  and dropping data is its own distortion.
+  and dropping data is its own distortion. **Not by `send_style`**, which this bullet used to require:
+  a flash *is* flash rate's numerator, so segmenting that metric by flash-versus-redpoint asks it to
+  divide by part of itself. The sentence predates D14 and D20, and there is no stored `send_style`
+  left to segment on. The qualifier on lead matters for the same reason — taken unconditionally it
+  opens the flash-rate screen on an empty pane for a climber who only boulders, with their data one
+  tap away.
 - **Every distribution over grades is keyed by `(discipline, grade_scale)`.** Grouping by discipline
   alone pools grades from different scales into one ranking of values that cannot be compared;
   grouping by scale alone pools boulders with routes. Either produces a plausible-looking wrong
@@ -618,7 +623,7 @@ tick         ... project_id?
 | UI | Tailwind + daisyUI + Base UI | daisyUI for appearance, Base UI for behaviour. Themes come free. See `DESIGN.md` §6. |
 | Local store | **Dexie (IndexedDB)** | Client source of truth. Reads never touch the network. |
 | PWA | Vite PWA plugin / Workbox | App shell precached, offline by default. |
-| Charts | uPlot or Recharts | Pyramids and trends. |
+| Charts | **None in Phase 0** — plain DOM | The one chart is ~27 rows of label, bar and fraction; a canvas chart would be the only surface the test suite cannot query. Revisit at Phase 1's pyramids and trends (D25). |
 | Backend | **Kotlin + Spring Boot 4.1 + jOOQ 3.21** | §8.1. |
 | Database | **PostgreSQL** (Neon) | jOOQ OSS supports it fully; no licence friction. |
 | Migrations | Flyway, plain SQL | Schema source of truth — jOOQ generates from it. |
@@ -1169,6 +1174,8 @@ renumbered. Filenames carry the number and the subject, so the folder reads as a
 | **D22** | [TanStack Router in Phase 0; the family is the lean, but not TanStack Query](decision-log/22-tanstack-router-in-phase-0.md) |
 | **D23** | [A written tick is correctable, per go, and never across a discipline](decision-log/23-a-written-tick-is-correctable.md) |
 | **D24** | [The export is checked whole, and deleting reaches exactly as far as it](decision-log/24-the-export-is-checked-whole.md) |
+| **D25** | [The one chart is plain DOM, not a charting library](decision-log/25-the-one-chart-is-plain-dom.md) |
+| **D26** | [A rate from fewer than three first encounters is shown without a fill](decision-log/26-small-samples-are-shown-without-a-fill.md) |
 
 ### A note on cost estimates in this document
 

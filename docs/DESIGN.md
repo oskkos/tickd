@@ -8,7 +8,7 @@ the two don't drift apart.
 
 Status: first draft. Logo, icon set and fonts are production assets; UI stack chosen; screen-level
 visual details open.
-Last updated: 2026-08-15
+Last updated: 2026-08-19
 
 ---
 
@@ -500,6 +500,113 @@ If this grows, promote it to `packages/tokens/` in the monorepo alongside `grade
 - **~~Grade grid direction~~** — easiest at the top.
 - **~~Does the logo need an SVG redraw?~~** — done. `src/assets/brand/` is the vector source, and the
   small-size contrast was fixed in the same pass.
+
+---
+
+## 8. The flash-rate screen
+
+**Numbered 8 rather than 6, where it belongs in the narrative.** §6 is cited eleven times from code
+comments, `CLAUDE.md` and the capability specs; inserting a section ahead of it would move every one of
+those. Section numbers here are keys for the same reason decision numbers are — see
+`decision-log/README.md`. The screen is the fourth Phase 0 surface (`CONCEPT.md` §9.0) and reads best
+after §5.
+
+`CONCEPT.md` §4.2 owns *what* the metric is — flashes ÷ first encounters, including the encounters you
+never sent (D14). This section owns how it is drawn, and almost every choice below exists to stop the
+drawing claiming more than the counts support.
+
+### The row, and why the track is a fixed width
+
+```
+   6a   ████████████████████░░░░░░░░░░   8/9
+   6b   ██████████████┃░░░░░░░░░░░░░░░   7/11
+   6c   ████████░░░░░░┃░░░░░░░░░░░░░░░   3/8
+   7a   ░░░░░░░░░░░░░░┃░░░░░░░░░░░░░░░   0/6
+        ┄┄┄┄┄┄ 7a+–7c+ · none yet ┄┄┄┄┄
+   8a   ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┃┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈   1/1 · too few
+        ↑ grade         ↑ ~50% rule       ↑ counts, always
+```
+
+`[ grade · fixed ][ track · flex ][ counts · fixed ]`, easiest grade at the top — the direction §5
+settled for the grade grid, so the two surfaces read the same way down.
+
+**The track is a fixed width, and that is what makes the screen readable.** Because every row's track
+spans the same distance, one x-position means 50% for the whole chart, so a single vertical rule can be
+drawn and the reader finds their level by scanning for the row whose fill stops reaching it. That scan
+*is* the product: §4.2's claim is that the grade where your flash rate crosses ~50% is your real level.
+
+The alternative is worth recording because it is genuinely attractive: scale each track's *length* to its
+denominator and its fill to the numerator, and a `1/1` becomes a one-unit stub — small samples limit
+themselves with no threshold, no colour trick and no statistics. It loses because every row would then be
+a different length, so no x-position means 50%, the rule cannot be drawn at all, and the reader is left
+comparing fill *fractions* across differently-sized bars. It fixes the overstatement by removing the
+thing the screen is for.
+
+**The counts are always shown**, in tabular figures, per §2. They are what lets the reader judge a thin
+cell themselves, which is the job the next two rules decline to do for them.
+
+### Three row states, none of them a colour
+
+| Counts | Track | Fill | Says |
+|---|---|---|---|
+| `8/9` | solid | proportional | a measured rate |
+| `0/6` | solid | present, zero width | six first encounters, none flashed — **a measurement** |
+| `1/1` | dashed | **absent**, plus the word *too few* | too small a sample to place against the rule (D26) |
+
+The middle row is the subtle one. `0/6` and a grade never met must not look alike: one says *you have met
+this grade six times and never flashed it*, the other says *you have not met this grade*. The second is
+`0/0`, which is not a rate at all and is never drawn as one — it appears only inside a gap row.
+
+None of the three is distinguished by hue. §3 forbids colour as the only signal twice over, and in a gym
+colour already means *circuit*, so the signals are the fill's presence, the track's treatment, and words —
+including in the accessible name, since a missing bar is exactly what a non-visual reader cannot observe.
+
+### The gap row
+
+A run of grades inside the span with no first encounter collapses into one row naming the range it
+covers. Both halves earn their place: listing only the grades you have met puts 6a beside 6c and makes the
+curve read steeper than it is, while a row per unmet grade leaves the height unbounded — one curious go on
+8a adds a row for every grade below it, the same outlier sensitivity §5's working range records.
+
+There is **no threshold**: a run of one names its single grade. `0/0` is not a rate, so an unmet grade
+could never have been an ordinary row, and the choice was only ever between two shapes of gap row. It
+carries no track, so it cannot be mistaken for a bar of length zero.
+
+### The pane selector, and what it refuses to hide
+
+One pane per `protection`, carrying only the protections that have a first encounter — absent rather than
+disabled, which is the argument §6's tab bar makes one level up: a disabled entry says the surface exists
+and is being withheld. With one qualifying protection there is no selector, because a control that never
+varies is noise. `none` reads as **Boulder**, since that is what it means (`CONCEPT.md` §7.4).
+
+Segmenting is not tidiness. Pooling a toprope flash with a lead flash at one grade raises the curve
+exactly where the crossing is read, so it would break the metric rather than blur it. Auto-belay gets its
+own pane and will be a near-flat line at 100% — useless as a curve, and correct as a refusal to discount
+your laps (D6).
+
+Within a pane, **one chart per grade scale, each naming its scale even when it is the only one.** This
+deliberately diverges from the session list, which drops a heading that never varies: there the grades sit
+inside a visit that supplies the context, and here the grade column *is* the axis with nothing else to say
+whether `6A` is Font or `6a` is French.
+
+### Two things the mock shows that must not be built
+
+`4-flash-rate.png` carries both, and both are forbidden:
+
+- **A headline card — "You cross 50% at 6b+".** §4.2 shows the raw counts precisely so the reader finds
+  the crossing themselves rather than being handed a grade. At these sample sizes a headline would state a
+  conclusion with more confidence than the data supports, so it is specified as absent rather than merely
+  left out.
+- **Colour-graded bars.** §3, twice: colour already means circuit, and hue may not carry a signal alone.
+
+The mock predates both rules. It is kept as a layout reference, not as a specification of what to draw.
+
+### Empty state
+
+Prose, per §5's empty-states rule, which was written about this screen: it needs weeks of ticks before it
+says anything, so an axis with nothing on it reads as a broken chart rather than a young logbook. The
+condition is *no first encounters* rather than *no ticks* — a logbook of only repeats has nothing to
+divide.
 
 ---
 

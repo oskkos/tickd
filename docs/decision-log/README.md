@@ -6,8 +6,8 @@ the index; this file holds the convention.
 
 Read the relevant entry before proposing an alternative. Most obvious-seeming suggestions — a `route`
 table, colour-coded grades, one flat style enum, an always-on VPS, Quarkus, GraalVM, Terraform, 8a.nu
-CSV import, a native mobile app, `react-router`, TanStack Query — were already considered and rejected
-here, with reasoning.
+CSV import, a native mobile app, `react-router`, TanStack Query, a charting library — were already
+considered and rejected here, with reasoning.
 
 ## The number is the key, and it never changes
 
