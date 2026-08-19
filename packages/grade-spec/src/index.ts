@@ -123,9 +123,16 @@ export function equals<S extends ScaleId>(a: Ordinal<S>, b: NoInfer<Ordinal<S>>)
 /**
  * A contiguous span of labels, clamped to the scale's bounds.
  *
- * This is what the grade grid's default working range is built from: `[min − 2 … max + 2]` of recent
- * ticks, clamped so the ends of the scale stay reachable without producing out-of-range indices
- * (`DESIGN.md` §5).
+ * This comment used to say the grade grid's default working range was built from it. That was never
+ * true and was found by review: `range.ts` returns bare `{ from, to }` indices, and `GradeGrid.tsx`
+ * renders the whole scale rather than truncating to them — deliberately, so there is no day-one
+ * fallback and no expansion state to reset when the scale switches.
+ *
+ * The real caller is the flash-rate chart's grade axis, which needs the labels from the easiest to the
+ * hardest grade holding a first encounter, with the ones between kept rather than skipped. The clamping
+ * is what makes the function safe to hand computed bounds — `[min − 2 … max + 2]` of anything is the
+ * shape that produces out-of-range indices — and it is why the span is expressed here, in the module
+ * that owns label order (`DESIGN.md` §5), rather than as a hand-rolled slice at each call site.
  */
 export function clampRange<S extends ScaleId>(
   from: number,
