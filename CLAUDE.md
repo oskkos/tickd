@@ -110,6 +110,30 @@ commit-per-group rule above is what forces the division of labour, so the two ar
   reviewer sees one group; cross-group interaction is only visible at the end, and that is where prior
   changes found most of what they fixed.
 
+**Run the groups through to the end without stopping to ask.** `/opsx:propose` is the review gate, and it
+already happened: the proposal, design and delta specs are the approved contract, and each group lands as
+its own reviewable commit. So finishing a group is not a checkpoint — do not stop to report progress, to
+summarise what just landed, or to ask whether to carry on. Commit the group and start the next one.
+
+Stop only for something that cannot be decided from the artifacts:
+
+- **A task needing the user's hardware or their own experience.** Anything on the trial device, and any
+  task asking how the screen reads to the climber using it. No amount of context substitutes for their
+  phone.
+- **An open question in `design.md` with a correctness consequence.** Questions deliberately left open
+  that are cosmetic — a threshold with no wrong answer, where a label sits — get decided, stated in the
+  spec and mentioned at the end. One that changes what the code computes gets asked about.
+- **A spec that turns out to be wrong.** The specs are the agreed contract, so amending one mid-apply is
+  the user's call. Implement nothing against a requirement you believe is incorrect; stop and say why.
+- **A reviewer's two rounds ending with something unresolved.** Reporting it *is* stopping — do not carry
+  an unresolved finding into the next group, where it stops being attributable to one commit.
+- **A check failing in a way that is not a quick fix.** Two attempts at a green `just check`, then stop
+  rather than grinding.
+
+**Autonomy ends at the branch.** Committing to a feature branch is local and reversible; pushing and
+opening a PR are neither, and the rule above already reserves them for an explicit request. Run the whole
+change, archive included, and stop there with the branch unpushed.
+
 **Archive on the feature branch, and always sync as part of it.** Both halves are forced rather than
 preferred:
 
