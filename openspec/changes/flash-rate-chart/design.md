@@ -276,8 +276,18 @@ That is the deliberate divergence from `groupGoes`, whose first-appearance order
 
 ## Open Questions
 
-- **The elision threshold.** A run of one unmet grade obviously renders as itself; a run of five obviously
-  elides. Whether the boundary is two or three is unsettled and is a rendering choice with no correctness
-  consequence — pick one in implementation, state it in the spec, and revise it against the real device.
-- **Whether the reference rule is labelled per chart or once per screen.** Two charts stacked means the label
-  appears twice, which may read as noise. Settle it in the browser.
+Both are answered now, and are kept with their answers because the reasoning is why the spec reads as it does.
+
+- **The elision threshold — resolved by dissolving it.** There is none. A grade with no first encounters has
+  `0/0`, which is not a rate, so it could never have been an ordinary row: the choice was only ever between a
+  gap row naming one grade and a gap row naming several. A threshold would have invented a third shape to
+  choose between. The spec says so, and the code carries a comment against reintroducing one.
+- **The reference rule is labelled per chart.** Two stacked charts do show the label twice, and that is
+  right: a chart read on its own must state what its rule marks, and the alternative makes the second chart
+  depend on the first being on screen.
+- **One thing the device pass added that neither question anticipated.** The rule was a single tone at 40%
+  opacity, and in `dim` `base-content` (L 0.83) and `primary` (L 0.86) are almost the same lightness — so it
+  vanished over a long bar, at exactly the point a reader checks whether that bar reaches the line. Raising
+  the alpha cannot fix it, because the two tones are the same tone. It now carries a 1px `base-100` halo, so
+  a dark halo reads against a light fill and a light core reads against the dark track, in both themes. jsdom
+  reports no colours at all, which is why this was invisible until the browser.

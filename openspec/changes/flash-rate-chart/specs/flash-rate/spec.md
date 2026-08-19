@@ -69,9 +69,24 @@ the track's width does not vary between rows, one x-position means 50% for the w
 finds the crossing by scanning for the row whose fill stops reaching the rule — which is what §4.2's claim
 that *the grade where your flash rate crosses ~50% is your real level* asks the reader to do.
 
+Each chart SHALL carry its own rule label rather than one label serving the screen, so that a chart read on
+its own states what its rule marks.
+
+The rule SHALL remain discernible where it crosses a filled track *and* where it crosses an unfilled one, in
+both themes. This is a plain visibility requirement rather than the colour-alone rule, and it is not
+automatic: in the dark theme the rule's tone and the fill's sit at almost the same lightness, so a
+single-tone rule disappears over a long bar — at exactly the point the reader is checking whether that bar
+reaches the line. Raising its opacity does not help, because the two tones are the same tone.
+
 The rule and the suppressed state SHALL be conveyed by position, shape or text and never by colour alone
 (`DESIGN.md` §3). The grade label SHALL NOT be case-transformed: Font `6A` and French `6a` differ only in
 letter case (§7.3).
+
+#### Scenario: The rule stays visible over a long bar in both themes
+
+- **WHEN** a chart is rendered in the dark theme and in the light theme, each with a bar long enough to pass
+  under the reference rule
+- **THEN** the rule is distinguishable from the bar it crosses, and from the unfilled track above and below it
 
 #### Scenario: A rate is legible against the rule
 
@@ -215,7 +230,10 @@ Each chart's rows SHALL span contiguously from the easiest to the hardest grade 
 easiest at the top, in the order the scale defines.
 
 A run of consecutive grades within that span holding no first encounter SHALL render as a single row naming
-the range it covers, rather than as one row per grade.
+the range it covers, rather than as one row per grade. **There SHALL be no minimum run length:** a run of
+one renders as a gap row naming that single grade. A grade with no first encounters has `0/0`, which is not
+a rate, so it could never have been an ordinary row — the choice was only ever between two shapes of gap
+row, and a threshold would be inventing a third.
 
 Listing only the observed grades would place 6a beside 6c and make the curve read steeper than it is. One row
 per unmet grade leaves the height unbounded — a single curious go on 8a adds a row for every grade between —
