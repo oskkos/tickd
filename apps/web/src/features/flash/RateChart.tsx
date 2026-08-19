@@ -71,7 +71,7 @@ export function RateChart({ group }: { group: FlashRateGroup }) {
       {/* The rule's label, in normal flow above the rows so it reserves its own height instead of sitting
           on top of the first grade. Centred on the line because it is the same track column. */}
       <TrackColumn className="h-3">
-        <span className="tabular absolute left-1/2 -translate-x-1/2 text-[0.625rem] leading-3 opacity-60">
+        <span className="tabular absolute left-1/2 -translate-x-1/2 text-xs leading-4 opacity-60">
           ~50%
         </span>
       </TrackColumn>
@@ -95,6 +95,14 @@ export function RateChart({ group }: { group: FlashRateGroup }) {
           the line, which is the gesture, and a rule hidden behind a long fill would be missing at exactly
           the rows that matter.
 
+          **The halo is not decoration.** A single-tone rule is invisible in one theme where it matters
+          most: in `dim`, `base-content` and `primary` sit at almost the same lightness (0.83 against
+          0.86), so a rule drawn over a long bar disappears at exactly the point the reader is checking —
+          does this bar reach the line. Raising the alpha does not help, because the two tones are the
+          same tone. So the line carries a 1px `base-100` halo: against a light fill the dark halo reads,
+          against the dark track the light core does, and one of the two always contrasts in both themes.
+          Found by measuring in a real browser; jsdom reports no colours at all.
+
           `aria-hidden` because a vertical line is geometry; the `~50%` above says the same thing in text,
           and every row already announces its own counts.
         */}
@@ -102,7 +110,7 @@ export function RateChart({ group }: { group: FlashRateGroup }) {
           <span
             aria-hidden="true"
             data-testid="rule"
-            className="absolute inset-y-0 left-1/2 w-px bg-base-content/40"
+            className="absolute inset-y-0 left-1/2 w-px bg-base-content/70 shadow-[0_0_0_1px_var(--color-base-100)]"
           />
         </TrackColumn>
       </div>
