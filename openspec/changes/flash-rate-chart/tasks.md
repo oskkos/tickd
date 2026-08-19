@@ -37,10 +37,10 @@
 
 ## 4. The route, the tab and the icon
 
-- [ ] 4.1 Register `/flash` in `router.tsx` by hand, beside the existing three, with no route plugin and no generated tree
-- [ ] 4.2 Add a `Flash` entry to `TABS` in `TabBar.tsx` with `exact: true`, in flow order between `Sessions` and `Settings`, and update the file header comment that currently names `Flash` as the unshipped surface
-- [ ] 4.3 Add one 24×24 `viewBox`, `currentColor`, `aria-hidden` icon in the style of its three neighbours, with a one-line comment saying what the shape depicts as the others have
-- [ ] 4.4 Test in `router.test.tsx` that `/flash` renders the surface directly on load and that the tab marks itself current, per `app-shell`'s route requirements
+- [x] 4.1 Register `/flash` in `router.tsx` by hand, beside the existing three, with no route plugin and no generated tree
+- [x] 4.2 Add a `Flash` entry to `TABS` in `TabBar.tsx` with `exact: true`, in flow order between `Sessions` and `Settings`, and update the file header comment that currently names `Flash` as the unshipped surface
+- [x] 4.3 Add one 24×24 `viewBox`, `currentColor`, `aria-hidden` icon in the style of its three neighbours, with a one-line comment saying what the shape depicts as the others have
+- [x] 4.4 Test in `router.test.tsx` that `/flash` renders the surface directly on load and that the tab marks itself current, per `app-shell`'s route requirements
 
 ## 5. The documents
 

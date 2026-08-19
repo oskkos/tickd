@@ -13,9 +13,10 @@ describe('the tab bar', () => {
   it('shows exactly the surfaces that exist', async () => {
     await renderApp();
 
-    // Not `Flash`: it is the one Phase 0 surface still unshipped, and a disabled tab would claim the
-    // surface exists and is being withheld.
-    expect(tabs().map((t) => t.textContent)).toEqual(['Log', 'Sessions', 'Settings']);
+    // All four Phase 0 surfaces ship as of the flash-rate chart, so the bar is complete. The rule the
+    // list encodes outlives that: a tab appears when its surface does, never before, because a disabled
+    // one would claim the surface exists and is being withheld.
+    expect(tabs().map((t) => t.textContent)).toEqual(['Log', 'Sessions', 'Flash', 'Settings']);
   });
 
   it('offers nothing disabled or inert', async () => {
@@ -87,6 +88,26 @@ describe('navigation', () => {
     await renderApp({ initialPath: '/' });
 
     expect(await screen.findByRole('heading', { name: /where are we/i })).toBeInTheDocument();
+  });
+
+  it('reaches the Flash surface from the tab bar', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    await user.click(screen.getByRole('link', { name: /flash/i }));
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Flash rate' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the Flash surface when its URL is loaded directly', async () => {
+    // `app-shell` requires a route to survive a reload: an installed PWA restores the last URL, so a
+    // surface reachable only by tapping through from `/` would come back blank.
+    await renderApp({ initialPath: '/flash' });
+
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Flash rate' }),
+    ).toBeInTheDocument();
   });
 
   it('matches the detail route and reads its param', async () => {

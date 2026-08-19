@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router';
 import { Shell } from './Shell.tsx';
 import { LoggingScreen } from './features/logging/LoggingScreen.tsx';
+import { FlashScreen } from './features/flash/FlashScreen.tsx';
 import { SessionsScreen } from './features/sessions/SessionsScreen.tsx';
 import { SessionDetailScreen } from './features/sessions/SessionDetailScreen.tsx';
 import { SettingsScreen } from './features/settings/SettingsScreen.tsx';
@@ -15,7 +16,7 @@ import { SettingsScreen } from './features/settings/SettingsScreen.tsx';
  *
  * **No `@tanstack/router-plugin`, so no `routeTree.gen.ts`.** File-based routing would generate a
  * module that this repository's conventions require to be committed, which would enlist the codegen
- * drift check, the pre-commit hook and CI for every future edit to a tree of four routes. The
+ * drift check, the pre-commit hook and CI for every future edit to a tree of five routes. The
  * generated form earns its keep at a scale this is nowhere near.
  *
  * **`/` stays the logging screen.** The manifest's `start_url` is `/` and it is baked into every
@@ -49,6 +50,12 @@ const sessionDetailRoute = createRoute({
   component: SessionDetailScreen,
 });
 
+const flashRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/flash',
+  component: FlashScreen,
+});
+
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -59,6 +66,7 @@ const routeTree = rootRoute.addChildren([
   logRoute,
   sessionsRoute,
   sessionDetailRoute,
+  flashRoute,
   settingsRoute,
 ]);
 
