@@ -14,12 +14,12 @@
 
 ## 2. The chart row
 
-- [ ] 2.1 Add `features/flash/RateRow.tsx` rendering one grade: the label verbatim in tabular figures, a fixed-width track with a proportional fill, and `flashes/encounters` beside it. No `text-transform` anywhere near the label (§7.3, `DESIGN.md` §2)
-- [ ] 2.2 Render the three states distinctly — filled (`encounters >= 3`), a real zero (`encounters >= 3`, `flashes === 0`, empty fill), and suppressed (`encounters < 3`, no proportional fill, marked with a short word). Distinguish them by fill, track treatment and text, never by colour alone (`DESIGN.md` §3)
-- [ ] 2.3 Document the n < 3 rule at the component with its derivation, not just its value: with one encounter the only rates are 0% and 100%, with two they are 0%/50%/100%, so below three the rate's position relative to the reference rule carries no information while a fill asserts one. Cite D26
-- [ ] 2.4 Add `features/flash/GapRow.tsx` rendering an elided run of unmet grades, naming the range it covers (`7a+–7c+`) or the single grade when the run is one. Fix the elision threshold in code and state it in a comment as the arguable choice design.md flags
-- [ ] 2.5 Tests in `RateRow.test.tsx`: `3/8` draws a fill, `0/6` draws an empty fill and is distinguishable from a gap, `1/1` draws no fill and says why, and every state exposes its counts as text
-- [ ] 2.6 Tests in `GapRow.test.tsx`: a run of one names that grade, a run of five names the range, and neither renders a percentage
+- [x] 2.1 Add `features/flash/RateRow.tsx` rendering one grade: the label verbatim in tabular figures, a fixed-width track with a proportional fill, and `flashes/encounters` beside it. No `text-transform` anywhere near the label (§7.3, `DESIGN.md` §2)
+- [x] 2.2 Render the three states distinctly — filled (`encounters >= 3`), a real zero (`encounters >= 3`, `flashes === 0`, empty fill), and suppressed (`encounters < 3`, no proportional fill, marked with a short word). Distinguish them by fill, track treatment and text, never by colour alone (`DESIGN.md` §3)
+- [x] 2.3 Document the n < 3 rule at the component with its derivation, not just its value: with one encounter the only rates are 0% and 100%, with two they are 0%/50%/100%, so below three the rate's position relative to the reference rule carries no information while a fill asserts one. Cite D26
+- [x] 2.4 Add `features/flash/GapRow.tsx` rendering an elided run of unmet grades, naming the range it covers (`7a+–7c+`) or the single grade when the run is one. Fix the elision threshold in code and state it in a comment as the arguable choice design.md flags
+- [x] 2.5 Tests in `RateRow.test.tsx`: `3/8` draws a fill, `0/6` draws an empty fill and is distinguishable from a gap, `1/1` draws no fill and says why, and every state exposes its counts as text
+- [x] 2.6 Tests in `GapRow.test.tsx`: a run of one names that grade, a run of five names the range, and neither renders a percentage
 
 ## 3. The chart and the selector
 
