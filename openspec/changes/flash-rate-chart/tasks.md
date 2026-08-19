@@ -23,17 +23,17 @@
 
 ## 3. The chart and the selector
 
-- [ ] 3.1 Add `features/flash/RateChart.tsx`: a heading naming discipline and scale, the rows with runs of zero-encounter rows collapsed into `GapRow`, and one absolutely-positioned reference rule at 50% of the track column, labelled
-- [ ] 3.2 Always render the scale heading, including for a single chart, and comment the deliberate divergence from `SessionsScreen`'s `labelled = groups.length > 1` — the grade column is the axis here and nothing else distinguishes Font `6A` from French `6a`
-- [ ] 3.3 Add a group-labelling helper for `(protection, scale)`, separate from `groups.ts`'s `groupLabel` so a session card does not start reading `lead · French`. `none` reads as `boulder`, for the reason `groups.ts:64` already gives
-- [ ] 3.4 Add `features/flash/ProtectionSelector.tsx` over the protections present, in fixed order, labelling `none` as `Boulder`. Absent entries rather than disabled ones — `app-shell`'s tab-bar argument, one level down — and no selector at all when one protection qualifies
-- [ ] 3.5 Add `features/flash/FlashScreen.tsx`: load `flashRates` in `useEffect` into `useState` as every other screen does, hold the selected protection in `useState` — not a search param and not a preference — and render the selected protection's charts, one per scale
-- [ ] 3.6 Implement the conditional default: lead when lead has first encounters, otherwise the first protection in fixed order that does. Comment that §4.2's unconditional "lead by default" shows a boulderer an empty pane with their data one tap away
-- [ ] 3.7 Implement the empty state as prose explaining what will appear and roughly when, with no axis, no reference rule and no selector — and make the condition *no first encounters* rather than *no ticks*, so a logbook of only repeats gets prose rather than a chart of zero rates
-- [ ] 3.8 Tests in `FlashScreen.test.tsx` through `renderApp()`: the selector's membership follows which protections have first encounters; a single qualifying protection renders no selector; boulder reads as `Boulder`; auto-belay gets its own pane
-- [ ] 3.9 Tests for the default pane — lead when present, first-with-data when not — and that no pane is ever empty while data exists
-- [ ] 3.10 Tests that no element names a single grade as the climber's level, that no pyramid/volume/vertical-metre/trend figure appears, and that interacting with a row writes nothing to Dexie
-- [ ] 3.11 Test the empty state on a fresh logbook and on one holding only `attempted`/`sent` ticks
+- [x] 3.1 Add `features/flash/RateChart.tsx`: a heading naming discipline and scale, the rows with runs of zero-encounter rows collapsed into `GapRow`, and one absolutely-positioned reference rule at 50% of the track column, labelled
+- [x] 3.2 Always render the scale heading, including for a single chart, and comment the deliberate divergence from `SessionsScreen`'s `labelled = groups.length > 1` — the grade column is the axis here and nothing else distinguishes Font `6A` from French `6a`
+- [x] 3.3 Add a group-labelling helper for `(protection, scale)`, separate from `groups.ts`'s `groupLabel` so a session card does not start reading `lead · French`. `none` reads as `boulder`, for the reason `groups.ts:64` already gives
+- [x] 3.4 Add `features/flash/ProtectionSelector.tsx` over the protections present, in fixed order, labelling `none` as `Boulder`. Absent entries rather than disabled ones — `app-shell`'s tab-bar argument, one level down — and no selector at all when one protection qualifies
+- [x] 3.5 Add `features/flash/FlashScreen.tsx`: load `flashRates` in `useEffect` into `useState` as every other screen does, hold the selected protection in `useState` — not a search param and not a preference — and render the selected protection's charts, one per scale
+- [x] 3.6 Implement the conditional default: lead when lead has first encounters, otherwise the first protection in fixed order that does. Comment that §4.2's unconditional "lead by default" shows a boulderer an empty pane with their data one tap away
+- [x] 3.7 Implement the empty state as prose explaining what will appear and roughly when, with no axis, no reference rule and no selector — and make the condition *no first encounters* rather than *no ticks*, so a logbook of only repeats gets prose rather than a chart of zero rates
+- [x] 3.8 Tests in `FlashScreen.test.tsx` through `renderApp()`: the selector's membership follows which protections have first encounters; a single qualifying protection renders no selector; boulder reads as `Boulder`; auto-belay gets its own pane
+- [x] 3.9 Tests for the default pane — lead when present, first-with-data when not — and that no pane is ever empty while data exists
+- [x] 3.10 Tests that no element names a single grade as the climber's level, that no pyramid/volume/vertical-metre/trend figure appears, and that interacting with a row writes nothing to Dexie
+- [x] 3.11 Test the empty state on a fresh logbook and on one holding only `attempted`/`sent` ticks
 
 ## 4. The route, the tab and the icon
 

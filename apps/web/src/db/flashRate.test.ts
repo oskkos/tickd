@@ -240,7 +240,7 @@ describe('flashRates — the key', () => {
     const group = only(await flashRates(db));
 
     // `protection: 'none'` falls out of the same key everything else uses. Naming it *boulder* is the
-    // renderer's job (`groups.ts:64`), so nothing here translates it.
+    // renderer's job (`format/climbing.ts`'s `protectionLabel`), so nothing here translates it.
     expect(group).toEqual({
       discipline: 'boulder',
       scale: 'font',

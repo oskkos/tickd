@@ -84,7 +84,9 @@ export interface FlashRateGroup {
  * against your own memory of it. `groups.ts`'s reasoning is right for its surface and wrong for this one.
  *
  * `none` sits last and is the boulder group. It is not named here, because naming it is presentation:
- * `groups.ts:64` already resolves it to the word *boulder*, "because that is what it means."
+ * `format/climbing.ts`'s `protectionLabel` already resolves it to the word *boulder*, "because that is
+ * what it means" — it is the single authority on that, for the selector here as for every surface that
+ * shows a go.
  *
  * Exported so the selector orders itself from the same list rather than from a second copy of it.
  *

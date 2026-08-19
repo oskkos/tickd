@@ -128,7 +128,7 @@ export function RecentTicks({
               {/* Verbatim — case separates Font from French (DESIGN.md §2). */}
               <span className="tabular text-lg">{tick.grade_raw}</span>
               <span className="flex-1 opacity-70">
-                {protectionLabel(tick)} · {outcomeWord(outcomeOf(tick))} ·{' '}
+                {protectionLabel(tick.protection)} · {outcomeWord(outcomeOf(tick))} ·{' '}
                 {priorLabel(tick.prior_experience)}
               </span>
             </button>

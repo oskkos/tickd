@@ -1,5 +1,6 @@
 import type { FlashRateRow } from '../../db/flashRate.ts';
 import { isChartable } from './chartable.ts';
+import { ROW_COLUMNS } from './columns.ts';
 
 /**
  * One grade's flash rate, as a row: the grade, a bar, and the counts it was computed from.
@@ -29,6 +30,13 @@ import { isChartable } from './chartable.ts';
  */
 
 /**
+ * The three column classes are interpolated from `columns.ts` rather than written out, because the ~50%
+ * rule is drawn by re-running this row's own layout in an overlay: `gap-2` spelled here and `gap-2`
+ * spelled there is two definitions of one rectangle, and the rule drifting off the fills reads as bars
+ * crossing 50% at the wrong grade rather than as anything broken.
+ */
+
+/**
  * How a row names itself to a reader who cannot see the bar.
  *
  * The grade comes first because the grade is what is being scanned for, and the counts are spelled out
@@ -48,13 +56,13 @@ export function RateRow({ row }: { row: FlashRateRow }) {
   const percent = chartable ? Math.round((row.flashes / row.encounters) * 100) : 0;
 
   return (
-    <li aria-label={rowLabel(row)} className="flex items-center gap-2 py-1">
+    <li aria-label={rowLabel(row)} className={`flex items-center ${ROW_COLUMNS.gap} py-1`}>
       {/*
         Verbatim, and in tabular figures. Case is the only thing separating Font `6A` from French `6a`
         (§7.3, `DESIGN.md` §2), and a proportional numeral would make the column jitter as grades change
         down the axis — which is the one column a reader's eye travels straight down.
       */}
-      <span className="tabular w-[var(--fr-label-w)] shrink-0 text-sm">{row.label}</span>
+      <span className={`tabular ${ROW_COLUMNS.label} text-sm`}>{row.label}</span>
 
       {/*
         The track. `data-chartable` is what the chart's tests and the styles both read, so the visual
@@ -83,7 +91,7 @@ export function RateRow({ row }: { row: FlashRateRow }) {
         reader can do what the screen declines to do for them — no crossing is computed and no headline
         grade is offered anywhere.
       */}
-      <span className="tabular w-[var(--fr-counts-w)] shrink-0 text-right text-xs opacity-70">
+      <span className={`tabular ${ROW_COLUMNS.counts} text-right text-xs opacity-70`}>
         {row.flashes}/{row.encounters}
         {/* Said in words, because the absent fill is the other half of this signal and colour is not
             permitted to be either half (`DESIGN.md` §3). */}
