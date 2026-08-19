@@ -42,6 +42,23 @@ Specs live in `openspec/` (`specs/` for current behaviour, `changes/` for in-fli
    `changes/archive/` once it is implemented and verified. **On the feature branch, before the PR
    merges** — see below.
 
+**The first step of `/opsx:apply` is the branch, before any file is touched.** `/opsx:explore` and
+`/opsx:propose` usually run on `develop` — thinking and artifacts are not commits — so apply is where the
+branch has to appear, named after the change per the Git workflow below. Branching first rather than
+"once there is something to commit" is what keeps the artifacts off `develop`: creating a branch leaves
+the working tree alone, so uncommitted files follow you onto it.
+
+**Then commit the change artifacts, before the first task group.** `/opsx:propose` writes `proposal.md`,
+`design.md`, the delta specs and `tasks.md`, and it does not commit them. They are the approved contract
+the implementation is measured against, so they land as their own commit —
+`docs(openspec): propose <what the change does>` — ahead of any code. Rolled into the first group's
+commit instead, the diff that is supposed to show one group of work also introduces the specification
+it was written from, and nothing in history marks the point the contract was agreed.
+
+**Never commit any of this to `develop`.** The branch is not a tidiness preference here: `develop` is
+protected by a GitHub ruleset, so the push is rejected by the server and the work has to be moved to a
+branch anyway — after the fact, which is harder than before it.
+
 **During `/opsx:apply`, commit once per top-level task group** — after every task under a `## N.` heading
 is finished and its checkboxes are ticked, including the `tasks.md` update in that same commit. One
 group, one commit.
@@ -58,6 +75,40 @@ group, one commit.
 - **The archive is its own commit**, after the last task group: `docs(openspec): archive <change> and
   add the <capability> baseline`. It carries both the spec fold-in and the folder move, so the two
   cannot drift apart.
+
+**Task groups are implemented by an implementer/reviewer pair, and agents never touch git.** The
+commit-per-group rule above is what forces the division of labour, so the two are not separable:
+
+- **Delegate a group that carries logic or an invariant** — an aggregation, a write path, a screen's
+  composition, anything where being subtly wrong looks like working code. Do a small mechanical group
+  directly (one route entry, an icon, a re-export): a two-agent loop over thirty lines costs more than it
+  finds.
+- **Never delegate a documentation group or a verification group.** A docs group edits `docs/CONCEPT.md`,
+  `docs/DESIGN.md` and `docs/decision-log/` — the product, in a voice that argues positions rather than
+  describing them, and an agent holding only the spec text flattens a derivation into its conclusion. A
+  verify group needs a real browser at 412×600, the trial device, and the judgment calls the tasks name.
+- **The implementer and reviewer never commit, never stage, and never edit `tasks.md`.** They write code
+  and critique it; the checkbox tick and the commit are the main thread's, one group at a time in
+  dependency order. This is forced by `.githooks/pre-commit`, which validates the **working tree** rather
+  than the staged snapshot — an agent committing while another has half-written code on disk fails on work
+  that is not its own. `tasks.md` is a single file every group must edit, so a second writer clobbers
+  rather than merges.
+- **The reviewer runs `just check`.** A reviewer that only reads the diff produces plausible style
+  objections; every real bug found in this repo's history came from executing something. It reads the
+  change's `proposal.md`, `design.md` and delta specs first, and reviews against those and the invariants
+  below — not against generic best practice.
+- **Tell the reviewer the comment density is deliberate.** This codebase's comments carry the argument for
+  the code and cite `D`-numbers by design. A reviewer not told so will spend its rounds deleting the thing
+  that is the point.
+- **Cap the loop at two review rounds**, then report what is unresolved rather than looping further. There
+  is always more prose to improve, and "until satisfactory" has no floor here.
+- **Sequential by default.** Two groups may run in parallel only when they are genuinely independent
+  *and* touch disjoint directories *and* are each large enough to be worth it — which is rarer than the
+  task list makes it look, since most groups build on the one before. No worktrees for this: if two
+  groups need isolation to coexist, they were not independent.
+- **A final `/code-review` over the whole diff still runs**, before the archive commit. A per-group
+  reviewer sees one group; cross-group interaction is only visible at the end, and that is where prior
+  changes found most of what they fixed.
 
 **Archive on the feature branch, and always sync as part of it.** Both halves are forced rather than
 preferred:
