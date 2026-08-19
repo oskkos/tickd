@@ -16,7 +16,7 @@ or test commands. Everything under "Planned architecture" below is specification
   stack choices, hosting, risks.
 - **`docs/DESIGN.md`** — owns *how it looks*: logo, typography, colour, the logging screen layout, the
   component-library decision.
-- **`docs/decision-log/`** — one file per decision, `D1`–`D24`. See below.
+- **`docs/decision-log/`** — one file per decision, `D1`–`D26`. See below.
 - **`docs/DEPLOY.md`** and **`docs/ICONS.md`** — operational notes: the Cloudflare Pages setup, and the
   icon/asset catalogue that `docs/DESIGN.md` §1 defers the detail to.
 
@@ -197,9 +197,10 @@ the hook as the fast feedback loop.
 ## Working with the documents
 
 **`docs/decision-log/` records positions that were argued through and changed — one file per decision,
-`D1`–`D24`.** Read the relevant entry before proposing an alternative: most obvious-seeming suggestions
+`D1`–`D26`.** Read the relevant entry before proposing an alternative: most obvious-seeming suggestions
 (a `route` table, colour-coded grades, one flat style enum, an always-on VPS, Quarkus, GraalVM,
-Terraform, 8a.nu CSV import, a native mobile app, `react-router`, TanStack Query) were already
+Terraform, 8a.nu CSV import, a native mobile app, `react-router`, TanStack Query, a charting
+library) were already
 considered and rejected there, with reasoning. `docs/CONCEPT.md`'s own **Decision log** section is the
 index; `docs/decision-log/README.md` owns the shared structure and the rules below.
 
@@ -431,7 +432,9 @@ libraries alongside HTTP and auth clients for this reason.
 - **Put `data-theme` on `<html>`, never a subtree** — portalled dialogs and drawers render outside
   the React root and would miss a scoped theme.
 - Themes: daisyUI `dim` (dark) and `winter` (light). Dark mode is not optional; gyms are dimly lit.
-- The grade grid is plain `<button>`s — the one place a library is actively wrong.
+- The grade grid is plain `<button>`s, and **the flash-rate chart is plain `div`s** (D25) — the two
+  places a library is actively wrong. The chart is ~27 rows of label, bar and fraction; a canvas chart
+  would be the only surface the test suite cannot query and a screen reader cannot read.
 
 Typography: Poppins 600 headings, Lato 400 body, **self-hosted `.woff2` committed to the repo**
 (offline precaching, plus the GDPR ruling against CDN-embedded Google Fonts). Tabular figures for

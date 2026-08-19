@@ -44,12 +44,12 @@
 
 ## 5. The documents
 
-- [ ] 5.1 `CONCEPT.md` §4.2 — drop `send_style` from the "every metric breaks down by `protection` *and* `send_style`" sentence: a flash is this metric's numerator, so segmenting flash rate by flash-versus-redpoint is incoherent, and the sentence predates D14 and D20
-- [ ] 5.2 `CONCEPT.md` §8 — turn the `Charts | uPlot or Recharts` row into a deferral, pointing at D25
-- [ ] 5.3 `docs/decision-log/25-the-one-chart-is-plain-dom.md` — D25, recording the reversal with its three grounds (install weight paid up front by the precache, a canvas chart being the only Phase 0 surface the suite cannot query, and the grade grid's plain-`<button>` precedent) and noting the `build-tooling` fence is *not* the reason
-- [ ] 5.4 `docs/decision-log/26-small-samples-are-shown-without-a-fill.md` — D26, carrying the derivation rather than the number, the worked soft-7b failure it prevents, that it is presentation and not a filter so D6 holds, and the Wilson interval as considered-and-deferred
-- [ ] 5.5 `docs/DESIGN.md` — a new section for this screen, which the document has never had: the row's anatomy, the reference rule as the reading gesture, the three row states, the elided gap, the always-present scale heading and the selector. Cross-reference `CONCEPT.md` §4.2 rather than restating the metric
-- [ ] 5.6 Add D25 and D26 to `CONCEPT.md`'s decision-log index and to `docs/decision-log/README.md` if it carries a list; update both documents' `Last updated:` lines
+- [x] 5.1 `CONCEPT.md` §4.2 — drop `send_style` from the "every metric breaks down by `protection` *and* `send_style`" sentence: a flash is this metric's numerator, so segmenting flash rate by flash-versus-redpoint is incoherent, and the sentence predates D14 and D20
+- [x] 5.2 `CONCEPT.md` §8 — turn the `Charts | uPlot or Recharts` row into a deferral, pointing at D25
+- [x] 5.3 `docs/decision-log/25-the-one-chart-is-plain-dom.md` — D25, recording the reversal with its three grounds (install weight paid up front by the precache, a canvas chart being the only Phase 0 surface the suite cannot query, and the grade grid's plain-`<button>` precedent) and noting the `build-tooling` fence is *not* the reason
+- [x] 5.4 `docs/decision-log/26-small-samples-are-shown-without-a-fill.md` — D26, carrying the derivation rather than the number, the worked soft-7b failure it prevents, that it is presentation and not a filter so D6 holds, and the Wilson interval as considered-and-deferred
+- [x] 5.5 `docs/DESIGN.md` — a new section for this screen, which the document has never had: the row's anatomy, the reference rule as the reading gesture, the three row states, the elided gap, the always-present scale heading and the selector. Cross-reference `CONCEPT.md` §4.2 rather than restating the metric
+- [x] 5.6 Add D25 and D26 to `CONCEPT.md`'s decision-log index and to `docs/decision-log/README.md` if it carries a list; update both documents' `Last updated:` lines
 
 ## 6. Verify
 
