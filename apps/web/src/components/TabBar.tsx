@@ -7,9 +7,9 @@ import { Link } from '@tanstack/react-router';
  * thumb-reachable third: this app is used one-handed while tied in or holding a drink, and a top
  * navigation bar is the one place a thumb cannot go.
  *
- * **Only the tabs that exist.** `Flash` is the one Phase 0 surface still unshipped, and it is absent
- * rather than disabled — a greyed-out tab says the surface exists and is being withheld, which is a worse
- * lie than saying nothing. Adding it is one entry in `TABS`.
+ * **Only the tabs that exist**, and as of this change all four Phase 0 surfaces do. The rule stands for
+ * whatever comes next: a tab is added when its surface ships, never before, because a greyed-out tab says
+ * the surface exists and is being withheld, which is a worse lie than saying nothing.
  *
  * The active tab is marked three ways over: `aria-current`, a weight change, and an indicator rule
  * above it. `DESIGN.md` §3 requires colour never to be the only signal, and this bar is read at a
@@ -30,6 +30,19 @@ function SessionsIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="currentColor">
       <path d="M3 5h18v2.5H3zM3 10.75h18v2.5H3zM3 16.5h18V19H3z" />
+    </svg>
+  );
+}
+
+/**
+ * Bars of falling length — the flash-rate chart is a column of bars that shortens as the grade rises,
+ * and the shape of that fall is the whole reading. Drawn descending left to right so the icon reads as a
+ * rate curve rather than as a generic bar chart.
+ */
+function FlashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="currentColor">
+      <path d="M3 4.5h18V7H3zM3 9.75h13V12.25H3zM3 15h8V17.5H3zM3 20.25h4V22H3z" />
     </svg>
   );
 }
@@ -60,6 +73,7 @@ function SettingsIcon() {
 const TABS = [
   { to: '/', label: 'Log', Icon: LogIcon, exact: true },
   { to: '/sessions', label: 'Sessions', Icon: SessionsIcon, exact: false },
+  { to: '/flash', label: 'Flash', Icon: FlashIcon, exact: true },
   { to: '/settings', label: 'Settings', Icon: SettingsIcon, exact: true },
 ] as const;
 
