@@ -58,4 +58,4 @@
 - [x] 6.3 Measure the tab bar with four tabs at 412×600: every label on one line, every target keeping its touch size, and the logging screen's grade grid still showing three rows — the floor `app-shell` pins was won by arguing over eight pixels, and jsdom reports every height as zero
 - [x] 6.4 Check both themes, `dim` and `winter`, since the track, the fill, the suppressed treatment and the rule are new surfaces against the theme tokens
 - [x] 6.5 Settle design.md's two open questions against the device — the elision threshold, and whether the rule's label appears per chart or once per screen — and fold the answers into the spec text
-- [ ] 6.6 Log a handful of real goes on the trial device and read the screen as the climber: confirm the crossing is findable and that no row overstates a grade
+- [x] 6.6 Log a handful of real goes on the trial device and read the screen as the climber: confirm the crossing is findable and that no row overstates a grade
