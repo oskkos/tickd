@@ -65,8 +65,10 @@ export function RateRow({ row }: { row: FlashRateRow }) {
       <span className={`tabular ${ROW_COLUMNS.label} text-sm`}>{row.label}</span>
 
       {/*
-        The track. `data-chartable` is what the chart's tests and the styles both read, so the visual
-        state and the asserted state cannot disagree about which rows were drawn.
+        The track. `data-chartable` exposes the suppression decision to the tests; the styles below take
+        the same `chartable` local through a ternary rather than reading the attribute. Both are reads of
+        one variable and so cannot disagree — but the attribute is not what couples them, which is what an
+        earlier version of this comment claimed.
       */}
       <span
         aria-hidden="true"

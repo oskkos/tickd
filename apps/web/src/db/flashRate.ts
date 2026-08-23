@@ -197,6 +197,16 @@ async function pairsPresent(
  * `dexie-react-hooks` is available and deliberately unused (design.md).
  */
 export async function flashRates(db: TickdDatabase): Promise<readonly FlashRateGroup[]> {
+  // **One read transaction, because the snapshot is taken in two steps.** `pairsPresent` walks the index
+  // for the pairs, then each pair is read separately — so without a transaction a write landing between
+  // them yields a result where one pair reflects the write and a *newly created* pair is missing from the
+  // loop altogether. That failure is not staleness: the chart for that pair silently does not exist,
+  // which is indistinguishable from having logged nothing there. Two tabs is the case the screen's own
+  // comment already treats as real, and `logbook.ts` reaches for the same fix.
+  return db.transaction('r', db.ticks, () => collectRates(db));
+}
+
+async function collectRates(db: TickdDatabase): Promise<readonly FlashRateGroup[]> {
   const groups: FlashRateGroup[] = [];
 
   for (const [discipline, scale] of await pairsPresent(db)) {

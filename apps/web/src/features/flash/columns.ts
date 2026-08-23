@@ -45,8 +45,11 @@ export const ROW_COLUMNS = {
  *
  * The sizes: the label column holds a `GapRow`'s widest range (`7a+–7c+`, seven characters at `text-xs`)
  * rather than a grade's three, since both share the column and a straight left edge is what makes the
- * axis an axis. The counts column holds `10/22 too few` on one line — the suppressed row is the widest
- * one, and wrapping it would make the shortest sample look like the tallest row.
+ * axis an axis. The counts column holds the widest text either state can produce, which is **not**
+ * `10/22 too few` as this comment first claimed: `too few` renders only below three first encounters, so a
+ * suppressed row's counts can never exceed `2/2`. The genuine maxima are `2/2 too few` and a chartable
+ * row's own counts, both measured as fitting on one line — wrapping either would make the shortest sample
+ * the tallest row.
  *
  * jsdom measures every width as zero, so whether these two numbers are actually big enough is settled on
  * a real device at 412×600 and nowhere else.
