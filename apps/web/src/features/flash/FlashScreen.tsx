@@ -43,13 +43,19 @@ export function FlashScreen() {
   // preferences module is for choices that are annoying to redo, like theme and haptics, and this is one
   // tap on a screen you arrive at with a default that is already right.
   const [chosen, setChosen] = useState<Protection | undefined>();
+  // Distinguished from an empty read, because the two must not say the same thing. Degrading a failure to
+  // `[]` renders the day-one prose — *nothing to divide yet, expect it after three or four weeks* — which
+  // to a climber with two hundred logged goes is not a neutral empty state but a confident false claim
+  // about their own logbook. `SessionsScreen`'s equivalent degradation is milder because "no sessions yet"
+  // merely reads as wrong; this one instructs the reader to wait a month for data they already have.
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     void flashRates(db).then(setGroups, (error: unknown) => {
-      // An empty result is a state this screen already renders, so a failed read degrades to the day-one
-      // prose rather than to a blank frame and an unhandled rejection — the failure `SessionsScreen`
-      // fixed the same way.
       console.error('[tickd] could not read flash rates', error);
+      setFailed(true);
+      // Still `[]` rather than a blank frame: the frame is what an unhandled rejection leaves behind, and
+      // the prose below is chosen by `failed` rather than by the emptiness.
       setGroups([]);
     });
   }, []);
@@ -74,6 +80,22 @@ export function FlashScreen() {
   // reactive** — `dexie-react-hooks` observing the ticks table would let `entries` shrink beneath a live
   // selection — and that is when the check earns its place, not before.
   const active = chosen ?? defaultProtection(entries);
+
+  if (active === undefined && failed) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <h2 className="shrink-0 text-2xl">Flash rate</h2>
+        {/*
+          A read failure, said as one. It names the logbook as intact because that is the reassurance the
+          day-one prose would otherwise deny: the ticks are on disk, this screen could not read them.
+        */}
+        <p className="text-sm opacity-70">
+          Could not read your logbook just now. Your goes are still saved — try opening this screen
+          again.
+        </p>
+      </div>
+    );
+  }
 
   if (active === undefined) {
     return (

@@ -10,10 +10,13 @@ import { FlashScreen } from './FlashScreen.tsx';
  * Against the real database, and rendered directly rather than through `renderApp()`.
  *
  * The screen reads the `db` singleton — the router constructs it, so there is no prop to inject a
- * different one through — so the read has to be genuine. It is rendered on its own because **`/flash`
- * does not exist yet**: the route, the tab and the icon are the next task group, and adding the route
- * here to satisfy a test would ship half of it early. The screen holds no `Link`, so it needs no router
- * context; `router.test.tsx` is where the route itself gets asserted once it is registered.
+ * different one through — so the read has to be genuine. It is rendered on its own because it holds no
+ * `Link` and therefore needs no router context, which keeps this suite's failures about the screen rather
+ * than about the frame around it.
+ *
+ * `/flash` **does** exist: it was registered in the group after this suite was written, and the original
+ * reason given here — that the route did not exist yet — is no longer the reason. `router.test.tsx` owns
+ * the route, asserting it is reachable from the tab bar and renders when its URL is loaded directly.
  */
 beforeEach(async () => {
   await db.ticks.clear();
@@ -341,6 +344,38 @@ describe('FlashScreen — what it must not show', () => {
     for (const list of screen.getAllByRole('list')) {
       expect(within(list).queryAllByRole('button')).toHaveLength(0);
     }
+  });
+});
+
+describe('FlashScreen — a read that fails', () => {
+  it('says the read failed rather than that there is nothing to divide', async () => {
+    // A genuine failure rather than a mocked one: a closed Dexie rejects every read, which is the same
+    // rejection the screen's `.then(_, handler)` catches in production. Reopened in `finally` because the
+    // `db` singleton is shared with every other suite in the run.
+    await db.ticks.bulkPut([tick(climb.lead('6a'), true), tick(climb.lead('6a'), true)]);
+    db.close();
+
+    try {
+      render(<FlashScreen />);
+
+      expect(await screen.findByText(/could not read your logbook/i)).toBeInTheDocument();
+      // The distinction the branch exists for. The day-one prose tells a climber to come back in three
+      // or four weeks, which to someone whose goes are on disk is a false claim about their own logbook.
+      expect(screen.queryByText(/nothing to divide yet/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/three or four weeks/i)).not.toBeInTheDocument();
+      // And it says the data survived, which is the reassurance the day-one prose would deny.
+      expect(screen.getByText(/still saved/i)).toBeInTheDocument();
+    } finally {
+      await db.open();
+    }
+  });
+
+  it('shows the day-one prose when the read succeeds and finds nothing', async () => {
+    // The other side of the same branch: an empty logbook is not a failure, and must not read as one.
+    render(<FlashScreen />);
+
+    expect(await screen.findByText(/nothing to divide yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/could not read your logbook/i)).not.toBeInTheDocument();
   });
 });
 
